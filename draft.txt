@@ -1,41 +1,4 @@
-package main
-
-import (
-	"fmt"
-	"io/ioutil"
-	"os"
-	"path"
-	"plugin"
-	"regexp"
-
-	"github.com/bluecolor/tractor/api"
-	"github.com/bluecolor/tractor/util"
-)
-
-func listFiles(dir, pattern string) ([]os.FileInfo, error) {
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	filteredFiles := []os.FileInfo{}
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		matched, err := regexp.MatchString(pattern, file.Name())
-		if err != nil {
-			return nil, err
-		}
-		if matched {
-			filteredFiles = append(filteredFiles, file)
-		}
-	}
-	return filteredFiles, nil
-}
-
-func main() {
-	configFile := "mappings.yml"
+configFile := "mappings.yml"
 	// util.PrintMappingList(configFile)
 	// cmd.Execute()
 	pluginsPath := "bin/plugins"
@@ -65,4 +28,3 @@ func main() {
 		mappings := util.GetMappings(configFile)
 		symbol.(func(api.Config))(mappings[0]["Demo"].Input)
 	}
-}

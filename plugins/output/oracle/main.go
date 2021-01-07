@@ -26,5 +26,5 @@ func Run(conf api.Config) {
 }
 
 func (p plugin) string() string {
-	return "in-oracle"
+	return "out-oracle"
 }

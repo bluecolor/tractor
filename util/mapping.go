@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -44,4 +45,15 @@ func PrintMappingList(configFile string) {
 	} else {
 		fmt.Printf("\nFound %d mappings\n", len(mappings))
 	}
+}
+
+// GetMapping Get mapping with given name
+func GetMapping(configFile string, name string) (*Mapping, error) {
+	mappings := GetMappings(configFile)
+	for _, mapping := range mappings {
+		if m, ok := mapping[name]; ok {
+			return &m, nil
+		}
+	}
+	return nil, errors.New("Mapping with name: " + name + " not found")
 }

@@ -1,7 +1,9 @@
 - Demo:
     input:
+        plugin: oracle
         username: Hello
         libdir: /path/to/instant/client
         connection_string: "conn:1521/db"
     output:
+        plugin: oracle
         username: World
