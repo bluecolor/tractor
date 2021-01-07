@@ -4,8 +4,6 @@ import (
 	"github.com/bluecolor/tractor/api"
 )
 
-type plugin string
-
 type config struct {
 	Libdir           string
 	Username         string
@@ -23,8 +21,4 @@ func getConfig(conf api.Config) *config {
 func Run(conf api.Config) {
 	config := getConfig(conf)
 	println(config.Username)
-}
-
-func (p plugin) string() string {
-	return "out-oracle"
 }

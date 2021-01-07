@@ -6,30 +6,21 @@ import (
 	"os"
 	"path"
 	"plugin"
-	"regexp"
 )
 
-// List files with the given pattern
-func listFiles(dir, pattern string) ([]os.FileInfo, error) {
-	files, err := ioutil.ReadDir(dir)
+func findAllPluginFiles(dir string) ([]os.FileInfo, error) {
+	items, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
-
-	filteredFiles := []os.FileInfo{}
-	for _, file := range files {
+	files := []os.FileInfo{}
+	for _, file := range items {
 		if file.IsDir() {
 			continue
 		}
-		matched, err := regexp.MatchString(pattern, file.Name())
-		if err != nil {
-			return nil, err
-		}
-		if matched {
-			filteredFiles = append(filteredFiles, file)
-		}
+		files = append(files, file)
 	}
-	return filteredFiles, nil
+	return files, nil
 }
 
 func findPluginFile(dir, name string) (os.FileInfo, error) {
@@ -73,4 +64,18 @@ func GetPlugins(pluginsPath, inputPluginName, outputPluginName string) (*plugin.
 		return nil, nil, err
 	}
 	return inputPlugin, outputPlugin, nil
+}
+
+// GetPluginNamesByType ...
+func GetPluginNamesByType(pluginsPath, ptype string) ([]string, error) {
+	ppath := path.Join(pluginsPath, ptype)
+	files, err := findAllPluginFiles(ppath)
+	if err != nil {
+		return nil, err
+	}
+	plugins := []string{}
+	for _, file := range files {
+		plugins = append(plugins, file.Name())
+	}
+	return plugins, nil
 }

@@ -56,5 +56,5 @@ func run(configFile string, mapping string) {
 		os.Exit(1)
 	}
 	inRunSymbol.(func(api.Config))(m.Input)
-	outRunSymbol.(func(api.Config))(m.Input)
+	outRunSymbol.(func(api.Config))(m.Output)
 }

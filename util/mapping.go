@@ -2,7 +2,6 @@ package util
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"log"
 
@@ -28,23 +27,6 @@ func GetMappings(configFile string) []map[string]Mapping {
 		log.Fatalf("Unmarshal: %v", err)
 	}
 	return mappings
-}
-
-// PrintMappingList prints the mapping names in config file
-func PrintMappingList(configFile string) {
-	mappings := GetMappings(configFile)
-	for index, mapping := range mappings {
-		for name := range mapping {
-			fmt.Printf("%6d %s\n", index, name)
-		}
-	}
-	if len(mappings) == 0 {
-		fmt.Printf("No mappings found\n")
-	} else if len(mappings) == 1 {
-		fmt.Printf("\nFound %d mapping\n", len(mappings))
-	} else {
-		fmt.Printf("\nFound %d mappings\n", len(mappings))
-	}
 }
 
 // GetMapping Get mapping with given name
