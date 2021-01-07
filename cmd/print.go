@@ -19,8 +19,9 @@ func init() {
 
 var printCmd = &cobra.Command{
 	Use:   "print",
-	Short: "prints the info requested with argumet",
+	Short: "prints the info requested with argumets",
 	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
 	},
 }
 
