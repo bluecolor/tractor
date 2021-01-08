@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"plugin"
 
 	"github.com/bluecolor/tractor/util"
 	"github.com/spf13/cobra"
@@ -38,6 +39,14 @@ func getIOConf(m *util.Mapping) ([]byte, []byte, error) {
 	return iconf, oconf, nil
 }
 
+func getRunMethod(plug *plugin.Plugin) (func([]byte), error) {
+	symbol, err := plug.Lookup("Run")
+	if err != nil {
+		return nil, err
+	}
+	return symbol.(func([]byte)), nil
+}
+
 func run(configFile string, mapping string) {
 	m, _ := util.GetMapping(configFile, mapping)
 
@@ -48,23 +57,22 @@ func run(configFile string, mapping string) {
 	if _, ok := m.Output["plugin"]; !ok {
 		panic("Output plugin type is not given in mapping: " + mapping)
 	}
-	inputPluginName := m.Input["plugin"].(string)
-	outputPluginName := m.Output["plugin"].(string)
+	iplugn := m.Input["plugin"].(string)
+	oplugn := m.Output["plugin"].(string)
 
-	inputPlugin, outputPlugin, err := util.GetPlugins("bin/plugins", inputPluginName, outputPluginName)
-
+	iplug, oplug, err := util.GetPlugins("bin/plugins", iplugn, oplugn)
 	if err != nil {
 		panic(err)
 	}
 
-	inRunSymbol, err := inputPlugin.Lookup("Run")
+	irun, err := getRunMethod(iplug)
 	if err != nil {
-		fmt.Printf("Failed find Run method in input plugin %s: %v\n", inputPluginName, err)
+		fmt.Printf("Failed find Run method in input plugin %s: %v\n", iplugn, err)
 		os.Exit(1)
 	}
-	outRunSymbol, err := outputPlugin.Lookup("Run")
+	orun, err := getRunMethod(oplug)
 	if err != nil {
-		fmt.Printf("Failed find Run method in output plugin %s: %v\n", outputPluginName, err)
+		fmt.Printf("Failed find Run method in output plugin %s: %v\n", oplugn, err)
 		os.Exit(1)
 	}
 
@@ -73,6 +81,6 @@ func run(configFile string, mapping string) {
 		panic(err)
 	}
 
-	inRunSymbol.(func([]byte))(iconf)
-	outRunSymbol.(func([]byte))(oconf)
+	irun(iconf)
+	orun(oconf)
 }
