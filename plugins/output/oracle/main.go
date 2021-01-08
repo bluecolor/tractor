@@ -1,6 +1,8 @@
 package main
 
 import (
+	"sync"
+
 	"github.com/bluecolor/tractor/api"
 )
 
@@ -20,10 +22,11 @@ func getConfig(conf []byte) (*config, error) {
 }
 
 // Run plugin
-func Run(conf []byte) {
+func Run(wg *sync.WaitGroup, conf []byte) {
 	config, err := getConfig(conf)
 	if err != nil {
 		panic(err)
 	}
 	println(config.Username)
+	wg.Done()
 }

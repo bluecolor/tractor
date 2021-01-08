@@ -1,9 +1,10 @@
 - Demo:
     input:
         plugin: oracle
-        username: Hello
-        libdir: /path/to/instant/client
-        connection_string: "conn:1521/db"
+        username: tractor
+        password: tractor
+        libdir: play/instantclient_12_2
+        connection_string: "localhost:1521/orcl"
     output:
         plugin: oracle
         username: World

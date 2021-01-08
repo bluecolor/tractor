@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"plugin"
+	"sync"
 
 	"github.com/bluecolor/tractor/util"
 	"github.com/spf13/cobra"
@@ -39,12 +40,12 @@ func getIOConf(m *util.Mapping) ([]byte, []byte, error) {
 	return iconf, oconf, nil
 }
 
-func getRunMethod(plug *plugin.Plugin) (func([]byte), error) {
+func getRunMethod(plug *plugin.Plugin) (func(*sync.WaitGroup, []byte), error) {
 	symbol, err := plug.Lookup("Run")
 	if err != nil {
 		return nil, err
 	}
-	return symbol.(func([]byte)), nil
+	return symbol.(func(*sync.WaitGroup, []byte)), nil
 }
 
 func run(configFile string, mapping string) {
@@ -81,6 +82,11 @@ func run(configFile string, mapping string) {
 		panic(err)
 	}
 
-	irun(iconf)
-	orun(oconf)
+	var wg sync.WaitGroup
+	irun(&wg, iconf)
+	wg.Add(1)
+	orun(&wg, oconf)
+	wg.Add(1)
+
+	wg.Wait()
 }
