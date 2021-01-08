@@ -5,20 +5,25 @@ import (
 )
 
 type config struct {
-	Libdir           string
-	Username         string
-	Password         string
-	ConnectionString string
+	Libdir           string `yaml:"libdir"`
+	Username         string `yaml:"username"`
+	Password         string `yaml:"password"`
+	ConnectionString string `yaml:"connection_string"`
 }
 
-func getConfig(conf api.Config) *config {
+func getConfig(conf []byte) (*config, error) {
 	config := config{}
-	api.ParseConfig(conf, &config)
-	return &config
+	if err := api.ParseConfig(conf, &config); err != nil {
+		return nil, err
+	}
+	return &config, nil
 }
 
 // Run plugin
-func Run(conf api.Config) {
-	config := getConfig(conf)
+func Run(conf []byte) {
+	config, err := getConfig(conf)
+	if err != nil {
+		panic(err)
+	}
 	println(config.Username)
 }

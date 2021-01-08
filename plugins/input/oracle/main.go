@@ -11,7 +11,7 @@ type config struct {
 	ConnectionString string `yaml:"connection_string"`
 }
 
-func getConfig(conf api.Config) (*config, error) {
+func getConfig(conf []byte) (*config, error) {
 	config := config{}
 	if err := api.ParseConfig(conf, &config); err != nil {
 		return nil, err
@@ -20,7 +20,7 @@ func getConfig(conf api.Config) (*config, error) {
 }
 
 // Run plugin
-func Run(conf api.Config) {
+func Run(conf []byte) {
 	config, err := getConfig(conf)
 	if err != nil {
 		panic(err)

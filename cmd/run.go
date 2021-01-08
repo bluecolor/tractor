@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bluecolor/tractor/api"
 	"github.com/bluecolor/tractor/util"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
 )
 
 func init() {
@@ -24,6 +24,18 @@ var runCmd = &cobra.Command{
 		configFile := "mappings.yml"
 		run(configFile, args[0])
 	},
+}
+
+func getIOConf(m *util.Mapping) ([]byte, []byte, error) {
+	iconf, err := yaml.Marshal(m.Input)
+	if err != nil {
+		return nil, nil, err
+	}
+	oconf, err := yaml.Marshal(m.Output)
+	if err != nil {
+		return nil, nil, err
+	}
+	return iconf, oconf, nil
 }
 
 func run(configFile string, mapping string) {
@@ -55,6 +67,12 @@ func run(configFile string, mapping string) {
 		fmt.Printf("Failed find Run method in output plugin %s: %v\n", outputPluginName, err)
 		os.Exit(1)
 	}
-	inRunSymbol.(func(api.Config))(m.Input)
-	outRunSymbol.(func(api.Config))(m.Output)
+
+	iconf, oconf, err := getIOConf(m)
+	if err != nil {
+		panic(err)
+	}
+
+	inRunSymbol.(func([]byte))(iconf)
+	outRunSymbol.(func([]byte))(oconf)
 }
