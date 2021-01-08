@@ -13,8 +13,8 @@ build:
 	go build -i -v -o ${OUT} -ldflags="-X github.com/bluecolor/tractor/cmd.version=${VERSION}" ${PKG}
 
 build-plugins:
-    go build -buildmode=plugin -o ${INPUT_PLUGINS_PATH}/oracle.so plugins/input/oracle/main.go
-    go build -buildmode=plugin -o ${OUTPUT_PLUGINS_PATH}/oracle.so plugins/output/oracle/main.go
+	go build -buildmode=plugin -o ${INPUT_PLUGINS_PATH}/oracle.so plugins/input/oracle/main.go
+	go build -buildmode=plugin -o ${OUTPUT_PLUGINS_PATH}/oracle.so plugins/output/oracle/main.go
 
 test:
 	@go test -short ${PKG_LIST}
