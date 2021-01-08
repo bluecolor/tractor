@@ -83,9 +83,9 @@ func run(configFile string, mapping string) {
 	}
 
 	var wg sync.WaitGroup
-	irun(&wg, iconf)
+	go irun(&wg, iconf)
 	wg.Add(1)
-	orun(&wg, oconf)
+	go orun(&wg, oconf)
 	wg.Add(1)
 
 	wg.Wait()
