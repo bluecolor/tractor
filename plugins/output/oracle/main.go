@@ -28,5 +28,13 @@ func Run(wg *sync.WaitGroup, conf []byte, channel chan []byte) {
 		panic(err)
 	}
 	println(config.Username)
+
+	var recievedCount int = 0
+	for message := range channel {
+		recievedCount = recievedCount + 1
+
+		println(string(message))
+	}
+
 	wg.Done()
 }
