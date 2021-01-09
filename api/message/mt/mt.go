@@ -1,0 +1,13 @@
+package mt
+
+// Type ...
+type Type int
+
+const (
+	// Schema ...
+	Schema Type = iota
+	// Data ...
+	Data
+	// Status ...
+	Status
+)

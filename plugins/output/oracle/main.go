@@ -22,7 +22,7 @@ func getConfig(conf []byte) (*config, error) {
 }
 
 // Run plugin
-func Run(wg *sync.WaitGroup, conf []byte) {
+func Run(wg *sync.WaitGroup, conf []byte, channel chan []byte) {
 	config, err := getConfig(conf)
 	if err != nil {
 		panic(err)

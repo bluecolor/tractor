@@ -40,12 +40,12 @@ func getIOConf(m *util.Mapping) ([]byte, []byte, error) {
 	return iconf, oconf, nil
 }
 
-func getRunMethod(plug *plugin.Plugin) (func(*sync.WaitGroup, []byte), error) {
+func getRunMethod(plug *plugin.Plugin) (func(*sync.WaitGroup, []byte, chan []byte), error) {
 	symbol, err := plug.Lookup("Run")
 	if err != nil {
 		return nil, err
 	}
-	return symbol.(func(*sync.WaitGroup, []byte)), nil
+	return symbol.(func(*sync.WaitGroup, []byte, chan []byte)), nil
 }
 
 func run(configFile string, mapping string) {
@@ -83,9 +83,11 @@ func run(configFile string, mapping string) {
 	}
 
 	var wg sync.WaitGroup
-	go irun(&wg, iconf)
+	channel := make(chan []byte, 1000) // todo buffer from .env
+
+	go irun(&wg, iconf, channel)
 	wg.Add(1)
-	go orun(&wg, oconf)
+	go orun(&wg, oconf, channel)
 	wg.Add(1)
 
 	wg.Wait()

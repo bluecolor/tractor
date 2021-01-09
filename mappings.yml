@@ -5,6 +5,7 @@
         password: tractor
         libdir: play/instantclient_12_2
         connection_string: "localhost:1521/orcl"
+        table: all_tables
     output:
         plugin: oracle
         username: World
