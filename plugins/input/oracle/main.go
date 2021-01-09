@@ -8,6 +8,7 @@ import (
 
 	"github.com/bluecolor/tractor/api"
 	"github.com/bluecolor/tractor/api/schema"
+	"github.com/godror/godror"
 	_ "github.com/godror/godror"
 )
 
@@ -17,6 +18,7 @@ type config struct {
 	Password         string `yaml:"password"`
 	ConnectionString string `yaml:"connection_string"`
 	Table            string `yaml:"table"`
+	BatchSize        int    `yaml:"batch_size"`
 }
 
 // SampleConfig ...
@@ -61,7 +63,8 @@ func Run(wg *sync.WaitGroup, conf []byte, channel chan []byte) {
 	if err != nil {
 		panic(err)
 	}
-	rows, err := db.Query(config.getQuery())
+	rows, err := db.Query(config.getQuery(), godror.FetchArraySize(config.BatchSize))
+
 	if err != nil {
 		panic(err)
 	}
