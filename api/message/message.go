@@ -10,7 +10,7 @@ import (
 type Message struct {
 	Sender      sender.Type
 	MessageType mt.Type
-	Content     []byte
+	Content     interface{}
 }
 
 // Status ...
@@ -22,5 +22,14 @@ type Status struct {
 
 // Data ...
 type Data struct {
-	records []byte
+	Content [][]interface{}
+}
+
+// NewDataMessage ...
+func NewDataMessage(content interface{}) Message {
+	return Message{
+		Sender:      sender.InputPlugin,
+		MessageType: mt.Data,
+		Content:     content,
+	}
 }

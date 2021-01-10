@@ -1,24 +1,10 @@
-package schema
+package md
 
-import "reflect"
+import (
+	"reflect"
 
-// FT ...
-type FT string
-
-// FieldType  ..
-var FieldType = struct {
-	Numeric   FT
-	String    FT
-	Date      FT
-	Timestamp FT
-	Float     FT
-}{
-	Numeric:   "numeric",
-	String:    "string",
-	Date:      "date",
-	Timestamp: "timestamp",
-	Float:     "float",
-}
+	"github.com/bluecolor/tractor/api/md/mdt"
+)
 
 // DecimalSize ...
 type DecimalSize struct {
@@ -52,4 +38,10 @@ type Field struct {
 type DataStore struct {
 	Name   string
 	Fields []Field
+}
+
+// Metadata ...
+type Metadata struct {
+	Type    mdt.Type
+	Content interface{}
 }
