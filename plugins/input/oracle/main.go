@@ -7,6 +7,9 @@ import (
 	"sync"
 
 	"github.com/bluecolor/tractor/api"
+	"github.com/bluecolor/tractor/api/message"
+	"github.com/bluecolor/tractor/api/message/mt"
+	"github.com/bluecolor/tractor/api/message/sender"
 	"github.com/bluecolor/tractor/api/schema"
 	"github.com/godror/godror"
 	_ "github.com/godror/godror"
@@ -18,7 +21,14 @@ type config struct {
 	Password         string `yaml:"password"`
 	ConnectionString string `yaml:"connection_string"`
 	Table            string `yaml:"table"`
-	BatchSize        int    `yaml:"batch_size"`
+	FetchSize        int    `yaml:"fetch_size"`
+}
+
+func (c *config) GetFetchSize() int {
+	if c.FetchSize > 0 {
+		return c.FetchSize
+	}
+	return 1000
 }
 
 // SampleConfig ...
@@ -51,7 +61,7 @@ func PluginType() api.PluginType {
 }
 
 // Run plugin
-func Run(wg *sync.WaitGroup, conf []byte, channel chan []byte) {
+func Run(wg *sync.WaitGroup, conf []byte, channel chan message.Message) {
 	config, err := getConfig(conf)
 	if err != nil {
 		panic(err)
@@ -63,7 +73,7 @@ func Run(wg *sync.WaitGroup, conf []byte, channel chan []byte) {
 	if err != nil {
 		panic(err)
 	}
-	rows, err := db.Query(config.getQuery(), godror.FetchArraySize(config.BatchSize))
+	rows, err := db.Query(config.getQuery(), godror.FetchArraySize(config.GetFetchSize()))
 
 	if err != nil {
 		panic(err)
@@ -73,7 +83,7 @@ func Run(wg *sync.WaitGroup, conf []byte, channel chan []byte) {
 	ds, _ := getDataStore("demo", columns)
 
 	sendSchemaMessage(channel, ds)
-	sendData(channel, len(ds.Fields), rows)
+	sendData(channel, len(ds.Fields), rows, config.GetFetchSize())
 
 	close(channel)
 	wg.Done()
@@ -88,8 +98,20 @@ func getValuePointers(c int) []interface{} {
 	return ptrs
 }
 
-func sendData(channel chan []byte, fieldCount int, rows *sql.Rows) {
+func sendData(channel chan message.Message, fieldCount int, rows *sql.Rows, batchSize int) {
 	valuePtrs := getValuePointers(fieldCount)
+
+	var records [][]byte
+
+	send := func(records *[][]byte) {
+		content, _ := json.Marshal(*records)
+		message := message.Message{
+			Sender:      sender.InputPlugin,
+			MessageType: mt.Data,
+			Content:     content,
+		}
+		channel <- message
+	}
 
 	for rows.Next() {
 		row := make([]interface{}, fieldCount)
@@ -101,13 +123,26 @@ func sendData(channel chan []byte, fieldCount int, rows *sql.Rows) {
 		}
 
 		data, _ := json.Marshal(row)
-		channel <- data
+		records = append(records, data)
+		if len(records) == batchSize {
+			send(&records)
+			records = nil
+		}
+	}
+	if len(records) > 0 {
+		send(&records)
+		records = nil
 	}
 }
 
-func sendSchemaMessage(channel chan []byte, ds *schema.DataStore) {
-	data, _ := json.Marshal(ds)
-	channel <- data
+func sendSchemaMessage(channel chan message.Message, ds *schema.DataStore) {
+	content, _ := json.Marshal(ds)
+	message := message.Message{
+		Sender:      sender.InputPlugin,
+		MessageType: mt.Schema,
+		Content:     content,
+	}
+	channel <- message
 }
 
 func getDataStore(name string, columns []*sql.ColumnType) (*schema.DataStore, error) {
@@ -124,8 +159,6 @@ func getDataStore(name string, columns []*sql.ColumnType) (*schema.DataStore, er
 
 		ln, ok := ct.Length()
 		length := schema.Length{Length: ln, Ok: ok}
-
-		println(ct.Name())
 
 		field := schema.Field{
 			Name:        ct.Name(),

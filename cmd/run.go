@@ -6,6 +6,7 @@ import (
 	"plugin"
 	"sync"
 
+	"github.com/bluecolor/tractor/api/message"
 	"github.com/bluecolor/tractor/util"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -40,12 +41,12 @@ func getIOConf(m *util.Mapping) ([]byte, []byte, error) {
 	return iconf, oconf, nil
 }
 
-func getRunMethod(plug *plugin.Plugin) (func(*sync.WaitGroup, []byte, chan []byte), error) {
+func getRunMethod(plug *plugin.Plugin) (func(*sync.WaitGroup, []byte, chan message.Message), error) {
 	symbol, err := plug.Lookup("Run")
 	if err != nil {
 		return nil, err
 	}
-	return symbol.(func(*sync.WaitGroup, []byte, chan []byte)), nil
+	return symbol.(func(*sync.WaitGroup, []byte, chan message.Message)), nil
 }
 
 func run(configFile string, mapping string) {
@@ -83,7 +84,7 @@ func run(configFile string, mapping string) {
 	}
 
 	var wg sync.WaitGroup
-	channel := make(chan []byte, 1000) // todo buffer from .env
+	channel := make(chan message.Message, 1000) // todo buffer from .env
 
 	go irun(&wg, iconf, channel)
 	wg.Add(1)

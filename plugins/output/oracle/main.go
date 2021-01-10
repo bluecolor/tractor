@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/bluecolor/tractor/api"
+	"github.com/bluecolor/tractor/api/message"
 )
 
 type config struct {
@@ -22,7 +23,7 @@ func getConfig(conf []byte) (*config, error) {
 }
 
 // Run plugin
-func Run(wg *sync.WaitGroup, conf []byte, channel chan []byte) {
+func Run(wg *sync.WaitGroup, conf []byte, channel chan message.Message) {
 	config, err := getConfig(conf)
 	if err != nil {
 		panic(err)
@@ -32,8 +33,7 @@ func Run(wg *sync.WaitGroup, conf []byte, channel chan []byte) {
 	var recievedCount int = 0
 	for message := range channel {
 		recievedCount = recievedCount + 1
-
-		println(string(message))
+		println(message.MessageType)
 	}
 
 	wg.Done()
