@@ -29,8 +29,6 @@ func getDataStore(name string, columns []*sql.ColumnType) (*md.DataStore, error)
 	var fields []md.Field
 	for _, ct := range columns {
 
-		println(ct.Name())
-
 		precision, scale, ok := ct.DecimalSize()
 		decimalSize := md.DecimalSize{Precision: precision, Scale: scale, Ok: ok}
 
