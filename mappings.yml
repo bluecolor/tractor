@@ -10,3 +10,8 @@
     output:
         plugin: oracle
         username: World
+        username: tractor
+        password: tractor
+        libdir: play/instantclient_12_2
+        connection_string: "localhost:1521/orcl"
+        table: tractor.all_tables_
