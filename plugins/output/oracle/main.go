@@ -9,6 +9,7 @@ import (
 
 	"github.com/bluecolor/tractor/api"
 	"github.com/bluecolor/tractor/api/md"
+	"github.com/bluecolor/tractor/api/md/mdt"
 	"github.com/bluecolor/tractor/api/message"
 	"github.com/bluecolor/tractor/api/message/mt"
 )
@@ -37,25 +38,42 @@ func Run(wg *sync.WaitGroup, conf []byte, channel chan message.Message) {
 	}
 
 	m := <-channel
-	ds, _ := getDataStore(&m)
+	var query string
+	if m.MessageType == mt.Metadata {
+		metadata := m.Content.(md.Metadata)
+		if metadata.Type == mdt.DataStore {
+			ds := metadata.Content.(*md.DataStore)
+			query = getQuery(len(ds.Fields), config.Table)
+		}
+	} else if m.MessageType == mt.Data {
+		data := m.Content.(message.Data).Content
+		query = getQuery(len(data[0]), config.Table)
+		channel <- message.NewDataMessage(data)
+	} else {
+		panic(errors.New("Unknown message type"))
+	}
 
-	query := getQuery(len(ds.Fields), config.Table)
 	db, _ := sql.Open("godror", getDataSourceName(config))
-	stmt, _ := db.Prepare(query)
+	tx, err := db.Begin()
 
-	println(query)
-	var recievedCount int = 0
+	if err != nil {
+		db.Close()
+		panic(err)
+	}
+
 	for m := range channel {
-		recievedCount = recievedCount + 1
-		data := m.Content.(message.Data)
-		for _, d := range data.Content {
-			_, err = stmt.Exec(d...)
-			if err != nil {
-				panic(err)
+		if m.MessageType == mt.Data {
+			data := m.Content.(message.Data)
+			for _, d := range data.Content {
+				_, err = tx.Exec(query, d...)
+				if err != nil {
+					tx.Rollback()
+					panic(err)
+				}
 			}
 		}
 	}
-
+	tx.Commit()
 	db.Close()
 	wg.Done()
 }
