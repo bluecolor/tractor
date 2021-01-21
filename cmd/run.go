@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"plugin"
 	"sync"
@@ -21,11 +22,9 @@ var runCmd = &cobra.Command{
 	Short: "Run given mapping",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			fmt.Printf("Mapping name is not given")
-			os.Exit(1)
+			log.Fatalln("Mapping name is not given")
 		}
-		configFile := "mappings.yml"
-		run(configFile, args[0])
+		run(util.MappingsFile, args[0])
 	},
 }
 
@@ -49,32 +48,33 @@ func getRunMethod(plug *plugin.Plugin) (func(*sync.WaitGroup, []byte, chan messa
 	return symbol.(func(*sync.WaitGroup, []byte, chan message.Message)), nil
 }
 
-func run(configFile string, mapping string) {
-	m, _ := util.GetMapping(configFile, mapping)
+func run(mappingsFile string, mapping string) {
+	m, _ := util.GetMapping(mappingsFile, mapping)
 
 	if _, ok := m.Input["plugin"]; !ok {
-		panic("Input plugin type is not given in mapping: " + mapping)
+		log.Fatalln("Input plugin type is not given in mapping: " + mapping)
 	}
 
 	if _, ok := m.Output["plugin"]; !ok {
-		panic("Output plugin type is not given in mapping: " + mapping)
+		log.Fatalln("Output plugin type is not given in mapping: " + mapping)
 	}
-	iplugn := m.Input["plugin"].(string)
-	oplugn := m.Output["plugin"].(string)
 
-	iplug, oplug, err := util.GetPlugins("bin/plugins", iplugn, oplugn)
+	iplugin := m.Input["plugin"].(string)
+	oplugin := m.Output["plugin"].(string)
+
+	iplug, oplug, err := util.GetPlugins("bin/plugins", iplugin, oplugin)
 	if err != nil {
 		panic(err)
 	}
 
 	irun, err := getRunMethod(iplug)
 	if err != nil {
-		fmt.Printf("Failed find Run method in input plugin %s: %v\n", iplugn, err)
+		fmt.Printf("Failed find Run method in input plugin %s: %v\n", iplugin, err)
 		os.Exit(1)
 	}
 	orun, err := getRunMethod(oplug)
 	if err != nil {
-		fmt.Printf("Failed find Run method in output plugin %s: %v\n", oplugn, err)
+		fmt.Printf("Failed find Run method in output plugin %s: %v\n", oplugin, err)
 		os.Exit(1)
 	}
 
@@ -83,9 +83,9 @@ func run(configFile string, mapping string) {
 		panic(err)
 	}
 
-	var wg sync.WaitGroup
-	channel := make(chan message.Message, 1000) // todo buffer from .env
+	channel := make(chan message.Message, util.GetChannelBuffer())
 
+	var wg sync.WaitGroup
 	go irun(&wg, iconf, channel)
 	wg.Add(1)
 	go orun(&wg, oconf, channel)
