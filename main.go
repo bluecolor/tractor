@@ -1,11 +1,16 @@
 package main
 
 import (
-	"github.com/bluecolor/tractor/cmd"
+	"fmt"
+
+	"github.com/bluecolor/tractor/commands"
 	"github.com/joho/godotenv"
 )
 
 func main() {
 	godotenv.Load()
-	cmd.Execute()
+	err := commands.TractorCmd.Execute()
+	if err != nil && err.Error() != "" {
+		fmt.Println(err)
+	}
 }

@@ -1,0 +1,19 @@
+package constants
+
+// TractorMappingsFile ...
+const TractorMappingsFile = "TRACTOR_MAPPINGS_FILE"
+
+// TractorChannelBufferSize ...
+const TractorChannelBufferSize = "TRACTOR_CHANNEL_BUFFER_SIZE"
+
+// TractorPluginsPath ...
+const TractorPluginsPath = "TRACTOR_PLUGINS_PATH"
+
+// PluginRunMethodName ...
+const PluginRunMethodName = "Run"
+
+// MappingInputKey ...
+const MappingInputKey = "input"
+
+// MappingOutputKey ...
+const MappingOutputKey = "output"

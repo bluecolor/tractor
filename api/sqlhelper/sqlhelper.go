@@ -10,16 +10,33 @@ import (
 	"github.com/bluecolor/tractor/api/message/sender"
 )
 
-// SendQueryResult ...
-func SendQueryResult(channel chan message.Message, db *sql.DB, query string, batchSize int, args ...interface{}) error {
-	rows, err := db.Query(query, args...)
+// SendOptions ...
+type SendOptions struct {
+	Db           *sql.DB
+	Query        string
+	DbQueryArgs  []interface{}
+	BatchSize    int
+	SendMetadata bool
+}
+
+// ExecuteQuery ...
+func (o *SendOptions) ExecuteQuery() (*sql.Rows, error) {
+	return o.Db.Query(o.Query, o.DbQueryArgs...)
+}
+
+// Send ...
+func Send(channel chan *message.Message, options *SendOptions) error {
+	rows, err := options.ExecuteQuery()
 	if err != nil {
 		return err
 	}
 
 	columns, _ := rows.ColumnTypes()
 	ds, _ := getDataStore("demo", columns)
-	sendMetadata(channel, ds)
+	if sendMetadata {
+		sendMetadata(channel, ds)
+	}
+
 	sendData(channel, len(ds.Fields), rows, batchSize)
 	return nil
 }

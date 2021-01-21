@@ -2,10 +2,17 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"plugin"
+	"sync"
+
+	"github.com/bluecolor/tractor/api"
+	"github.com/bluecolor/tractor/api/message"
+	c "github.com/bluecolor/tractor/util/constants"
+	"github.com/spf13/viper"
 )
 
 func findAllPluginFiles(dir string) ([]os.FileInfo, error) {
@@ -51,19 +58,48 @@ func getPlugin(pluginsPath, name, ptype string) (*plugin.Plugin, error) {
 
 }
 
+// GetMappingPlugins ...
+func GetMappingPlugins(mapping *Mapping, args ...interface{}) (*api.TractorPlugin, *api.TractorPlugin, error) {
+	var path string
+	if len(args) > 0 {
+		path = args[0].(string)
+	} else {
+		path = viper.GetString(c.TractorPluginsPath)
+	}
+	iname := mapping.Input["plugin"].(string)
+	oname := mapping.Output["plugin"].(string)
+	return GetPlugins(path, iname, oname)
+}
+
 // GetPlugins Get input and output plugins
-func GetPlugins(pluginsPath, inputPluginName, outputPluginName string) (*plugin.Plugin, *plugin.Plugin, error) {
+func GetPlugins(pluginsPath, inputPluginName, outputPluginName string) (*api.TractorPlugin, *api.TractorPlugin, error) {
 
-	inputPlugin, err := getPlugin(pluginsPath, inputPluginName, "input")
+	iplugin, err := getPlugin(pluginsPath, inputPluginName, c.MappingInputKey)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	outputPlugin, err := getPlugin(pluginsPath, outputPluginName, "output")
+	oplugin, err := getPlugin(pluginsPath, outputPluginName, c.MappingOutputKey)
 	if err != nil {
 		return nil, nil, err
 	}
-	return inputPlugin, outputPlugin, nil
+
+	ip := api.TractorPlugin{Plugin: iplugin}
+	op := api.TractorPlugin{Plugin: oplugin}
+
+	if err := setRun(&ip, iplugin); err != nil {
+		return nil, nil, err
+	}
+	if err := setRun(&op, oplugin); err != nil {
+		return nil, nil, err
+	}
+
+	if err != nil {
+		fmt.Printf("Failed find Run method in input plugin %s: %v\n", iplugin, err)
+		os.Exit(1)
+	}
+
+	return &ip, &op, nil
 }
 
 // GetPluginNamesByType ...
@@ -78,4 +114,13 @@ func GetPluginNamesByType(pluginsPath, ptype string) ([]string, error) {
 		plugins = append(plugins, file.Name())
 	}
 	return plugins, nil
+}
+
+func setRun(p *api.TractorPlugin, plug *plugin.Plugin) error {
+	symbol, err := plug.Lookup(c.PluginRunMethodName)
+	if err != nil {
+		return err
+	}
+	p.Run = symbol.(func(*sync.WaitGroup, []byte, chan *message.Message))
+	return nil
 }
