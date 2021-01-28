@@ -24,5 +24,5 @@ const (
 // TractorPlugin ...
 type TractorPlugin struct {
 	Plugin *plugin.Plugin
-	Run    func(*sync.WaitGroup, []byte, chan *message.Message)
+	Run    func(*sync.WaitGroup, []byte, chan *message.Message) error
 }

@@ -4,7 +4,7 @@
         username: tractor
         password: tractor
         libdir: play/instantclient_12_2
-        connection_string: "localhost:1521/orcl"
+        connection_string: "localhost:1530/orcl"
         table: all_tables
         fetch_size: 1000
     output:
@@ -13,5 +13,5 @@
         username: tractor
         password: tractor
         libdir: play/instantclient_12_2
-        connection_string: "localhost:1521/orcl"
+        connection_string: "localhost:1530/orcl"
         table: tractor.all_tables_

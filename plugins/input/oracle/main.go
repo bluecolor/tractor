@@ -6,8 +6,9 @@ import (
 	"sync"
 
 	"github.com/bluecolor/tractor/api"
+	"github.com/bluecolor/tractor/api/helpers/sqlhelper"
 	"github.com/bluecolor/tractor/api/message"
-	"github.com/bluecolor/tractor/api/sqlx"
+	"github.com/bluecolor/tractor/logging"
 	"github.com/godror/godror"
 	_ "github.com/godror/godror"
 )
@@ -37,13 +38,6 @@ password: password
 libdir: path/to/oracle_instantclient
 connection_string: "localhost:1521/orcl"
 table: my_table
-metadata:
-    name: my_table
-    fileds:
-        - name: filed_name
-          type: data_type
-          precision: precision
-          scale: scale
 `
 }
 
@@ -58,42 +52,38 @@ func PluginType() api.PluginType {
 }
 
 // Run plugin
-func Run(wg *sync.WaitGroup, conf []byte, channel chan message.Message) {
+func Run(wg *sync.WaitGroup, conf []byte, channel chan *message.Message) error {
 
-	config, err := getConfig(conf)
-	if err != nil {
-		panic(err)
+	config := config{}
+
+	if err := api.ParseConfig(conf, &config); err != nil {
+		return err
 	}
 
 	db, err := sql.Open("godror", getDataSourceName(config))
 
 	if err != nil {
-		panic(err)
+		return err
 	}
-	if err := sqlx.SendQueryResult(
-		channel,
-		db,
-		config.getQuery(),
-		config.GetFetchSize(),
-		godror.FetchArraySize(config.GetFetchSize()),
-	); err != nil {
-		panic(err)
+	options := sqlhelper.Options{
+		Db:           db,
+		Query:        config.getQuery(),
+		DbQueryArgs:  []interface{}{godror.FetchArraySize(config.GetFetchSize())},
+		BatchSize:    config.GetFetchSize(),
+		SendMetadata: true,
+	}
+	if err := sqlhelper.Send(channel, &options); err != nil {
+		logging.Error(err)
+		return err
 	}
 
 	close(channel)
 	db.Close()
 	wg.Done()
+	return nil
 }
 
-func getConfig(conf []byte) (*config, error) {
-	config := config{}
-	if err := api.ParseConfig(conf, &config); err != nil {
-		return nil, err
-	}
-	return &config, nil
-}
-
-func getDataSourceName(config *config) string {
+func getDataSourceName(config config) string {
 	return fmt.Sprintf(`user="%s" password="%s" connectString="%s" libDir="%s"`,
 		config.Username, config.Password, config.ConnectionString, config.Libdir)
 }

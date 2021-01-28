@@ -28,7 +28,11 @@ var (
 )
 
 func readConfig(ccmd *cobra.Command, args []string) error {
-	viper.SetConfigFile(".env")
+	viper.AddConfigPath(".")
+	viper.SetConfigName(".env")
+	viper.SetConfigType("env")
+	viper.AutomaticEnv()
+
 	return viper.ReadInConfig()
 }
 
@@ -47,6 +51,7 @@ func startTractor(ccmd *cobra.Command, args []string) error {
 
 func init() {
 	TractorCmd.AddCommand(printCmd)
+	TractorCmd.AddCommand(runCmd)
 	TractorCmd.Flags().BoolVarP(&showVers, "version", "v", false, "Display the current version of this CLI")
 
 	viper.SetDefault("TRACTOR_PLUGINS_PATH", "bin/plugins")

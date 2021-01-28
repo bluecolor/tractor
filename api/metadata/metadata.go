@@ -1,9 +1,15 @@
-package md
+package metadata
 
 import (
 	"reflect"
+)
 
-	"github.com/bluecolor/tractor/api/md/mdt"
+// Type ...
+type Type int
+
+const (
+	// Fields ...
+	Fields Type = iota
 )
 
 // DecimalSize ...
@@ -34,14 +40,13 @@ type Field struct {
 	Length      Length
 }
 
-// DataStore ...
-type DataStore struct {
-	Name   string
-	Fields []Field
-}
-
 // Metadata ...
 type Metadata struct {
-	Type    mdt.Type
+	Type    Type
 	Content interface{}
+}
+
+// Data ...
+type Data struct {
+	Content [][]interface{}
 }

@@ -28,7 +28,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 	ip, op, err := util.GetMappingPlugins(mapping)
 	if err != nil {
-		logging.Fatal("Failed to get plugins")
+		logging.Fatal("Failed to get plugins", err)
 	}
 	iconf, oconf, err := util.GetConfigs(mapping)
 	if err != nil {

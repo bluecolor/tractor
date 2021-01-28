@@ -121,6 +121,6 @@ func setRun(p *api.TractorPlugin, plug *plugin.Plugin) error {
 	if err != nil {
 		return err
 	}
-	p.Run = symbol.(func(*sync.WaitGroup, []byte, chan *message.Message))
+	p.Run = symbol.(func(*sync.WaitGroup, []byte, chan *message.Message) error)
 	return nil
 }

@@ -1,35 +1,60 @@
 package message
 
-import (
-	"github.com/bluecolor/tractor/api/message/mt"
-	"github.com/bluecolor/tractor/api/message/sender"
-	"github.com/bluecolor/tractor/api/message/status"
+// Type ...
+type Type int
+
+// StatusType ...
+type StatusType Type
+
+// SenderType ...
+type SenderType Type
+
+const (
+	// Metadata ...
+	Metadata Type = iota
+	// Data ...
+	Data
+	// Status ...
+	Status
+)
+
+const (
+	// Running ...
+	Running StatusType = iota
+	// Error ...
+	Error
+	// Success ...
+	Success
+	// Done ...
+	Done
+)
+
+const (
+	// InputPlugin ...
+	InputPlugin SenderType = iota
+	// OutputPlugin ...
+	OutputPlugin
 )
 
 // Message ...
 type Message struct {
-	Sender      sender.Type
-	MessageType mt.Type
-	Content     interface{}
+	Sender  SenderType
+	Type    Type
+	Content interface{}
 }
 
-// Status ...
-type Status struct {
+// StatusInfo ...
+type StatusInfo struct {
 	ProcessedMessageCount uint64
-	Status                status.Type
+	Status                StatusType
 	Error                 error
-}
-
-// Data ...
-type Data struct {
-	Content [][]interface{}
 }
 
 // NewDataMessage ...
 func NewDataMessage(content interface{}) Message {
 	return Message{
-		Sender:      sender.InputPlugin,
-		MessageType: mt.Data,
-		Content:     content,
+		Sender:  InputPlugin,
+		Type:    Data,
+		Content: content,
 	}
 }

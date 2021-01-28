@@ -8,10 +8,9 @@ import (
 	"sync"
 
 	"github.com/bluecolor/tractor/api"
-	"github.com/bluecolor/tractor/api/md"
-	"github.com/bluecolor/tractor/api/md/mdt"
 	"github.com/bluecolor/tractor/api/message"
-	"github.com/bluecolor/tractor/api/message/mt"
+	"github.com/bluecolor/tractor/api/metadata"
+	"github.com/bluecolor/tractor/logging"
 )
 
 type config struct {
@@ -22,53 +21,57 @@ type config struct {
 	Table            string `yaml:"table"`
 }
 
-func getConfig(conf []byte) (*config, error) {
-	config := config{}
-	if err := api.ParseConfig(conf, &config); err != nil {
-		return nil, err
+func (c *config) BuildQuery(args ...interface{}) (string, error) {
+	var fieldCount int
+	if len(args) > 0 {
+		fieldCount = args[0].(int)
+	} else {
+		return "", errors.New("Dynamic field resolution not supported yet")
 	}
-	return &config, nil
+
+	fields := ""
+
+	for i := 1; i <= fieldCount; i++ {
+		fields = fields + ":" + strconv.Itoa(i)
+		if i != fieldCount {
+			fields = fields + ","
+		}
+	}
+	return "insert into " + c.Table + " values(" + fields + ")", nil
 }
 
 // Run plugin
-func Run(wg *sync.WaitGroup, conf []byte, channel chan message.Message) {
-	config, err := getConfig(conf)
+func Run(wg *sync.WaitGroup, conf []byte, channel chan *message.Message) error {
+	config := config{}
+	if err := api.ParseConfig(conf, &config); err != nil {
+		return err
+	}
+	var fieldCount, err = getFieldCount(channel, 10)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	m := <-channel
-	var query string
-	if m.MessageType == mt.Metadata {
-		metadata := m.Content.(md.Metadata)
-		if metadata.Type == mdt.DataStore {
-			ds := metadata.Content.(*md.DataStore)
-			query = getQuery(len(ds.Fields), config.Table)
-		}
-	} else if m.MessageType == mt.Data {
-		data := m.Content.(message.Data).Content
-		query = getQuery(len(data[0]), config.Table)
-		channel <- message.NewDataMessage(data)
-	} else {
-		panic(errors.New("Unknown message type"))
+	query, err := config.BuildQuery(fieldCount)
+	if err != nil {
+		return err
 	}
-
-	db, _ := sql.Open("godror", getDataSourceName(config))
+	db, _ := sql.Open("godror", getDataSourceName(&config))
 	tx, err := db.Begin()
 
 	if err != nil {
 		db.Close()
-		panic(err)
+		return err
 	}
 
 	for m := range channel {
-		if m.MessageType == mt.Data {
-			data := m.Content.(message.Data)
+		if m.Type == message.Data {
+			data := m.Content.(metadata.Data)
 			for _, d := range data.Content {
 				_, err = tx.Exec(query, d...)
 				if err != nil {
+					logging.Error(err)
 					tx.Rollback()
-					panic(err)
+					return err
 				}
 			}
 		}
@@ -76,29 +79,34 @@ func Run(wg *sync.WaitGroup, conf []byte, channel chan message.Message) {
 	tx.Commit()
 	db.Close()
 	wg.Done()
-}
-
-func getDataStore(message *message.Message) (*md.DataStore, error) {
-	if message.MessageType != mt.Metadata {
-		return nil, errors.New("First message should be metadata")
-	}
-	ds := message.Content.(md.Metadata).Content.(*md.DataStore)
-	return ds, nil
-}
-
-func getQuery(fieldCount int, table string) string {
-	query := ""
-
-	for i := 1; i <= fieldCount; i++ {
-		query = query + ":" + strconv.Itoa(i)
-		if i != fieldCount {
-			query = query + ","
-		}
-	}
-	return "insert into " + table + " values(" + query + ")"
+	return nil
 }
 
 func getDataSourceName(config *config) string {
 	return fmt.Sprintf(`user="%s" password="%s" connectString="%s" libDir="%s"`,
 		config.Username, config.Password, config.ConnectionString, config.Libdir)
+}
+
+func getFieldCount(channel chan *message.Message, messageLimit int) (int, error) {
+	messageCount := 0
+	for {
+		m := <-channel
+		switch m.Type {
+		case message.Metadata:
+			md := m.Content.(*metadata.Metadata)
+			if md.Type == metadata.Fields {
+				return len(md.Content.([]metadata.Field)), nil
+			}
+		case message.Data:
+			channel <- m
+			data := m.Content.(metadata.Data).Content
+			return len(data[0]), nil
+		}
+		messageCount++
+		if messageCount > messageLimit {
+			return 0, errors.New("Could not find filed count within limits")
+		}
+	}
+
+	return 0, errors.New("Could not find filed count")
 }

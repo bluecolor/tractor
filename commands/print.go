@@ -6,6 +6,7 @@ import (
 
 	"github.com/bluecolor/tractor/logging"
 	"github.com/bluecolor/tractor/util"
+	c "github.com/bluecolor/tractor/util/constants"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -46,8 +47,12 @@ func print(cmd *cobra.Command, args []string) {
 }
 
 func printMappings(cmd *cobra.Command, args []string) {
-	file := viper.GetString("TRACTOR_MAPPINGS_FILE")
-	mappings := util.GetMappings(file)
+	file := viper.GetString(c.TractorMappingsFile)
+	mappings, err := util.GetMappings(file)
+	if err != nil {
+		logging.Fatal("Failed to get mappings", err)
+	}
+
 	for i, mapping := range mappings {
 		for name := range mapping {
 			fmt.Printf("%6d %s\n", i+1, name)

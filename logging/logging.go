@@ -65,3 +65,8 @@ func Error(args ...interface{}) {
 func Fatal(args ...interface{}) {
 	log.Fatal(args...)
 }
+
+// Warn uses fmt.Sprint to construct and log a message.
+func Warn(args ...interface{}) {
+	log.Warn(args...)
+}
