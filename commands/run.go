@@ -58,11 +58,12 @@ func run(cmd *cobra.Command, args []string) {
 				case api.WriteCountFeed:
 					writeCount += feed.Content.(int)
 				}
-				fmt.Printf("\033[2K\r ReadCount: %d WriteCount: %d", readCount, writeCount)
+				fmt.Printf("\033[2K\rReadCount: %d WriteCount: %d", readCount, writeCount)
 			}
 		}
 	}(wire.Feed)
 
 	wg.Wait()
 	close(wire.Feed)
+	fmt.Println("\nDone")
 }
