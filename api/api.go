@@ -18,9 +18,6 @@ type NodeType int
 // FeedType ...
 type FeedType int
 
-// ReadCount ...
-type ReadCount uint64
-
 //Config either input our ooutput configuration given by the user
 //in mappings.yml file
 type Config map[interface{}]interface{}
@@ -49,6 +46,8 @@ const (
 const (
 	// ReadCountFeed ...
 	ReadCountFeed FeedType = iota
+	// WriteCountFeed ...
+	WriteCountFeed
 )
 
 // TractorPlugin ...
@@ -93,7 +92,7 @@ type Metadata struct {
 
 // Data ...
 type Data struct {
-	Content *[][]interface{}
+	Content [][]interface{}
 }
 
 // Feed ...
@@ -101,6 +100,24 @@ type Feed struct {
 	Type    FeedType
 	Sender  NodeType
 	Content interface{}
+}
+
+// NewReadCountFeed ...
+func NewReadCountFeed(count int) *Feed {
+	return &Feed{
+		Type:    ReadCountFeed,
+		Sender:  InputNode,
+		Content: count,
+	}
+}
+
+// NewWriteCountFeed ...
+func NewWriteCountFeed(count int) *Feed {
+	return &Feed{
+		Type:    WriteCountFeed,
+		Sender:  OutputNode,
+		Content: count,
+	}
 }
 
 // Wire ...

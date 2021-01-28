@@ -84,25 +84,23 @@ func Run(wg *sync.WaitGroup, conf []byte, wire *api.Wire) error {
 				}
 			}
 		case data, ok := <-wire.Data:
-			println("received data")
 			if !ok {
-				logging.Info("Data channel is closed")
 				isOpen.DataChannel = false
 			} else {
 				if query == "" {
-					query, err = cfg.BuildQuery(len(*data.Content))
+					query, err = cfg.BuildQuery(len(data.Content[0]))
 					if err != nil {
 						return nil
 					}
 				}
-				// fmt.Printf("%v", *data.Content)
-				for _, d := range *data.Content {
+				for _, d := range data.Content {
 					_, err = tx.Exec(query, d...)
 					if err != nil {
 						logging.Error(err)
 						tx.Rollback()
 						return err
 					}
+					wire.Feed <- api.NewWriteCountFeed(1)
 				}
 			}
 		}

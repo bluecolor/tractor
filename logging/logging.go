@@ -37,7 +37,7 @@ func BuildLogger(env string) {
 			Initial:    100,
 			Thereafter: 100,
 		},
-		Encoding:         "json",
+		Encoding:         "console",
 		EncoderConfig:    zap.NewProductionEncoderConfig(),
 		OutputPaths:      outputPaths,
 		ErrorOutputPaths: []string{"stderr"},

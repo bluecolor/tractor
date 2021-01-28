@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/bluecolor/tractor/api"
@@ -47,5 +48,21 @@ func run(cmd *cobra.Command, args []string) {
 	go op.Run(&wg, oconf, &wire)
 	wg.Add(1)
 
+	go func(ch chan *api.Feed) {
+		var readCount, writeCount = 0, 0
+		for feed := range ch {
+			if feed.Type == api.ReadCountFeed || feed.Type == api.WriteCountFeed {
+				switch feed.Type {
+				case api.ReadCountFeed:
+					readCount += feed.Content.(int)
+				case api.WriteCountFeed:
+					writeCount += feed.Content.(int)
+				}
+				fmt.Printf("\033[2K\r ReadCount: %d WriteCount: %d", readCount, writeCount)
+			}
+		}
+	}(wire.Feed)
+
 	wg.Wait()
+	close(wire.Feed)
 }

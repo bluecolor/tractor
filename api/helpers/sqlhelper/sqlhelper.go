@@ -99,12 +99,12 @@ func SendData(wire *api.Wire, fieldCount int, rows *sql.Rows, batchSize int) err
 	var records [][]interface{}
 
 	send := func(records *[][]interface{}) {
-		println(len(*records))
-		d := api.Data{Content: records}
+		d := api.Data{Content: *records}
 		wire.Data <- &d
 	}
 
 	for rows.Next() {
+		wire.Feed <- api.NewReadCountFeed(1)
 		row := make([]interface{}, fieldCount)
 		if err := rows.Scan(valuePtrs...); err != nil {
 			logging.Error(err)
