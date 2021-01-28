@@ -8,8 +8,7 @@ import (
 	"sync"
 
 	"github.com/bluecolor/tractor/api"
-	"github.com/bluecolor/tractor/api/message"
-	"github.com/bluecolor/tractor/api/metadata"
+	"github.com/bluecolor/tractor/api/helpers/sqlhelper"
 	"github.com/bluecolor/tractor/logging"
 )
 
@@ -19,6 +18,7 @@ type config struct {
 	Password         string `yaml:"password"`
 	ConnectionString string `yaml:"connection_string"`
 	Table            string `yaml:"table"`
+	Truncate         bool   `yaml:"truncate"`
 }
 
 func (c *config) BuildQuery(args ...interface{}) (string, error) {
@@ -41,41 +41,76 @@ func (c *config) BuildQuery(args ...interface{}) (string, error) {
 }
 
 // Run plugin
-func Run(wg *sync.WaitGroup, conf []byte, channel chan *message.Message) error {
-	config := config{}
-	if err := api.ParseConfig(conf, &config); err != nil {
-		return err
-	}
-	var fieldCount, err = getFieldCount(channel, 10)
-	if err != nil {
+func Run(wg *sync.WaitGroup, conf []byte, wire *api.Wire) error {
+
+	cfg := config{Truncate: true}
+	if err := api.ParseConfig(conf, &cfg); err != nil {
 		return err
 	}
 
-	query, err := config.BuildQuery(fieldCount)
+	db, err := sql.Open("godror", getDataSourceName(&cfg))
 	if err != nil {
+		logging.Error(err)
 		return err
 	}
-	db, _ := sql.Open("godror", getDataSourceName(&config))
+	if err := sqlhelper.Truncate(db, cfg.Table); err != nil {
+		logging.Error(err)
+		return err
+	}
+
 	tx, err := db.Begin()
-
 	if err != nil {
 		db.Close()
 		return err
 	}
 
-	for m := range channel {
-		if m.Type == message.Data {
-			data := m.Content.(metadata.Data)
-			for _, d := range data.Content {
-				_, err = tx.Exec(query, d...)
+	var query string
+
+	isOpen := struct {
+		MetadataChannel bool
+		DataChannel     bool
+		FeedChannel     bool
+	}{MetadataChannel: true, DataChannel: true, FeedChannel: true}
+
+	for {
+		select {
+		case md, ok := <-wire.Metadata:
+			if !ok {
+				isOpen.MetadataChannel = false
+			} else if md.Type == api.FieldsMetadata {
+				query, err = cfg.BuildQuery(len(md.Content.([]api.Field)))
 				if err != nil {
-					logging.Error(err)
-					tx.Rollback()
 					return err
 				}
 			}
+		case data, ok := <-wire.Data:
+			println("received data")
+			if !ok {
+				logging.Info("Data channel is closed")
+				isOpen.DataChannel = false
+			} else {
+				if query == "" {
+					query, err = cfg.BuildQuery(len(*data.Content))
+					if err != nil {
+						return nil
+					}
+				}
+				// fmt.Printf("%v", *data.Content)
+				for _, d := range *data.Content {
+					_, err = tx.Exec(query, d...)
+					if err != nil {
+						logging.Error(err)
+						tx.Rollback()
+						return err
+					}
+				}
+			}
+		}
+		if !isOpen.DataChannel {
+			break
 		}
 	}
+
 	tx.Commit()
 	db.Close()
 	wg.Done()
@@ -85,28 +120,4 @@ func Run(wg *sync.WaitGroup, conf []byte, channel chan *message.Message) error {
 func getDataSourceName(config *config) string {
 	return fmt.Sprintf(`user="%s" password="%s" connectString="%s" libDir="%s"`,
 		config.Username, config.Password, config.ConnectionString, config.Libdir)
-}
-
-func getFieldCount(channel chan *message.Message, messageLimit int) (int, error) {
-	messageCount := 0
-	for {
-		m := <-channel
-		switch m.Type {
-		case message.Metadata:
-			md := m.Content.(*metadata.Metadata)
-			if md.Type == metadata.Fields {
-				return len(md.Content.([]metadata.Field)), nil
-			}
-		case message.Data:
-			channel <- m
-			data := m.Content.(metadata.Data).Content
-			return len(data[0]), nil
-		}
-		messageCount++
-		if messageCount > messageLimit {
-			return 0, errors.New("Could not find filed count within limits")
-		}
-	}
-
-	return 0, errors.New("Could not find filed count")
 }

@@ -2,9 +2,9 @@ package sqlhelper
 
 import (
 	"database/sql"
+	"fmt"
 
-	"github.com/bluecolor/tractor/api/message"
-	"github.com/bluecolor/tractor/api/metadata"
+	"github.com/bluecolor/tractor/api"
 	"github.com/bluecolor/tractor/logging"
 )
 
@@ -28,7 +28,7 @@ func (o *Options) Validate() error {
 }
 
 // Send ...
-func Send(channel chan *message.Message, options *Options) error {
+func Send(wire *api.Wire, options *Options) error {
 	rows, err := options.ExecuteQuery()
 	if err != nil {
 		return err
@@ -39,31 +39,31 @@ func Send(channel chan *message.Message, options *Options) error {
 		return err
 	}
 	if options.SendMetadata {
-		SendMetadata(channel, md)
+		SendMetadata(wire, md)
 	}
 
-	return SendData(channel, len(md.Content.([]metadata.Field)), rows, options.BatchSize)
+	return SendData(wire, len(md.Content.([]api.Field)), rows, options.BatchSize)
 }
 
 // GetFieldsMetadata ...
-func GetFieldsMetadata(rows *sql.Rows) (*metadata.Metadata, error) {
+func GetFieldsMetadata(rows *sql.Rows) (*api.Metadata, error) {
 	columns, err := rows.ColumnTypes()
 	if err != nil {
 		return nil, err
 	}
-	var fields []metadata.Field
+	var fields []api.Field
 	for _, c := range columns {
 
 		precision, scale, ok := c.DecimalSize()
-		decimalSize := metadata.DecimalSize{Precision: precision, Scale: scale, Ok: ok}
+		decimalSize := api.DecimalSize{Precision: precision, Scale: scale, Ok: ok}
 
 		n, ok := c.Nullable()
-		nullable := metadata.Nullable{Nullable: n, Ok: ok}
+		nullable := api.Nullable{Nullable: n, Ok: ok}
 
 		ln, ok := c.Length()
-		length := metadata.Length{Length: ln, Ok: ok}
+		length := api.Length{Length: ln, Ok: ok}
 
-		field := metadata.Field{
+		field := api.Field{
 			Name:        c.Name(),
 			Type:        c.ScanType(),
 			DecimalSize: decimalSize,
@@ -74,8 +74,8 @@ func GetFieldsMetadata(rows *sql.Rows) (*metadata.Metadata, error) {
 		fields = append(fields, field)
 	}
 
-	md := metadata.Metadata{
-		Type:    metadata.Fields,
+	md := api.Metadata{
+		Type:    api.FieldsMetadata,
 		Content: fields,
 	}
 
@@ -83,18 +83,12 @@ func GetFieldsMetadata(rows *sql.Rows) (*metadata.Metadata, error) {
 }
 
 // SendMetadata ...
-func SendMetadata(channel chan *message.Message, md *metadata.Metadata) {
-
-	message := message.Message{
-		Type:    message.Metadata,
-		Sender:  message.InputPlugin,
-		Content: md,
-	}
-	channel <- &message
+func SendMetadata(wire *api.Wire, md *api.Metadata) {
+	wire.Metadata <- md
 }
 
 // SendData ...
-func SendData(channel chan *message.Message, fieldCount int, rows *sql.Rows, batchSize int) error {
+func SendData(wire *api.Wire, fieldCount int, rows *sql.Rows, batchSize int) error {
 
 	var valuePtrs = make([]interface{}, fieldCount)
 	for i := range valuePtrs {
@@ -105,8 +99,9 @@ func SendData(channel chan *message.Message, fieldCount int, rows *sql.Rows, bat
 	var records [][]interface{}
 
 	send := func(records *[][]interface{}) {
-		m := message.NewDataMessage(metadata.Data{Content: *records})
-		channel <- &m
+		println(len(*records))
+		d := api.Data{Content: records}
+		wire.Data <- &d
 	}
 
 	for rows.Next() {
@@ -128,6 +123,16 @@ func SendData(channel chan *message.Message, fieldCount int, rows *sql.Rows, bat
 	if len(records) > 0 {
 		send(&records)
 		records = nil
+	}
+	return nil
+}
+
+// Truncate ...
+func Truncate(db *sql.DB, table string) error {
+	query := fmt.Sprintf("truncate table %s", table)
+	_, err := db.Exec(query)
+	if err != nil {
+		return err
 	}
 	return nil
 }

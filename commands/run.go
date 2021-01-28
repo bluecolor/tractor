@@ -3,7 +3,7 @@ package commands
 import (
 	"sync"
 
-	"github.com/bluecolor/tractor/api/message"
+	"github.com/bluecolor/tractor/api"
 	"github.com/bluecolor/tractor/logging"
 	"github.com/bluecolor/tractor/util"
 	c "github.com/bluecolor/tractor/util/constants"
@@ -35,12 +35,16 @@ func run(cmd *cobra.Command, args []string) {
 		logging.Fatal("Failed to get configs from mapping")
 	}
 
-	channel := make(chan *message.Message, viper.GetInt(c.TractorChannelBufferSize))
+	wire := api.Wire{
+		Feed:     make(chan *api.Feed, viper.GetInt(c.TractorChannelBufferSize)),
+		Metadata: make(chan *api.Metadata, viper.GetInt(c.TractorChannelBufferSize)),
+		Data:     make(chan *api.Data, viper.GetInt(c.TractorChannelBufferSize)),
+	}
 
 	var wg sync.WaitGroup
-	go ip.Run(&wg, iconf, channel)
+	go ip.Run(&wg, iconf, &wire)
 	wg.Add(1)
-	go op.Run(&wg, oconf, channel)
+	go op.Run(&wg, oconf, &wire)
 	wg.Add(1)
 
 	wg.Wait()

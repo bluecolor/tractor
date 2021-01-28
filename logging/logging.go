@@ -70,3 +70,8 @@ func Fatal(args ...interface{}) {
 func Warn(args ...interface{}) {
 	log.Warn(args...)
 }
+
+// Info ...
+func Info(args ...interface{}) {
+	log.Info(args...)
+}

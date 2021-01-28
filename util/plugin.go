@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/bluecolor/tractor/api"
-	"github.com/bluecolor/tractor/api/message"
 	c "github.com/bluecolor/tractor/util/constants"
 	"github.com/spf13/viper"
 )
@@ -95,7 +94,7 @@ func GetPlugins(pluginsPath, inputPluginName, outputPluginName string) (*api.Tra
 	}
 
 	if err != nil {
-		fmt.Printf("Failed find Run method in input plugin %s: %v\n", iplugin, err)
+		fmt.Printf("Failed find Run method in input plugin %v: %v\n", iplugin, err)
 		os.Exit(1)
 	}
 
@@ -121,6 +120,6 @@ func setRun(p *api.TractorPlugin, plug *plugin.Plugin) error {
 	if err != nil {
 		return err
 	}
-	p.Run = symbol.(func(*sync.WaitGroup, []byte, chan *message.Message) error)
+	p.Run = symbol.(func(*sync.WaitGroup, []byte, *api.Wire) error)
 	return nil
 }

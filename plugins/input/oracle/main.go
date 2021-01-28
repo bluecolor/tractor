@@ -7,7 +7,6 @@ import (
 
 	"github.com/bluecolor/tractor/api"
 	"github.com/bluecolor/tractor/api/helpers/sqlhelper"
-	"github.com/bluecolor/tractor/api/message"
 	"github.com/bluecolor/tractor/logging"
 	"github.com/godror/godror"
 	_ "github.com/godror/godror"
@@ -52,7 +51,7 @@ func PluginType() api.PluginType {
 }
 
 // Run plugin
-func Run(wg *sync.WaitGroup, conf []byte, channel chan *message.Message) error {
+func Run(wg *sync.WaitGroup, conf []byte, wire *api.Wire) error {
 
 	config := config{}
 
@@ -72,12 +71,13 @@ func Run(wg *sync.WaitGroup, conf []byte, channel chan *message.Message) error {
 		BatchSize:    config.GetFetchSize(),
 		SendMetadata: true,
 	}
-	if err := sqlhelper.Send(channel, &options); err != nil {
+	if err := sqlhelper.Send(wire, &options); err != nil {
 		logging.Error(err)
 		return err
 	}
 
-	close(channel)
+	wire.CloseMetadataChannel()
+	wire.CloseDataChannel()
 	db.Close()
 	wg.Done()
 	return nil
