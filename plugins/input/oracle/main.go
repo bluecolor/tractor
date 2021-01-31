@@ -64,7 +64,7 @@ func Run(wg *sync.WaitGroup, conf []byte, wire *api.Wire) error {
 	if err != nil {
 		return err
 	}
-	options := sqlhelper.Options{
+	options := sqlhelper.SendOptions{
 		Db:           db,
 		Query:        config.getQuery(),
 		DbQueryArgs:  []interface{}{godror.FetchArraySize(config.GetFetchSize())},

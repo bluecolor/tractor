@@ -2,14 +2,16 @@ package sqlhelper
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/bluecolor/tractor/api"
 	"github.com/bluecolor/tractor/logging"
 )
 
-// Options ...
-type Options struct {
+// SendOptions ...
+type SendOptions struct {
 	Db           *sql.DB
 	Query        string
 	DbQueryArgs  []interface{}
@@ -17,18 +19,49 @@ type Options struct {
 	SendMetadata bool
 }
 
+// ReceiveOptions ...
+type ReceiveOptions struct {
+	Db         *sql.DB
+	Table      string
+	Query      string
+	BindPrefix string
+}
+
+// BuildQuery ...
+func (o *ReceiveOptions) BuildQuery(fieldCount int) string {
+	if o.Query != "" {
+		return o.Query
+	}
+	if len(args) > 0 {
+		fieldCount = args[0].(int)
+	} else {
+		return "", errors.New("Dynamic field resolution not supported yet")
+	}
+
+	fields := ""
+
+	for i := 1; i <= fieldCount; i++ {
+		fields = fields + ":" + strconv.Itoa(i)
+		if i != fieldCount {
+			fields = fields + ","
+		}
+	}
+	return "insert into " + c.Table + " values(" + fields + ")", nil
+}
+
 // ExecuteQuery ...
-func (o *Options) ExecuteQuery() (*sql.Rows, error) {
+func (o *SendOptions) ExecuteQuery() (*sql.Rows, error) {
 	return o.Db.Query(o.Query, o.DbQueryArgs...)
 }
 
 // Validate ...
-func (o *Options) Validate() error {
+// todo
+func (o *SendOptions) Validate() error {
 	return nil
 }
 
 // Send ...
-func Send(wire *api.Wire, options *Options) error {
+func Send(wire *api.Wire, options *SendOptions) error {
 	rows, err := options.ExecuteQuery()
 	if err != nil {
 		return err
@@ -135,4 +168,60 @@ func Truncate(db *sql.DB, table string) error {
 		return err
 	}
 	return nil
+}
+
+// Receive ...
+func Receive(wire *api.Wire, options *ReceiveOptions) {
+	tx, err := db.Begin()
+	if err != nil {
+		db.Close()
+		return err
+	}
+
+	var query string
+
+	isOpen := struct {
+		MetadataChannel bool
+		DataChannel     bool
+		FeedChannel     bool
+	}{MetadataChannel: true, DataChannel: true, FeedChannel: true}
+
+	for {
+		select {
+		case md, ok := <-wire.Metadata:
+			if !ok {
+				isOpen.MetadataChannel = false
+			} else if md.Type == api.FieldsMetadata {
+				query, err = cfg.BuildQuery(len(md.Content.([]api.Field)))
+				if err != nil {
+					return err
+				}
+			}
+		case data, ok := <-wire.Data:
+			if !ok {
+				isOpen.DataChannel = false
+			} else {
+				if query == "" {
+					query, err = cfg.BuildQuery(len(data.Content[0]))
+					if err != nil {
+						return nil
+					}
+				}
+				for _, d := range data.Content {
+					_, err = tx.Exec(query, d...)
+					if err != nil {
+						logging.Error(err)
+						tx.Rollback()
+						return err
+					}
+					wire.Feed <- api.NewWriteCountFeed(1)
+				}
+			}
+		}
+		if !isOpen.DataChannel {
+			break
+		}
+	}
+
+	tx.Commit()
 }

@@ -10,8 +10,16 @@
     output:
         plugin: oracle
         username: World
-        username: tractor
         password: tractor
-        libdir: play/instantclient_12_2
-        connection_string: "localhost:1530/orcl"
-        table: tractor.all_tables_
+        driver_path: play/instantclient_12_2
+        host: localhost
+        port: 1530
+        database: orcl
+        url: "localhost:1530/orcl"
+        schema: tractor
+        temp_schema: tractor
+        table: all_tables_
+        create_table_option: ''
+        # mode: insert, create, truncate, update
+        mode: insert
+        update_keys: 'a,b,c'
