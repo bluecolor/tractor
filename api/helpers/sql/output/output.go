@@ -9,24 +9,11 @@ import (
 	"strings"
 
 	"github.com/bluecolor/tractor/api"
+	helper "github.com/bluecolor/tractor/api/helpers"
+	"github.com/bluecolor/tractor/api/helpers/message"
 	"github.com/bluecolor/tractor/logging"
 	"github.com/bluecolor/tractor/util"
 )
-
-type messageType int
-
-const (
-	errorMessage messageType = iota
-	successMessage
-	progressMessage
-	stopOrder
-)
-
-type message struct {
-	Type    messageType
-	Sender  string
-	Content interface{}
-}
 
 // Options ...
 type Options struct {
@@ -47,12 +34,15 @@ type Options struct {
 	MaxNameLength int
 }
 
-// newStopOrder ...
-func newStopOrder() *message {
-	return &message{
-		Sender: "supervisor",
-		Type:   stopOrder,
-	}
+// Helper ...
+type Helper struct {
+	*Options
+	helper.Supervisor
+}
+
+// NewHelper ...
+func NewHelper(o *Options) *Helper {
+	return &Helper{o, helper.Supervisor{}}
 }
 
 // GetTempTableName ...
@@ -206,18 +196,6 @@ func (h *Helper) PrepareTargetTable(table string) error {
 	return nil
 }
 
-// func (h *Helper) {}
-
-// Helper ...
-type Helper struct {
-	*Options
-}
-
-// NewHelper ...
-func NewHelper(o *Options) *Helper {
-	return &Helper{o}
-}
-
 // UnionAllTempTables ...
 func (h *Helper) UnionAllTempTables(sources []string) error {
 	query := h.BuildUnionAllQuery(sources)
@@ -251,10 +229,10 @@ func (h *Helper) Run(wire *api.Wire) error {
 		parallel = h.Parallel
 	}
 
-	var in chan *message
-	outs := make([]chan *message, parallel)
+	var in chan *message.Message
+	outs := make([]chan *message.Message, parallel)
 	for i := range outs {
-		outs[i] = make(chan *message, 10) // todo buffer size from .env
+		outs[i] = make(chan *message.Message, 10) // todo buffer size from .env
 
 	}
 
@@ -273,7 +251,7 @@ func (h *Helper) Run(wire *api.Wire) error {
 			go h.insert(wire, in, outs[0], tables[i])
 		}
 	}
-	if err := supervise(in, outs); err != nil {
+	if err := h.Supervise(in, outs); err != nil {
 		return err
 	}
 	if parallel > 1 {
@@ -284,35 +262,14 @@ func (h *Helper) Run(wire *api.Wire) error {
 	return nil
 }
 
-func stopWorkers(channels []chan *message) {
-	order := newStopOrder()
+func stopWorkers(channels []chan *message.Message) {
+	order := message.NewStopOrder()
 	for _, ch := range channels {
 		ch <- order
 	}
 }
 
-func supervise(in chan *message, outs []chan *message) error {
-	var successCount int = 0
-	for message := range in {
-		if message.Type == successMessage {
-			if successCount == len(outs) {
-				break
-			}
-		} else if message.Type == errorMessage {
-			killm := newStopOrder()
-			for _, o := range outs {
-				o <- killm
-			}
-			return errors.New("One of the child sessions failed")
-		}
-	}
-	if successCount == len(outs) {
-		return nil
-	}
-	return errors.New("Can not get success message from all childs")
-}
-
-func (h *Helper) insert(wire *api.Wire, out chan *message, in chan *message, name string) error {
+func (h *Helper) insert(wire *api.Wire, out chan *message.Message, in chan *message.Message, name string) error {
 
 	query, err := h.BuildInsertQuery(name)
 	if err != nil {
@@ -334,18 +291,18 @@ func (h *Helper) insert(wire *api.Wire, out chan *message, in chan *message, nam
 				return err
 			}
 			wire.Feed <- api.NewWriteCountFeed(1)
-			parentMessage, ok := <-in
+			m, ok := <-in
 			if ok {
-				if parentMessage.Type == stopOrder {
+				if m.IsStopOrder() {
 					return errors.New("Terminated by the parent")
 				}
 			}
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		out <- &message{Sender: "worker", Type: errorMessage, Content: err}
+		out <- message.NewErrorMessage(message.OutputWorker, err)
 		return err
 	}
-	out <- &message{Sender: "worker", Type: successMessage}
+	out <- message.NewSuccessMessage(message.InputWorker)
 	return nil
 }

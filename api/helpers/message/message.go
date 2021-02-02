@@ -85,3 +85,16 @@ func NewMessage(sender SenderType, messageType Type, args ...interface{}) *Messa
 		Sender: sender, Type: messageType, Content: content,
 	}
 }
+
+// IsStopOrder ...
+func (m *Message) IsStopOrder() bool {
+	if m.Type == Order {
+		orderType, ok := m.Content.(OrderType)
+		if !ok {
+			return false
+		} else if orderType == Stop {
+			return true
+		}
+	}
+	return false
+}
