@@ -10,7 +10,23 @@ import (
 
 	"github.com/bluecolor/tractor/api"
 	"github.com/bluecolor/tractor/logging"
+	"github.com/bluecolor/tractor/util"
 )
+
+type messageType int
+
+const (
+	errorMessage messageType = iota
+	successMessage
+	progressMessage
+	stopOrder
+)
+
+type message struct {
+	Type    messageType
+	Sender  string
+	Content interface{}
+}
 
 // Options ...
 type Options struct {
@@ -20,6 +36,7 @@ type Options struct {
 	DbQueryArgs   []interface{}
 	BatchSize     int
 	Schema        string
+	TempSchema    string
 	Table         string
 	Mode          string
 	Columns       []api.Field
@@ -27,28 +44,49 @@ type Options struct {
 	TypeMap       map[reflect.Type]string
 	BindPrefix    string
 	Parallel      int
+	MaxNameLength int
 }
 
-func (o *Options) getName(args ...string) string {
-	var name string
-	if len(args) > 0 {
-		name = args[0]
-	} else {
-		name = o.Table
+// newStopOrder ...
+func newStopOrder() *message {
+	return &message{
+		Sender: "supervisor",
+		Type:   stopOrder,
 	}
-	if o.Schema != "" {
-		name = fmt.Sprintf("%s%s", o.Schema+".", name)
+}
+
+// GetTempTableName ...
+func (o *Options) GetTempTableName() string {
+
+	var name string
+	if o.MaxNameLength != 0 && len(o.Table) < o.MaxNameLength {
+		postfixLength := o.MaxNameLength - len(o.Table)
+		postFix := util.RandString(postfixLength)
+		name = o.Table + postFix
+	} else {
+		name = util.RandString(30)
+	}
+	if o.TempSchema != "" {
+		return fmt.Sprintf("%s.%s", o.TempSchema, name)
 	}
 	return name
 }
 
-// BuildCreateQuery ...
-func (o *Options) BuildCreateQuery(args ...string) (string, error) {
-	name := o.getName(args...)
-
-	if len(o.Columns) == 0 {
-		return "", errors.New("Columns not given")
+// GetTableName ...
+func (o *Options) GetTableName(args ...interface{}) string {
+	if len(args) > 0 && args[0].(bool) {
+		return o.GetTempTableName()
 	}
+	if o.Schema != "" {
+		return fmt.Sprintf("%s.%s", o.Schema, o.Table)
+	}
+	return o.Table
+}
+
+// BuildCreateQuery ...
+// todo check create table as select
+// true, tempname
+func (o *Options) BuildCreateQuery(name string) (string, error) {
 
 	columns := []string{}
 	for _, c := range o.Columns {
@@ -65,7 +103,8 @@ func (o *Options) BuildCreateQuery(args ...string) (string, error) {
 }
 
 // BuildInsertQuery ...
-func (o *Options) BuildInsertQuery() (string, error) {
+func (o *Options) BuildInsertQuery(name string) (string, error) {
+
 	if len(o.Columns) == 0 {
 		return "", errors.New("Columns not given")
 	}
@@ -77,38 +116,54 @@ func (o *Options) BuildInsertQuery() (string, error) {
 	}
 	return fmt.Sprintf(
 		"insert into %s (%s) values(%s)",
-		o.Table, strings.Join(columns, ","), strings.Join(values, ","),
+		name, strings.Join(columns, ","), strings.Join(values, ","),
 	), nil
 }
 
 // BuildDropQuery ...
-func (o *Options) BuildDropQuery(args ...string) (string, error) {
-	if o.Table == "" {
-		return "", errors.New("Table name is not given")
-	}
-	return fmt.Sprintf("drop table %s", o.Table), nil
+func (o *Options) BuildDropQuery(name string) (string, error) {
+	return fmt.Sprintf("drop table %s", name), nil
 }
 
 // BuildTruncateQuery ...
-func (o *Options) BuildTruncateQuery() (string, error) {
-	if o.Table == "" {
-		return "", errors.New("Table name is not given")
+func (o *Options) BuildTruncateQuery(name string) (string, error) {
+	return fmt.Sprintf("truncate table %s", name), nil
+}
+
+// BuildUnionAllQuery ...
+func (h *Helper) BuildUnionAllQuery(sources []string) string {
+	var target string = h.GetTableName()
+	var selects []string
+
+	for _, s := range sources {
+		selects = append(selects, fmt.Sprintf("select * from %s\n", s))
 	}
-	return fmt.Sprintf("truncate table %s", o.Table), nil
+
+	return fmt.Sprintf("insert into %s \n %s", target, strings.Join(selects, "union all\n"))
 }
 
 // DropTable ...
-func (h *Helper) DropTable() error {
-	_, err := h.Db.Exec(h.BuildDropQuery())
+func (h *Helper) DropTable(name string) error {
+	_, err := h.Db.Exec(h.BuildDropQuery(name))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+// DropTables ...
+func (h *Helper) DropTables(names []string) error {
+	for _, name := range names {
+		if err := h.DropTable(name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // CreateTable ...
-func (h *Helper) CreateTable() error {
-	_, err := h.Db.Exec(h.BuildCreateQuery())
+func (h *Helper) CreateTable(name string) error {
+	_, err := h.Db.Exec(h.BuildCreateQuery(name))
 	if err != nil {
 		return err
 	}
@@ -116,13 +171,42 @@ func (h *Helper) CreateTable() error {
 }
 
 // TruncateTable ...
-func (h *Helper) TruncateTable() error {
-	_, err := h.Db.Exec(h.BuildTruncateQuery())
+func (h *Helper) TruncateTable(name string) error {
+	_, err := h.Db.Exec(h.BuildTruncateQuery(name))
 	if err != nil {
 		return err
 	}
 	return nil
 }
+
+// DropCreateTable ...
+func (h *Helper) DropCreateTable(name string) error {
+	if err := h.DropTable(name); err != nil {
+		logging.Warn("Failed to drop table", err)
+	}
+	if err := h.CreateTable(name); err != nil {
+		logging.Error("Failed to create target table")
+		return err
+	}
+	return nil
+}
+
+// PrepareTargetTable ...
+func (h *Helper) PrepareTargetTable(table string) error {
+	if strings.ToLower(h.Mode) == "create" {
+		if err := h.DropCreateTable(table); err != nil {
+			return err
+		}
+	} else if strings.ToLower(h.Mode) == "truncate" {
+		if err := h.TruncateTable(table); err != nil {
+			logging.Error("Failed to truncate target table")
+			return err
+		}
+	}
+	return nil
+}
+
+// func (h *Helper) {}
 
 // Helper ...
 type Helper struct {
@@ -134,51 +218,134 @@ func NewHelper(o *Options) *Helper {
 	return &Helper{o}
 }
 
-// Run ...
-func (h *Helper) Run(wire *api.Wire) error {
-
-	if strings.ToLower(h.Mode) == "create" {
-		if err := h.DropTable(); err != nil {
-			logging.Warn("Failed to drop table", err)
-		}
-		if err := h.CreateTable(); err != nil {
-			logging.Error("Failed to create target table")
-			return err
-		}
-	} else if strings.ToLower(h.Mode) == "truncate" {
-		if err := h.TruncateTable(); err != nil {
-			logging.Error("Failed to truncate target table")
-			return err
-		}
-	}
-
-	insertQuery, err := h.BuildInsertQuery()
-	if err != nil {
-		logging.Error("Failed to build insert query")
-		return err
-	}
+// UnionAllTempTables ...
+func (h *Helper) UnionAllTempTables(sources []string) error {
+	query := h.BuildUnionAllQuery(sources)
 	tx, err := h.Db.Begin()
 	if err != nil {
 		logging.Error("Failed to start transaction")
 		return err
 	}
+	_, err = tx.Exec(query)
+	if err != nil {
+		logging.Error("Failed union tables")
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
+}
 
+// Run ...
+func (h *Helper) Run(wire *api.Wire) error {
+
+	var table string
+	table = h.GetTableName()
+
+	if err := h.PrepareTargetTable(table); err != nil {
+		return err
+	}
+
+	var parallel int = 1
+	if h.Parallel > 1 {
+		parallel = h.Parallel
+	}
+
+	var in chan *message
+	outs := make([]chan *message, parallel)
+	for i := range outs {
+		outs[i] = make(chan *message, 10) // todo buffer size from .env
+
+	}
+
+	tables := make([]string, parallel)
+	if parallel == 1 {
+		// directly to target table
+		tables = append(tables, table)
+		go h.insert(wire, in, outs[0], table)
+	} else {
+		for i := 0; i < parallel; i++ {
+			tables = append(tables, h.GetTempTableName())
+			if err := h.CreateTable(tables[i]); err != nil {
+				stopWorkers(outs)
+				return err
+			}
+			go h.insert(wire, in, outs[0], tables[i])
+		}
+	}
+	if err := supervise(in, outs); err != nil {
+		return err
+	}
+	if parallel > 1 {
+		if err := h.UnionAllTempTables(tables); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func stopWorkers(channels []chan *message) {
+	order := newStopOrder()
+	for _, ch := range channels {
+		ch <- order
+	}
+}
+
+func supervise(in chan *message, outs []chan *message) error {
+	var successCount int = 0
+	for message := range in {
+		if message.Type == successMessage {
+			if successCount == len(outs) {
+				break
+			}
+		} else if message.Type == errorMessage {
+			killm := newStopOrder()
+			for _, o := range outs {
+				o <- killm
+			}
+			return errors.New("One of the child sessions failed")
+		}
+	}
+	if successCount == len(outs) {
+		return nil
+	}
+	return errors.New("Can not get success message from all childs")
+}
+
+func (h *Helper) insert(wire *api.Wire, out chan *message, in chan *message, name string) error {
+
+	query, err := h.BuildInsertQuery(name)
+	if err != nil {
+		logging.Error("Failed to build insert query")
+		return err
+	}
+
+	tx, err := h.Db.Begin()
+	if err != nil {
+		logging.Error("Failed to start transaction")
+		return err
+	}
 	for data := range wire.Data {
 		for _, d := range data.Content {
-			_, err = tx.Exec(insertQuery, d...)
+			_, err := tx.Exec(query, d...)
 			if err != nil {
 				logging.Error("Failed to insert record")
 				tx.Rollback()
 				return err
 			}
 			wire.Feed <- api.NewWriteCountFeed(1)
+			parentMessage, ok := <-in
+			if ok {
+				if parentMessage.Type == stopOrder {
+					return errors.New("Terminated by the parent")
+				}
+			}
 		}
 	}
-
-	return nil
-}
-
-func (h *Helper) run(table string) error {
-
+	if err := tx.Commit(); err != nil {
+		out <- &message{Sender: "worker", Type: errorMessage, Content: err}
+		return err
+	}
+	out <- &message{Sender: "worker", Type: successMessage}
 	return nil
 }
