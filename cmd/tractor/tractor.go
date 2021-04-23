@@ -5,6 +5,7 @@ import (
 
 	"github.com/bluecolor/tractor/cmd"
 	_ "github.com/bluecolor/tractor/plugins/inputs/all"
+	_ "github.com/bluecolor/tractor/plugins/outputs/all"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"

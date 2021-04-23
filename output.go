@@ -3,5 +3,5 @@ package tractor
 type Output interface {
 	PluginDescriber
 
-	Write(data Data) error
+	Write(ch <-chan *Message) error
 }
