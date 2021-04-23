@@ -50,6 +50,11 @@ func (o *Oracle) SampleConfig() string {
 }
 
 func (o *Oracle) Write(ch <-chan *tractor.Message) error {
+
+	for message := range ch {
+
+	}
+
 	return nil
 }
 

@@ -3,6 +3,9 @@ package oracle
 import (
 	"errors"
 	"fmt"
+	"strings"
+
+	"github.com/bluecolor/tractor/utils"
 )
 
 func (o *Oracle) getDataSourceName() (string, error) {
@@ -25,6 +28,50 @@ func (o *Oracle) getDataSourceName() (string, error) {
 		`user="%s" password="%s" connectString="%s:%d/%s"`,
 		o.Username, o.Password, o.Host, o.Port, o.Database,
 	), nil
+}
+
+func (o *Oracle) getFields() ([]utils.Field, error) {
+	query, err := o.getQuery()
+	if err != nil {
+		return nil, err
+	}
+	return utils.GetFields(query, o.db)
+}
+
+func (o *Oracle) getQueries(parallel int) ([]string, error) {
+	var colnames []string
+	fields, err := o.getFields()
+	if err != nil {
+		return nil, err
+	}
+	query, err := o.getQuery()
+	if err != nil {
+		return nil, err
+	}
+	for _, f := range fields {
+		colnames = append(colnames, f.Name)
+	}
+	count, err := utils.GetCount(query, o.db)
+	if err != nil {
+		return nil, err
+	}
+	chunkSize := (count / o.Parallel)
+	q := fmt.Sprintf(
+		"select * from (select * from (%s) order by %s)", query,
+		fmt.Sprintf("order by %s", strings.Join(colnames, ",")),
+	)
+	queries := make([]string, o.Parallel)
+	for i := 0; i < parallel; i++ {
+		if i != parallel-1 {
+			queries = append(queries, fmt.Sprintf(
+				"%s where rownumber >= %d and rownumber < %d", q, i*chunkSize, (i+1)*chunkSize))
+		} else {
+			queries = append(queries, fmt.Sprintf(
+				"%s where rownumber >= %d", q, i*chunkSize))
+		}
+
+	}
+	return queries, nil
 }
 
 func (o *Oracle) getQuery() (string, error) {
