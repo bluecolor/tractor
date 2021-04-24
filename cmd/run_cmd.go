@@ -38,7 +38,7 @@ func run(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 	if initializer, ok := inputPlugin.(tractor.Initializer); ok {
-		err = initializer.Init()
+		err = initializer.Init(&m.Input.Catalog)
 		if err != nil {
 			println(err.Error())
 			os.Exit(1)

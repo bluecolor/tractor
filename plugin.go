@@ -5,7 +5,7 @@ import "github.com/bluecolor/tractor/config"
 var Debug bool
 
 type Initializer interface {
-	Init() error
+	Init(catalog *config.Catalog) error
 }
 
 type Validator interface {

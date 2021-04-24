@@ -2,7 +2,6 @@ package oracle
 
 import (
 	"database/sql"
-	"os"
 
 	"github.com/bluecolor/tractor"
 	"github.com/bluecolor/tractor/plugins/inputs"
@@ -66,11 +65,9 @@ func (o *Oracle) Read(wire tractor.Wire) error {
 		return err
 	}
 	for _, q := range queries {
-		println(q)
 		if err := db.Read(wire, q, o.db); err != nil {
 			return err
 		}
-		os.Exit(0)
 	}
 	return nil
 }

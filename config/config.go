@@ -11,7 +11,6 @@ import (
 type Property struct {
 	Name      string `yaml:"name"`
 	Type      string `yaml:"type"`
-	Format    string `yaml:"format"`
 	Length    int64  `yaml:"length"`
 	Precision int64  `yaml:"precision"`
 	Scale     int64  `yaml:"scale"`

@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/bluecolor/tractor"
 	"github.com/bluecolor/tractor/utils"
@@ -104,4 +105,34 @@ func Read(wire tractor.Wire, query string, db *sql.DB) (err error) {
 	}
 	wire.SendMessage(tractor.NewSuccessFeed(tractor.InputPlugin))
 	return err
+}
+
+func DropTable(db *sql.DB, table string) error {
+	_, err := db.Exec(fmt.Sprintf("drop table %s", table))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func CreateTable(db *sql.DB, table string, columns []string, props string) error {
+	q := fmt.Sprintf(`create table %s (
+        %s
+    ) %s`, table, strings.Join(columns, ", "), props)
+	_, err := db.Exec(q)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func Insert(tx *sql.Tx, query string, data tractor.Data) (count int, err error) {
+	for _, record := range data {
+		_, err = tx.Exec(query, record...)
+		if err != nil {
+			return count, err
+		}
+		count++
+	}
+	return count, nil
 }

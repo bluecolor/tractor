@@ -63,7 +63,6 @@ func getPorperty(ct *sql.ColumnType) config.Property {
 		if length, ok := ct.Length(); ok {
 			prop.Length = length
 		}
-		prop.Format = "date-format"
 		return prop
 	}
 
