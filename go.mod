@@ -3,6 +3,7 @@ module github.com/bluecolor/tractor
 go 1.15
 
 require (
+	github.com/godror/godror v0.24.4
 	github.com/joho/godotenv v1.3.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/rs/zerolog v1.21.0

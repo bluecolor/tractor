@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/bluecolor/tractor/utils"
+	dbu "github.com/bluecolor/tractor/utils/db"
 )
 
 func (o *Oracle) getDataSourceName() (string, error) {
@@ -16,8 +17,8 @@ func (o *Oracle) getDataSourceName() (string, error) {
 
 	if o.URL != "" {
 		return fmt.Sprintf(
-			`user="%s" password="%s" connectString="%s"`,
-			o.Username, o.Password, o.URL,
+			`user="%s" password="%s" connectString="%s" libDir="%s"`,
+			o.Username, o.Password, o.URL, o.Libdir,
 		), nil
 	}
 	if o.Host == "" || o.Port == 0 || o.Database == "" {
@@ -25,8 +26,8 @@ func (o *Oracle) getDataSourceName() (string, error) {
 	}
 
 	return fmt.Sprintf(
-		`user="%s" password="%s" connectString="%s:%d/%s"`,
-		o.Username, o.Password, o.Host, o.Port, o.Database,
+		`user="%s" password="%s" connectString="%s:%d/%s" libDir="%s"`,
+		o.Username, o.Password, o.Host, o.Port, o.Database, o.Libdir,
 	), nil
 }
 
@@ -35,10 +36,10 @@ func (o *Oracle) getFields() ([]utils.Field, error) {
 	if err != nil {
 		return nil, err
 	}
-	return utils.GetFields(query, o.db)
+	return dbu.GetFields(query, o.db)
 }
 
-func (o *Oracle) getQueries(parallel int) ([]string, error) {
+func (o *Oracle) getQueries() ([]string, error) {
 	var colnames []string
 	fields, err := o.getFields()
 	if err != nil {
@@ -51,25 +52,24 @@ func (o *Oracle) getQueries(parallel int) ([]string, error) {
 	for _, f := range fields {
 		colnames = append(colnames, f.Name)
 	}
-	count, err := utils.GetCount(query, o.db)
+	count, err := dbu.GetCount(query, o.db)
 	if err != nil {
 		return nil, err
 	}
 	chunkSize := (count / o.Parallel)
 	q := fmt.Sprintf(
 		"select * from (select * from (%s) order by %s)", query,
-		fmt.Sprintf("order by %s", strings.Join(colnames, ",")),
+		fmt.Sprintf("%s", strings.Join(colnames, ",")),
 	)
 	queries := make([]string, o.Parallel)
-	for i := 0; i < parallel; i++ {
-		if i != parallel-1 {
-			queries = append(queries, fmt.Sprintf(
-				"%s where rownumber >= %d and rownumber < %d", q, i*chunkSize, (i+1)*chunkSize))
+	for i := 0; i < o.Parallel; i++ {
+		if i != o.Parallel-1 {
+			queries[i] = fmt.Sprintf(
+				"%s where rownum >= %d and rownum < %d", q, i*chunkSize, (i+1)*chunkSize)
 		} else {
-			queries = append(queries, fmt.Sprintf(
-				"%s where rownumber >= %d", q, i*chunkSize))
+			queries[i] = fmt.Sprintf(
+				"%s where rownum >= %d", q, i*chunkSize)
 		}
-
 	}
 	return queries, nil
 }

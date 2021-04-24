@@ -1,6 +1,6 @@
 package tractor
 
 type Wire interface {
-	SendData(data *Data)
-	SendFeed(feed *Feed)
+	SendMessage(message *Message)
+	ReadMessages() <-chan *Message
 }

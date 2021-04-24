@@ -49,11 +49,11 @@ func (o *Oracle) SampleConfig() string {
 	return sampleConfig
 }
 
-func (o *Oracle) Write(ch <-chan *tractor.Message) error {
+func (o *Oracle) Write(wire tractor.Wire) error {
 
-	for message := range ch {
-
-	}
+	// for message := range ch {
+	// 	// todo
+	// }
 
 	return nil
 }

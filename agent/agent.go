@@ -6,25 +6,26 @@ import (
 )
 
 type wire struct {
-	Data chan *tractor.Data
-	Feed chan *tractor.Feed
+	feedChannel    chan *tractor.Message
+	messageChannel chan *tractor.Message
 }
 
-func NewWire(
-	data chan *tractor.Data,
-	feed chan *tractor.Feed,
-) tractor.Wire {
+func NewWire() tractor.Wire {
 	w := wire{
-		Data: data,
-		Feed: feed,
+		feedChannel:    make(chan *tractor.Message, 100),
+		messageChannel: make(chan *tractor.Message, 100),
 	}
 	return &w
 }
 
-func (w *wire) SendData(data *tractor.Data) {
-	w.Data <- data
+func (w *wire) SendMessage(message *tractor.Message) {
+	if message.Type == tractor.FeedMessage {
+		w.feedChannel <- message
+	} else {
+		w.messageChannel <- message
+	}
 }
 
-func (w *wire) SendFeed(feed *tractor.Feed) {
-	w.Feed <- feed
+func (w *wire) ReadMessages() <-chan *tractor.Message {
+	return w.messageChannel
 }

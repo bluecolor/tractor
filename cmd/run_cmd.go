@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/bluecolor/tractor"
+	"github.com/bluecolor/tractor/agent"
 	cfg "github.com/bluecolor/tractor/config"
 	"github.com/spf13/cobra"
 )
@@ -35,7 +37,18 @@ func run(cmd *cobra.Command, args []string) {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
-	print(inputPlugin.SampleConfig())
+	if initializer, ok := inputPlugin.(tractor.Initializer); ok {
+		err = initializer.Init()
+		if err != nil {
+			println(err.Error())
+			os.Exit(1)
+		}
+	}
+	wire := agent.NewWire()
+	err = inputPlugin.Read(wire)
+	if err != nil {
+		println(err.Error())
+	}
 }
 
 func init() {

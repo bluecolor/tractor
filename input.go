@@ -3,7 +3,7 @@ package tractor
 type Input interface {
 	PluginDescriber
 
-	Read(ch chan<- *Message) error
+	Read(wire Wire) error
 }
 
 type ServiceInput interface {

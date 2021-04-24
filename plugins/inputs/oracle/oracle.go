@@ -2,9 +2,12 @@ package oracle
 
 import (
 	"database/sql"
+	"os"
 
 	"github.com/bluecolor/tractor"
 	"github.com/bluecolor/tractor/plugins/inputs"
+	"github.com/bluecolor/tractor/utils/db"
+	_ "github.com/godror/godror"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -57,7 +60,18 @@ func (o *Oracle) SampleConfig() string {
 	return sampleConfig
 }
 
-func (o *Oracle) Read(ch chan<- *tractor.Message) error {
+func (o *Oracle) Read(wire tractor.Wire) error {
+	queries, err := o.getQueries()
+	if err != nil {
+		return err
+	}
+	for _, q := range queries {
+		println(q)
+		if err := db.Read(wire, q, o.db); err != nil {
+			return err
+		}
+		os.Exit(0)
+	}
 	return nil
 }
 

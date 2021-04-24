@@ -34,3 +34,35 @@ type Message struct {
 	Sender  SenderType
 	Content interface{}
 }
+
+func NewErrorFeed(sender SenderType, content interface{}) *Message {
+
+	feed := Feed{
+		Type:    Error,
+		Content: content,
+	}
+	return &Message{
+		Type:    FeedMessage,
+		Sender:  sender,
+		Content: feed,
+	}
+}
+
+func NewDataMessage(data Data) *Message {
+	return &Message{
+		Type:    FeedMessage,
+		Sender:  InputPlugin,
+		Content: data,
+	}
+}
+
+func NewSuccessFeed(sender SenderType) *Message {
+	feed := Feed{
+		Type: Success,
+	}
+	return &Message{
+		Type:    FeedMessage,
+		Sender:  sender,
+		Content: feed,
+	}
+}
