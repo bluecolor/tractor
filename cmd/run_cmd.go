@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/bluecolor/tractor"
 	"github.com/bluecolor/tractor/agent"
@@ -38,17 +39,35 @@ func run(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 	if initializer, ok := inputPlugin.(tractor.Initializer); ok {
-		err = initializer.Init(&m.Input.Catalog)
+		err = initializer.Init()
 		if err != nil {
 			println(err.Error())
 			os.Exit(1)
 		}
 	}
-	wire := agent.NewWire()
-	err = inputPlugin.Read(wire)
+	outputPlugin, err := validateAndGetOutputPlugin(m.Output.Plugin, m.Output.Config)
 	if err != nil {
-		println(err.Error())
+		fmt.Println(err.Error())
+		os.Exit(1)
 	}
+	if initializer, ok := outputPlugin.(tractor.Initializer); ok {
+		err = initializer.Init()
+		if err != nil {
+			println(err.Error())
+			os.Exit(1)
+		}
+	}
+
+	wire := agent.NewWire()
+
+	var wg sync.WaitGroup
+	go inputPlugin.Read(wire)
+	wg.Add(1)
+	go outputPlugin.Write(wire)
+	wg.Add(1)
+
+	wg.Wait()
+	wire.Close()
 }
 
 func init() {

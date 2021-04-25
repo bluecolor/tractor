@@ -1,5 +1,7 @@
 package tractor
 
+import "github.com/bluecolor/tractor/config"
+
 type MessageType int
 type FeedType int
 type SenderType int
@@ -119,6 +121,10 @@ func NewSuccessFeed(sender SenderType) *Message {
 	feed := Feed{
 		Type: Success,
 	}
+	return NewFeed(sender, &feed)
+}
+
+func NewFeed(sender SenderType, feed *Feed) *Message {
 	return &Message{
 		Type:    FeedMessage,
 		Sender:  sender,
@@ -126,4 +132,9 @@ func NewSuccessFeed(sender SenderType) *Message {
 	}
 }
 
-func NewCatalogMessage(sender SenderType) {}
+func NewCatalogMessage(catalog *config.Catalog) *Message {
+	return &Message{
+		Type:    FeedMessage,
+		Content: catalog,
+	}
+}
