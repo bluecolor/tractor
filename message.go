@@ -111,7 +111,7 @@ func NewErrorFeed(sender SenderType, content interface{}) *Message {
 
 func NewDataMessage(data Data) *Message {
 	return &Message{
-		Type:    FeedMessage,
+		Type:    DataMessage,
 		Sender:  InputPlugin,
 		Content: data,
 	}

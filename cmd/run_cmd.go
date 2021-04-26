@@ -61,9 +61,18 @@ func run(cmd *cobra.Command, args []string) {
 	wire := agent.NewWire()
 
 	var wg sync.WaitGroup
-	go inputPlugin.Read(wire)
+	go func(wg *sync.WaitGroup) {
+		if err := inputPlugin.Read(wire); err != nil {
+			println(err.Error())
+		}
+		wg.Done()
+		println("input done")
+	}(&wg)
 	wg.Add(1)
-	go outputPlugin.Write(wire)
+	go func(wg *sync.WaitGroup) {
+		outputPlugin.Write(wire)
+		wg.Done()
+	}(&wg)
 	wg.Add(1)
 
 	wg.Wait()
