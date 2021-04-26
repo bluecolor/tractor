@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -46,6 +47,11 @@ func (o *Oracle) getQueries() ([]string, error) {
 		return nil, err
 	}
 	query, err := o.getQuery()
+
+	if o.Parallel < 2 {
+		return []string{query}, err
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -57,18 +63,24 @@ func (o *Oracle) getQueries() ([]string, error) {
 		return nil, err
 	}
 	chunkSize := (count / o.Parallel)
-	q := fmt.Sprintf(
-		"select * from (select * from (%s) order by %s)", query,
-		fmt.Sprintf("%s", strings.Join(colnames, ",")),
-	)
+	columns := strings.Join(colnames, ",")
+	q := fmt.Sprintf(`
+        select %s from (
+            select
+                t.*,
+                row_number() over(order by %s) rn$$$$$$$$$
+            from (%s) t
+        )
+    `, columns, columns, query)
+
 	queries := make([]string, o.Parallel)
 	for i := 0; i < o.Parallel; i++ {
 		if i != o.Parallel-1 {
 			queries[i] = fmt.Sprintf(
-				"%s where rownum >= %d and rownum < %d", q, i*chunkSize, (i+1)*chunkSize)
+				"%s where rn$$$$$$$$$ >= %d and rn$$$$$$$$$ < %d", q, i*chunkSize, (i+1)*chunkSize)
 		} else {
 			queries[i] = fmt.Sprintf(
-				"%s where rownum >= %d", q, i*chunkSize)
+				"%s where rn$$$$$$$$$ >= %d", q, i*chunkSize)
 		}
 	}
 	return queries, nil
@@ -91,4 +103,17 @@ func (o *Oracle) getQuery() (string, error) {
 		where = fmt.Sprintf("where %s", o.Where)
 	}
 	return fmt.Sprintf("select %s from %s %s", columns, o.Table, where), nil
+}
+
+func (o *Oracle) connect() error {
+	dsn, err := o.getDataSourceName()
+	if err != nil {
+		return err
+	}
+	db, err := sql.Open("godror", dsn)
+	if err != nil {
+		return err
+	}
+	o.db = db
+	return nil
 }

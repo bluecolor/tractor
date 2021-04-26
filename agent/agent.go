@@ -2,47 +2,48 @@ package agent
 
 import (
 	"github.com/bluecolor/tractor"
-	"github.com/bluecolor/tractor/config"
 	_ "github.com/bluecolor/tractor/plugins/inputs/all"
 	_ "github.com/bluecolor/tractor/plugins/outputs/all"
 )
 
 type wire struct {
-	feedChannel    chan *tractor.Message
-	messageChannel chan *tractor.Message
+	feedChannel chan tractor.Feed
+	dataChannel chan tractor.Data
 }
 
 func NewWire() tractor.Wire {
 	w := wire{
-		feedChannel:    make(chan *tractor.Message, 100),
-		messageChannel: make(chan *tractor.Message, 100),
+		feedChannel: make(chan tractor.Feed, 100),
+		dataChannel: make(chan tractor.Data, 100),
 	}
 	return &w
 }
 
-func (w *wire) SendMessage(message *tractor.Message) {
-	if message.Type == tractor.FeedMessage {
-		w.feedChannel <- message
-	} else {
-		w.messageChannel <- message
-	}
+func (w *wire) SendFeed(feed tractor.Feed) {
+	w.feedChannel <- feed
 }
 
-func (w *wire) SendCatalog(catalog *config.Catalog) {
-	message := tractor.NewCatalogMessage(catalog)
-	w.messageChannel <- message
+func (w *wire) SendData(data tractor.Data) {
+	w.dataChannel <- data
 }
 
-func (w *wire) SendFeed(sender tractor.SenderType, feed *tractor.Feed) {
-	message := tractor.NewFeed(sender, feed)
-	w.feedChannel <- message
+func (w *wire) ReadData() <-chan tractor.Data {
+	return w.dataChannel
 }
 
-func (w *wire) ReadMessages() <-chan *tractor.Message {
-	return w.messageChannel
+func (w *wire) ReadFeeds() <-chan tractor.Feed {
+	return w.feedChannel
 }
 
 func (w *wire) Close() {
 	close(w.feedChannel)
-	close(w.messageChannel)
+	close(w.dataChannel)
+}
+
+func (w *wire) CloseData() {
+	close(w.dataChannel)
+}
+
+func (w *wire) CloseFeed() {
+	close(w.feedChannel)
 }

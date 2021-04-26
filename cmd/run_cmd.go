@@ -77,17 +77,18 @@ func run(cmd *cobra.Command, args []string) {
 			println(err.Error())
 		}
 		wg.Done()
+		wire.CloseData()
 		println("input done")
 	}(&wg)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		outputPlugin.Write(wire)
 		wg.Done()
+		println("output done")
 	}(&wg)
 	wg.Add(1)
-
 	wg.Wait()
-	wire.Close()
+	wire.CloseFeed()
 }
 
 func init() {

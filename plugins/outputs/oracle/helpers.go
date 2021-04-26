@@ -44,7 +44,7 @@ func columnFromProperty(prop *config.Property) (string, error) {
 		if length == 0 {
 			length = 4000
 		}
-		return fmt.Sprintf("%s varchar2(%s)", prop.Name, length), nil
+		return fmt.Sprintf("%s varchar2(%d)", prop.Name, length), nil
 	case "date":
 		return fmt.Sprintf("%s timestamp", prop.Name), nil
 	case "numeric":
@@ -56,14 +56,14 @@ func columnFromProperty(prop *config.Property) (string, error) {
 		if scale >= 22 {
 			scale = 21
 		}
-		return fmt.Sprintf("%s number(%s, %s)", prop.Name, precision, scale), nil
+		return fmt.Sprintf("%s number(%d, %d)", prop.Name, precision, scale), nil
 	}
 
 	length := prop.Length
 	if length == 0 {
 		length = 4000
 	}
-	return fmt.Sprintf("%s varchar2(%s)", prop.Name, length), nil
+	return fmt.Sprintf("%s varchar2(%d)", prop.Name, length), nil
 }
 
 func columnsFromProperties(properties []config.Property) (columns []string, err error) {
@@ -78,9 +78,12 @@ func columnsFromProperties(properties []config.Property) (columns []string, err 
 }
 
 func (o *Oracle) dropCreate(catalog *config.Catalog) error {
-	table := catalog.Name
+	table := o.Table
 	if table == "" {
-		table = o.Table
+		table = catalog.Name
+	}
+	if table == "" {
+		return errors.New("Table name is missing")
 	}
 	_ = dbu.DropTable(o.db, table)
 
@@ -105,16 +108,29 @@ func (o *Oracle) buildInsertQuery(fieldCount int) (string, error) {
 
 func sendErrorFeed(wire tractor.Wire, err error) error {
 	feed := tractor.NewErrorFeed(tractor.OutputPlugin, err)
-	wire.SendMessage(feed)
+	wire.SendFeed(feed)
 	return err
 }
 
-func insert(wire tractor.Wire, tx *sql.Tx, query string, data tractor.Data) error {
+func insert(wire tractor.Wire, tx *sql.Tx, query string, data *tractor.Data) error {
 	count, err := dbu.Insert(tx, query, data)
 	if err != nil {
 		return err
 	}
 	progress := tractor.NewWriteProgress(count)
-	wire.SendMessage(progress)
+	wire.SendFeed(progress)
+	return nil
+}
+
+func (o *Oracle) connect() error {
+	dsn, err := o.getDataSourceName()
+	if err != nil {
+		return err
+	}
+	db, err := sql.Open("godror", dsn)
+	if err != nil {
+		return err
+	}
+	o.db = db
 	return nil
 }

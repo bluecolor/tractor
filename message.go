@@ -20,7 +20,7 @@ type progress struct {
 func (p *progress) Count() int      { return p.count }
 func (p *progress) Total() int      { return p.total }
 func (p *progress) Message() string { return p.message }
-func NewWriteProgress(count int, args ...string) *Feed {
+func NewWriteProgress(count int, args ...string) Feed {
 	var msg string = ""
 	if len(args) > 0 {
 		msg = args[0]
@@ -29,7 +29,7 @@ func NewWriteProgress(count int, args ...string) *Feed {
 		count:   count,
 		message: msg,
 	}
-	return &Feed{
+	return Feed{
 		Type:    Progress,
 		Sender:  OutputPlugin,
 		Content: content,
@@ -75,9 +75,9 @@ type Feed struct {
 	Content interface{}
 }
 
-func NewErrorFeed(sender SenderType, content interface{}) *Feed {
+func NewErrorFeed(sender SenderType, content interface{}) Feed {
 
-	return &Feed{
+	return Feed{
 		Type:    Error,
 		Sender:  sender,
 		Content: content,
@@ -85,15 +85,15 @@ func NewErrorFeed(sender SenderType, content interface{}) *Feed {
 
 }
 
-func NewSuccessFeed(sender SenderType) *Feed {
-	return &Feed{
+func NewSuccessFeed(sender SenderType) Feed {
+	return Feed{
 		Type:   Success,
 		Sender: sender,
 	}
 }
 
-func NewFeed(sender SenderType, feedType FeedType, content interface{}) *Feed {
-	return &Feed{
+func NewFeed(sender SenderType, feedType FeedType, content interface{}) Feed {
+	return Feed{
 		Type:    feedType,
 		Sender:  sender,
 		Content: content,

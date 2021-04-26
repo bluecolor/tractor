@@ -14,6 +14,8 @@ func (o *Oracle) Discover() (*config.Catalog, error) {
 		return nil, err
 	}
 	rows, err := o.db.Query(query)
+	defer rows.Close()
+
 	if err != nil {
 		return nil, err
 	}
@@ -35,8 +37,9 @@ func (o *Oracle) Discover() (*config.Catalog, error) {
 }
 
 func getPorperty(ct *sql.ColumnType) config.Property {
-	prop := config.Property{}
-
+	prop := config.Property{
+		Name: ct.Name(),
+	}
 	switch ct.DatabaseTypeName() {
 	case "VARCHAR2", "NVARCHAR2", "CHAR", "LONG", "VARCHAR", "NCHAR":
 		prop.Type = "string"
@@ -46,7 +49,7 @@ func getPorperty(ct *sql.ColumnType) config.Property {
 		return prop
 	case "NUMBER":
 		prop.Type = "numeric"
-		if precision, scale, ok := ct.DecimalSize(); ok {
+		if precision, scale, ok := ct.DecimalSize(); ok && scale > 0 {
 			prop.Precision = precision
 			prop.Scale = scale
 		}

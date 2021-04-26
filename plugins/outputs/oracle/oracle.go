@@ -2,7 +2,6 @@ package oracle
 
 import (
 	"database/sql"
-	"errors"
 	"strings"
 
 	"github.com/bluecolor/tractor"
@@ -27,7 +26,6 @@ type Oracle struct {
 	db *sql.DB
 }
 
-var catalogGiven bool = false
 var insertQuery string = ""
 
 var sampleConfig = `
@@ -69,52 +67,29 @@ func (o *Oracle) Write(wire tractor.Wire) (err error) {
 		} else {
 			tx.Commit()
 			o.db.Close()
-			wire.SendMessage(tractor.NewSuccessFeed(tractor.OutputPlugin))
+			wire.SendFeed(tractor.NewSuccessFeed(tractor.OutputPlugin))
 		}
 	}()
 
-	for message := range wire.ReadMessages() {
-		switch message.Type {
-		case tractor.DataMessage:
-			if data, ok := message.Content.(tractor.Data); ok {
-				insertQuery, err = o.buildInsertQuery(len(data[0]))
-				if err != nil {
-					return err
-				}
-				err = insert(wire, tx, insertQuery, data)
-				if err != nil {
-					return err
-				}
-			} else {
-				err = errors.New("Failed to cast data message")
-				return err
-			}
-		case tractor.CatalogMessage:
-			if !catalogGiven && strings.ToLower(o.Mode) == "drop-create" {
-				if catalog, ok := message.Content.(config.Catalog); ok {
-					err := o.dropCreate(&catalog)
-					if err != nil {
-						return err
-					}
-					if insertQuery == "" {
-						insertQuery, err = o.buildInsertQuery(len(catalog.Properties))
-						if err != nil {
-							return err
-						}
-					}
-				} else {
-					err := errors.New("Failed to cast catalog message")
-					return err
-				}
-			}
+	for data := range wire.ReadData() {
+		insertQuery, err = o.buildInsertQuery(len((data)[0]))
+		if err != nil {
+			return err
+		}
+		err = insert(wire, tx, insertQuery, &data)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
 func (o *Oracle) Init(catalog *config.Catalog) (err error) {
+	err = o.connect()
+	if err != nil {
+		return err
+	}
 	if catalog != nil {
-		catalogGiven = true
 		if insertQuery == "" {
 			insertQuery, err = o.buildInsertQuery(len(catalog.Properties))
 			if err != nil {
@@ -128,15 +103,6 @@ func (o *Oracle) Init(catalog *config.Catalog) (err error) {
 			}
 		}
 	}
-	dsn, err := o.getDataSourceName()
-	if err != nil {
-		return err
-	}
-	db, err := sql.Open("godror", dsn)
-	if err != nil {
-		return err
-	}
-	o.db = db
 	return nil
 }
 

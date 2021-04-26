@@ -16,6 +16,10 @@ type Property struct {
 	Scale     int64  `yaml:"scale"`
 }
 
+func (p *Property) String() string {
+	return fmt.Sprintf("name:%s, type:%s", p.Name, p.Type)
+}
+
 type Catalog struct {
 	Name       string     `yaml:"name"`
 	Properties []Property `yaml:"properties"`

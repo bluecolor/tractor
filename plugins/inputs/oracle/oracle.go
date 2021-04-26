@@ -74,16 +74,7 @@ func (o *Oracle) Read(wire tractor.Wire) error {
 }
 
 func (o *Oracle) Init(catalog *config.Catalog) error {
-	dsn, err := o.getDataSourceName()
-	if err != nil {
-		return err
-	}
-	db, err := sql.Open("godror", dsn)
-	if err != nil {
-		return err
-	}
-	o.db = db
-	return nil
+	return o.connect()
 }
 
 func init() {

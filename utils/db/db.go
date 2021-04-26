@@ -56,7 +56,7 @@ func GetCount(query string, db *sql.DB) (count int, err error) {
 func Read(wire tractor.Wire, query string, db *sql.DB) (err error) {
 	defer func() {
 		if err != nil {
-			wire.SendMessage(tractor.NewErrorFeed(tractor.Anonymous, err))
+			wire.SendFeed(tractor.NewErrorFeed(tractor.Anonymous, err))
 		}
 	}()
 	rows, err := db.Query(query)
@@ -75,10 +75,6 @@ func Read(wire tractor.Wire, query string, db *sql.DB) (err error) {
 		ptrs[i] = &v
 	}
 	var data tractor.Data
-	send := func(data tractor.Data) {
-		message := tractor.NewDataMessage(data)
-		wire.SendMessage(message)
-	}
 	for rows.Next() {
 		record := make(tractor.Record, colCount)
 		if err := rows.Scan(ptrs...); err != nil {
@@ -90,7 +86,7 @@ func Read(wire tractor.Wire, query string, db *sql.DB) (err error) {
 
 		data = append(data, record)
 		if len(data) >= 100 { // todo
-			send(data)
+			wire.SendData(data)
 			data = nil
 		}
 		// todo
@@ -100,10 +96,10 @@ func Read(wire tractor.Wire, query string, db *sql.DB) (err error) {
 		// }
 	}
 	if len(data) > 0 {
-		send(data)
+		wire.SendData(data)
 		data = nil
 	}
-	wire.SendMessage(tractor.NewSuccessFeed(tractor.InputPlugin))
+	wire.SendFeed(tractor.NewSuccessFeed(tractor.InputPlugin))
 	return err
 }
 
@@ -126,8 +122,8 @@ func CreateTable(db *sql.DB, table string, columns []string, props string) error
 	return nil
 }
 
-func Insert(tx *sql.Tx, query string, data tractor.Data) (count int, err error) {
-	for _, record := range data {
+func Insert(tx *sql.Tx, query string, data *tractor.Data) (count int, err error) {
+	for _, record := range *data {
 		_, err = tx.Exec(query, record...)
 		if err != nil {
 			return count, err
