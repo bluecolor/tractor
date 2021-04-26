@@ -58,7 +58,7 @@ func getPorperty(ct *sql.ColumnType) config.Property {
 		}
 		return prop
 	case "DATE", "TIMESTAMP":
-		prop.Type = "string"
+		prop.Type = "date"
 		if precision, scale, ok := ct.DecimalSize(); ok {
 			prop.Precision = precision
 			prop.Scale = scale

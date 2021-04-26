@@ -112,7 +112,7 @@ func sendErrorFeed(wire tractor.Wire, err error) error {
 	return err
 }
 
-func insert(wire tractor.Wire, tx *sql.Tx, query string, data *tractor.Data) error {
+func insert(wire tractor.Wire, tx *sql.Tx, query string, data tractor.Data) error {
 	count, err := dbu.Insert(tx, query, data)
 	if err != nil {
 		return err

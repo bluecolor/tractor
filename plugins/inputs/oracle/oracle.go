@@ -61,6 +61,7 @@ func (o *Oracle) SampleConfig() string {
 }
 
 func (o *Oracle) Read(wire tractor.Wire) error {
+	defer o.db.Close()
 	queries, err := o.getQueries()
 	if err != nil {
 		return err

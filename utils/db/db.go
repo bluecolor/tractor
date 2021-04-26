@@ -85,15 +85,10 @@ func Read(wire tractor.Wire, query string, db *sql.DB) (err error) {
 		}
 
 		data = append(data, record)
-		if len(data) >= 100 { // todo
+		if len(data) >= 10000 { // todo
 			wire.SendData(data)
 			data = nil
 		}
-		// todo
-		// order, ok := <-in
-		// if ok && order.IsStopOrder() {
-		// 	break
-		// }
 	}
 	if len(data) > 0 {
 		wire.SendData(data)
@@ -122,8 +117,8 @@ func CreateTable(db *sql.DB, table string, columns []string, props string) error
 	return nil
 }
 
-func Insert(tx *sql.Tx, query string, data *tractor.Data) (count int, err error) {
-	for _, record := range *data {
+func Insert(tx *sql.Tx, query string, data tractor.Data) (count int, err error) {
+	for _, record := range data {
 		_, err = tx.Exec(query, record...)
 		if err != nil {
 			return count, err

@@ -13,8 +13,8 @@ type wire struct {
 
 func NewWire() tractor.Wire {
 	w := wire{
-		feedChannel: make(chan tractor.Feed, 100),
-		dataChannel: make(chan tractor.Data, 100),
+		feedChannel: make(chan tractor.Feed, 10000),
+		dataChannel: make(chan tractor.Data, 10000),
 	}
 	return &w
 }

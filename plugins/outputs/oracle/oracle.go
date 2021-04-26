@@ -3,6 +3,7 @@ package oracle
 import (
 	"database/sql"
 	"strings"
+	"sync"
 
 	"github.com/bluecolor/tractor"
 	"github.com/bluecolor/tractor/config"
@@ -45,8 +46,6 @@ var sampleConfig = `
 
     batch_size: defaults to 1000
     parallel: defaults to 1
-
-    catalog: see catalog messages //todo
 `
 
 func (o *Oracle) Description() string {
@@ -57,8 +56,7 @@ func (o *Oracle) SampleConfig() string {
 	return sampleConfig
 }
 
-func (o *Oracle) Write(wire tractor.Wire) (err error) {
-
+func (o *Oracle) startWorker(wire tractor.Wire) (err error) {
 	tx, err := o.db.Begin()
 	defer func() {
 		if err != nil {
@@ -72,15 +70,36 @@ func (o *Oracle) Write(wire tractor.Wire) (err error) {
 	}()
 
 	for data := range wire.ReadData() {
-		insertQuery, err = o.buildInsertQuery(len((data)[0]))
-		if err != nil {
-			return err
-		}
-		err = insert(wire, tx, insertQuery, &data)
+		err = insert(wire, tx, insertQuery, data)
 		if err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func (o *Oracle) Write(wire tractor.Wire) (err error) {
+
+	if insertQuery == "" {
+		for data := range wire.ReadData() {
+			insertQuery, err = o.buildInsertQuery(len((data)[0]))
+			if err != nil {
+				return err
+			}
+			wire.SendData(data)
+			break
+		}
+	}
+
+	var wg sync.WaitGroup
+	for i := 0; i < o.Parallel; i++ {
+		go func(wg *sync.WaitGroup) {
+			o.startWorker(wire)
+			wg.Done()
+		}(&wg)
+		wg.Add(1)
+	}
+	wg.Wait()
 	return nil
 }
 

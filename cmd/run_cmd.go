@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/bluecolor/tractor"
 	"github.com/bluecolor/tractor/agent"
@@ -18,6 +19,8 @@ var runCmd = &cobra.Command{
 }
 
 func run(cmd *cobra.Command, args []string) {
+	start := time.Now()
+
 	if mapping == "" {
 		println("Mapping is not given")
 		os.Exit(1)
@@ -80,15 +83,36 @@ func run(cmd *cobra.Command, args []string) {
 		wire.CloseData()
 		println("input done")
 	}(&wg)
+	println("inputStarted")
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		outputPlugin.Write(wire)
 		wg.Done()
 		println("output done")
+		wire.CloseFeed()
 	}(&wg)
+	println("outputStarted")
 	wg.Add(1)
+
+	go checkFeeds(wire)
+
 	wg.Wait()
-	wire.CloseFeed()
+
+	duration := time.Since(start)
+	fmt.Println("Duration:", duration)
+}
+
+func checkFeeds(wire tractor.Wire) {
+	for f := range wire.ReadFeeds() {
+		switch f.Type {
+		case tractor.Progress:
+			println("Progress ", f.Sender)
+		case tractor.Success:
+			println("Success ", f.Sender)
+		case tractor.Error:
+			println("Error ", f.Sender)
+		}
+	}
 }
 
 func init() {
