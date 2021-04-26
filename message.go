@@ -1,7 +1,5 @@
 package tractor
 
-import "github.com/bluecolor/tractor/config"
-
 type MessageType int
 type FeedType int
 type SenderType int
@@ -22,7 +20,7 @@ type progress struct {
 func (p *progress) Count() int      { return p.count }
 func (p *progress) Total() int      { return p.total }
 func (p *progress) Message() string { return p.message }
-func NewWriteProgress(count int, args ...string) *Message {
+func NewWriteProgress(count int, args ...string) *Feed {
 	var msg string = ""
 	if len(args) > 0 {
 		msg = args[0]
@@ -31,17 +29,13 @@ func NewWriteProgress(count int, args ...string) *Message {
 		count:   count,
 		message: msg,
 	}
-	feed := Feed{
+	return &Feed{
 		Type:    Progress,
+		Sender:  OutputPlugin,
 		Content: content,
 	}
-	return &Message{
-		Sender:  OutputPlugin,
-		Type:    FeedMessage,
-		Content: feed,
-	}
 }
-func NewReadProgress(count int, args ...interface{}) *Message {
+func NewReadProgress(count int, args ...interface{}) *Feed {
 	var msg string
 	var total int
 
@@ -56,14 +50,10 @@ func NewReadProgress(count int, args ...interface{}) *Message {
 		total:   total,
 		message: msg,
 	}
-	feed := Feed{
+	return &Feed{
+		Sender:  InputPlugin,
 		Type:    Progress,
 		Content: content,
-	}
-	return &Message{
-		Sender:  InputPlugin,
-		Type:    FeedMessage,
-		Content: feed,
 	}
 }
 
@@ -74,12 +64,6 @@ const (
 )
 
 const (
-	FeedMessage MessageType = iota
-	DataMessage
-	CatalogMessage
-)
-
-const (
 	Anonymous SenderType = iota
 	InputPlugin
 	OutputPlugin
@@ -87,54 +71,31 @@ const (
 
 type Feed struct {
 	Type    FeedType
-	Content interface{}
-}
-
-type Message struct {
-	Type    MessageType
 	Sender  SenderType
 	Content interface{}
 }
 
-func NewErrorFeed(sender SenderType, content interface{}) *Message {
+func NewErrorFeed(sender SenderType, content interface{}) *Feed {
 
-	feed := Feed{
+	return &Feed{
 		Type:    Error,
+		Sender:  sender,
 		Content: content,
 	}
-	return &Message{
-		Type:    FeedMessage,
+
+}
+
+func NewSuccessFeed(sender SenderType) *Feed {
+	return &Feed{
+		Type:   Success,
+		Sender: sender,
+	}
+}
+
+func NewFeed(sender SenderType, feedType FeedType, content interface{}) *Feed {
+	return &Feed{
+		Type:    feedType,
 		Sender:  sender,
-		Content: feed,
-	}
-}
-
-func NewDataMessage(data Data) *Message {
-	return &Message{
-		Type:    DataMessage,
-		Sender:  InputPlugin,
-		Content: data,
-	}
-}
-
-func NewSuccessFeed(sender SenderType) *Message {
-	feed := Feed{
-		Type: Success,
-	}
-	return NewFeed(sender, &feed)
-}
-
-func NewFeed(sender SenderType, feed *Feed) *Message {
-	return &Message{
-		Type:    FeedMessage,
-		Sender:  sender,
-		Content: feed,
-	}
-}
-
-func NewCatalogMessage(catalog *config.Catalog) *Message {
-	return &Message{
-		Type:    FeedMessage,
-		Content: catalog,
+		Content: content,
 	}
 }
