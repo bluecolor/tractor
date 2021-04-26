@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/bluecolor/tractor"
+	"github.com/bluecolor/tractor/config"
 	"github.com/bluecolor/tractor/plugins/inputs"
 	"github.com/bluecolor/tractor/utils/db"
 	_ "github.com/godror/godror"
@@ -72,7 +73,7 @@ func (o *Oracle) Read(wire tractor.Wire) error {
 	return nil
 }
 
-func (o *Oracle) Init() error {
+func (o *Oracle) Init(catalog *config.Catalog) error {
 	dsn, err := o.getDataSourceName()
 	if err != nil {
 		return err

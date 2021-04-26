@@ -12,18 +12,17 @@ import (
 )
 
 type Oracle struct {
-	Libdir    string          `yaml:"libdir"`
-	Host      string          `yaml:"host"`
-	Port      int             `yaml:"port"`
-	Database  string          `yaml:"database"`
-	Username  string          `yaml:"username"`
-	Password  string          `yaml:"password"`
-	Mode      string          `yaml:"mode"`
-	URL       string          `yaml:"url"`
-	Table     string          `yaml:"table"`
-	BatchSize int             `yaml:"batch_size"`
-	Parallel  int             `yaml:"parallel"`
-	Catalog   *config.Catalog `yaml:"catalog"`
+	Libdir    string `yaml:"libdir"`
+	Host      string `yaml:"host"`
+	Port      int    `yaml:"port"`
+	Database  string `yaml:"database"`
+	Username  string `yaml:"username"`
+	Password  string `yaml:"password"`
+	Mode      string `yaml:"mode"`
+	URL       string `yaml:"url"`
+	Table     string `yaml:"table"`
+	BatchSize int    `yaml:"batch_size"`
+	Parallel  int    `yaml:"parallel"`
 
 	db *sql.DB
 }
@@ -113,17 +112,17 @@ func (o *Oracle) Write(wire tractor.Wire) (err error) {
 	return nil
 }
 
-func (o *Oracle) Init() (err error) {
-	if o.Catalog != nil {
+func (o *Oracle) Init(catalog *config.Catalog) (err error) {
+	if catalog != nil {
 		catalogGiven = true
 		if insertQuery == "" {
-			insertQuery, err = o.buildInsertQuery(len(o.Catalog.Properties))
+			insertQuery, err = o.buildInsertQuery(len(catalog.Properties))
 			if err != nil {
 				return err
 			}
 		}
 		if strings.ToLower(o.Mode) == "drop-create" {
-			err := o.dropCreate(o.Catalog)
+			err := o.dropCreate(catalog)
 			if err != nil {
 				return err
 			}

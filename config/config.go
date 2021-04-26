@@ -22,13 +22,15 @@ type Catalog struct {
 }
 
 type Input struct {
-	Plugin string                 `yaml:"plugin"`
-	Config map[string]interface{} `yaml:"config"`
+	Plugin  string                 `yaml:"plugin"`
+	Config  map[string]interface{} `yaml:"config"`
+	Catalog *Catalog               `yaml:"catalog"`
 }
 
 type Output struct {
-	Plugin string                 `yaml:"plugin"`
-	Config map[string]interface{} `yaml:"config"`
+	Plugin  string                 `yaml:"plugin"`
+	Config  map[string]interface{} `yaml:"config"`
+	Catalog *Catalog               `yaml:"catalog"`
 }
 
 type Mapping struct {

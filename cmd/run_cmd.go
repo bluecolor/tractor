@@ -39,19 +39,30 @@ func run(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 	if initializer, ok := inputPlugin.(tractor.Initializer); ok {
-		err = initializer.Init()
+		err = initializer.Init(m.Input.Catalog)
 		if err != nil {
 			println(err.Error())
 			os.Exit(1)
 		}
 	}
+
 	outputPlugin, err := validateAndGetOutputPlugin(m.Output.Plugin, m.Output.Config)
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 	if initializer, ok := outputPlugin.(tractor.Initializer); ok {
-		err = initializer.Init()
+		var catalog *cfg.Catalog = m.Input.Catalog
+		if catalog == nil {
+			if disc, ok := inputPlugin.(tractor.Discoverer); ok {
+				catalog, err = disc.Discover()
+				if err != nil {
+					println("Failed to discover catalog")
+					println(err.Error())
+				}
+			}
+		}
+		err = initializer.Init(catalog)
 		if err != nil {
 			println(err.Error())
 			os.Exit(1)
