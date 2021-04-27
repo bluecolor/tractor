@@ -85,7 +85,8 @@ func Read(wire tractor.Wire, query string, db *sql.DB) (err error) {
 		}
 
 		data = append(data, record)
-		if len(data) >= 10000 { // todo
+		if len(data) >= 10 { // todo
+			wire.SendFeed(tractor.NewReadProgress(len(data)))
 			wire.SendData(data)
 			data = nil
 		}

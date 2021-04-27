@@ -8,18 +8,15 @@ type Data []Record
 
 type ProgressFeed interface {
 	Count() int
-	Total() int
 	Message() string
 }
 type progress struct {
 	count   int
-	total   int
 	message string
 }
 
-func (p *progress) Count() int      { return p.count }
-func (p *progress) Total() int      { return p.total }
-func (p *progress) Message() string { return p.message }
+func (p progress) Count() int      { return p.count }
+func (p progress) Message() string { return p.message }
 func NewWriteProgress(count int, args ...string) Feed {
 	var msg string = ""
 	if len(args) > 0 {
@@ -35,22 +32,17 @@ func NewWriteProgress(count int, args ...string) Feed {
 		Content: content,
 	}
 }
-func NewReadProgress(count int, args ...interface{}) *Feed {
+func NewReadProgress(count int, args ...interface{}) Feed {
 	var msg string
-	var total int
 
 	if len(args) > 0 {
-		total = args[0].(int)
-		if len(args) > 1 {
-			msg = args[1].(string)
-		}
+		msg = args[1].(string)
 	}
 	content := progress{
 		count:   count,
-		total:   total,
 		message: msg,
 	}
-	return &Feed{
+	return Feed{
 		Sender:  InputPlugin,
 		Type:    Progress,
 		Content: content,
