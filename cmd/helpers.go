@@ -34,6 +34,9 @@ func validateAndGetOutputPlugin(name string, config map[string]interface{}) (tra
 				println("☑️  Output config validated")
 				return outputPlugin, nil
 			}
+		} else {
+			println("Validator not implemented for output plugin")
+			return outputPlugin, nil
 		}
 	}
 	return nil, errors.New(fmt.Sprintf("❌  No matching output plugin found for %s", name))
