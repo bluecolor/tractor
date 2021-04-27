@@ -16,6 +16,10 @@ type Discoverer interface {
 	Discover() (*config.Catalog, error)
 }
 
+type Counter interface {
+	Count() (int, error)
+}
+
 type PluginDescriber interface {
 	SampleConfig() string
 

@@ -117,3 +117,11 @@ func (o *Oracle) connect() error {
 	o.db = db
 	return nil
 }
+
+func (o *Oracle) count() (int, error) {
+	query, err := o.getQuery()
+	if err != nil {
+		return 0, err
+	}
+	return dbu.GetCount(query, o.db)
+}

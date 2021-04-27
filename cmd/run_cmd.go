@@ -106,11 +106,11 @@ func checkFeeds(wire tractor.Wire) {
 	for f := range wire.ReadFeeds() {
 		switch f.Type {
 		case tractor.Progress:
-			println("Progress ", f.Sender)
+			println("Progress", f.Sender)
 		case tractor.Success:
-			println("Success ", f.Sender)
+			println("Success", f.Sender)
 		case tractor.Error:
-			println("Error ", f.Sender)
+			println("Error", f.Sender)
 		}
 	}
 }

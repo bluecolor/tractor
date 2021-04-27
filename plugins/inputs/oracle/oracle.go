@@ -78,6 +78,10 @@ func (o *Oracle) Init(catalog *config.Catalog) error {
 	return o.connect()
 }
 
+func (o *Oracle) Count() (int, error) {
+	return o.count()
+}
+
 func init() {
 	inputs.Add("oracle", func(config map[string]interface{}) tractor.Input {
 		oracle := Oracle{
