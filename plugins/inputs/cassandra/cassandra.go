@@ -31,7 +31,8 @@ func (c *Cassandra) SampleConfig() string {
 }
 
 func (c *Cassandra) Read(wire tractor.Wire) error {
-	return nil
+	defer c.session.Close()
+	return c.read(wire)
 }
 
 func (c *Cassandra) Count() (int, error) {

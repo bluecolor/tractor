@@ -1,3 +1,6 @@
 package all
 
-import _ "github.com/bluecolor/tractor/plugins/inputs/oracle"
+import (
+	_ "github.com/bluecolor/tractor/plugins/inputs/cassandra"
+	_ "github.com/bluecolor/tractor/plugins/inputs/oracle"
+)

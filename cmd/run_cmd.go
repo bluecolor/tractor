@@ -92,6 +92,7 @@ func run(cmd *cobra.Command, args []string) {
 		if counter, ok := inputPlugin.(tractor.Counter); ok {
 			rp.total, err = counter.Count()
 			if err != nil {
+				println(err.Error())
 				println("Failed to get total count. Use without 'progress' flag")
 				os.Exit(1)
 			}
