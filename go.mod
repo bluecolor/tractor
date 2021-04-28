@@ -6,6 +6,7 @@ require (
 	github.com/gocql/gocql v0.0.0-20210425135552-909f2a77f46e
 	github.com/godror/godror v0.24.4
 	github.com/joho/godotenv v1.3.0
+	github.com/lib/pq v1.10.1
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/rs/zerolog v1.21.0
 	github.com/spf13/cobra v1.1.3
