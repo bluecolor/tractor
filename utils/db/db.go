@@ -53,12 +53,16 @@ func GetCount(query string, db *sql.DB) (count int, err error) {
 	return count, nil
 }
 
-func Read(wire tractor.Wire, query string, db *sql.DB) (err error) {
+func Read(wire tractor.Wire, query string, db *sql.DB, args ...interface{}) (err error) {
 	defer func() {
 		if err != nil {
 			wire.SendFeed(tractor.NewErrorFeed(tractor.Anonymous, err))
 		}
 	}()
+	batchSize := 1000
+	if len(args) > 0 {
+		batchSize = args[0].(int)
+	}
 	rows, err := db.Query(query)
 	if err != nil {
 		return err
@@ -69,23 +73,18 @@ func Read(wire tractor.Wire, query string, db *sql.DB) (err error) {
 	}
 	colCount := len(columns)
 
-	var ptrs = make([]interface{}, colCount)
-	for i := range ptrs {
+	var record = make([]interface{}, colCount)
+	for i := range record {
 		var v interface{}
-		ptrs[i] = &v
+		record[i] = &v
 	}
 	var data tractor.Data
 	for rows.Next() {
-		record := make(tractor.Record, colCount)
-		if err := rows.Scan(ptrs...); err != nil {
+		if err := rows.Scan(record...); err != nil {
 			return err
 		}
-		for i := 0; i < colCount; i++ {
-			record[i] = *(ptrs[i].(*interface{}))
-		}
-
 		data = append(data, record)
-		if len(data) >= 10 { // todo
+		if len(data) >= batchSize {
 			wire.SendFeed(tractor.NewReadProgress(len(data)))
 			wire.SendData(data)
 			data = nil
