@@ -97,6 +97,8 @@ func run(cmd *cobra.Command, args []string) {
 				os.Exit(1)
 			}
 			rp.init()
+		} else {
+			progress = false
 		}
 	}
 
@@ -147,8 +149,12 @@ func run(cmd *cobra.Command, args []string) {
 
 	wg.Wait()
 	if progress {
-		rp.rpb.Abort(true)
-		rp.wpb.Abort(true)
+		if rp.rpb != nil {
+			rp.rpb.Abort(true)
+		}
+		if rp.wpb != nil {
+			rp.wpb.Abort(true)
+		}
 	}
 
 	duration := time.Since(start)

@@ -5,8 +5,12 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/bluecolor/tractor"
+	"github.com/bluecolor/tractor/config"
+	"github.com/bluecolor/tractor/plugins/inputs"
+	"github.com/mitchellh/mapstructure"
 )
 
 type Csv struct {
@@ -14,7 +18,10 @@ type Csv struct {
 	File        string `yaml:"file"`
 	ColumnDelim string `yaml:"column_delim"`
 	Parallel    int    `yaml:"parallel"`
+	Header      bool   `yaml:"header"`
 }
+
+var files [][]string
 
 var sampleConfig = `
     path: folder to export data
@@ -32,10 +39,10 @@ func (c *Csv) SampleConfig() string {
 }
 
 func (c *Csv) startWorker(wire tractor.Wire, files []string) error {
-
 	for _, file := range files {
 		f, err := os.Open(file)
 		if err != nil {
+			println(err.Error())
 			return err
 		}
 		defer func() {
@@ -45,8 +52,12 @@ func (c *Csv) startWorker(wire tractor.Wire, files []string) error {
 		}()
 		scanner := bufio.NewScanner(f)
 		var data tractor.Data
-
+		header := false
 		for scanner.Scan() {
+			if c.Header && !header {
+				header = true
+				continue
+			}
 			r := strings.Split(scanner.Text(), c.ColumnDelim)
 			var record = make([]interface{}, len(r))
 			for i, c := range r {
@@ -67,4 +78,62 @@ func (c *Csv) startWorker(wire tractor.Wire, files []string) error {
 		return err
 	}
 	return nil
+}
+
+func (c *Csv) Read(wire tractor.Wire) error {
+	if len(files) == 0 {
+		return nil
+	}
+	var wg sync.WaitGroup
+	for i := 0; i < len(files); i++ {
+		go func(wg *sync.WaitGroup, i int) {
+			c.startWorker(wire, files[i])
+			wg.Done()
+		}(&wg, i)
+		wg.Add(1)
+	}
+	wg.Wait()
+	return nil
+}
+
+func (c *Csv) Init(catalog *config.Catalog) error {
+	fls, err := c.getFiles()
+	if err != nil {
+		return err
+	}
+	files = make([][]string, c.Parallel)
+	cnt := int(len(fls) / c.Parallel)
+	for i := 0; i < c.Parallel; i++ {
+		pack := make([]string, cnt)
+		for j := 0; j < cnt; j++ {
+			pack[j] = fls[j*(i+1)]
+		}
+		files[i] = pack
+	}
+	var x = 0
+	for i := cnt * c.Parallel; i < len(fls); i++ {
+		files[x] = append(files[x], fls[i])
+		x++
+	}
+	return nil
+}
+
+func init() {
+	inputs.Add("csv", func(config map[string]interface{}) tractor.Input {
+		csv := Csv{
+			ColumnDelim: ",",
+			Parallel:    1,
+			Header:      false,
+		}
+		cfg := &mapstructure.DecoderConfig{
+			Metadata: nil,
+			Result:   &csv,
+			TagName:  "yaml",
+		}
+		decoder, _ := mapstructure.NewDecoder(cfg)
+		decoder.Decode(config)
+
+		return &csv
+	})
+
 }

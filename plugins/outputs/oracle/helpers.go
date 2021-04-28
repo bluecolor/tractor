@@ -34,19 +34,29 @@ func (o *Oracle) getDataSourceName() (string, error) {
 	), nil
 }
 
+func sanitizeColumnName(column string, args ...string) string {
+	replace := "_"
+	if len(args) > 0 {
+		replace = args[0]
+	}
+	r := strings.NewReplacer(" ", replace, "%", replace)
+	return r.Replace(column)
+}
+
 func columnFromProperty(prop *config.Property) (string, error) {
 	if prop.Name == "" {
 		return "", errors.New("Missing property name")
 	}
+	name := sanitizeColumnName(prop.Name)
 	switch prop.Type {
 	case "string":
 		length := prop.Length
 		if length == 0 {
 			length = 4000
 		}
-		return fmt.Sprintf("%s varchar2(%d)", prop.Name, length), nil
+		return fmt.Sprintf("%s varchar2(%d)", name, length), nil
 	case "date":
-		return fmt.Sprintf("%s timestamp", prop.Name), nil
+		return fmt.Sprintf("%s timestamp", name), nil
 	case "numeric":
 		precision := prop.Precision
 		scale := prop.Scale
@@ -56,14 +66,14 @@ func columnFromProperty(prop *config.Property) (string, error) {
 		if scale >= 22 {
 			scale = 21
 		}
-		return fmt.Sprintf("%s number(%d, %d)", prop.Name, precision, scale), nil
+		return fmt.Sprintf("%s number(%d, %d)", name, precision, scale), nil
 	}
 
 	length := prop.Length
 	if length == 0 {
 		length = 4000
 	}
-	return fmt.Sprintf("%s varchar2(%d)", prop.Name, length), nil
+	return fmt.Sprintf("%s varchar2(%d)", sanitizeColumnName(prop.Name), length), nil
 }
 
 func columnsFromProperties(properties []config.Property) (columns []string, err error) {
