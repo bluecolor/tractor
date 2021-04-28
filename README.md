@@ -4,8 +4,9 @@ A cross platform, plugin based data ingestion tool.
 
 ## Input Plugins
 
-- [x] Oracle
 - [x] Cassandra
+- [x] Oracle
+- [ ] Csv
 
 ## Ouput Plugins
 

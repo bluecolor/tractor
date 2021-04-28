@@ -29,7 +29,7 @@ var sampleConfig = `
 `
 
 func (c *Csv) Description() string {
-	return "Write to csv file"
+	return "Write to csv file(s)"
 }
 
 func (c *Csv) SampleConfig() string {
