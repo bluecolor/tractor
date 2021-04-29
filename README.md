@@ -13,4 +13,4 @@ A cross platform, plugin based data ingestion tool.
 
 - [x] Oracle
 - [x] Csv
-- [ ] Postgre
+- [x] Postgre
