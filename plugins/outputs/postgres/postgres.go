@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"database/sql"
+	"strings"
+	"sync"
 
 	"github.com/bluecolor/tractor"
 	"github.com/bluecolor/tractor/config"
@@ -49,9 +51,52 @@ func (p *Postgres) SampleConfig() string {
 	return sampleConfig
 }
 
+func (o *Postgres) startWorker(wire tractor.Wire) (err error) {
+	tx, err := o.db.Begin()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			sendErrorFeed(wire, err)
+		} else {
+			tx.Commit()
+			o.db.Close()
+			wire.SendFeed(tractor.NewSuccessFeed(tractor.OutputPlugin))
+		}
+	}()
+
+	for data := range wire.ReadData() {
+		err = insert(wire, tx, insertQuery, data)
+		if err != nil {
+			println(err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
 func (p *Postgres) Write(wire tractor.Wire) (err error) {
 	defer p.db.Close()
+	if insertQuery == "" {
+		for data := range wire.ReadData() {
+			insertQuery, err = p.buildInsertQuery(len((data)[0]))
+			if err != nil {
+				return err
+			}
+			wire.SendData(data)
+			break
+		}
+	}
+	var wg sync.WaitGroup
+	for i := 0; i < p.Parallel; i++ {
+		go func(wg *sync.WaitGroup) {
+			p.startWorker(wire)
+			wg.Done()
+		}(&wg)
+		wg.Add(1)
+	}
+	wg.Wait()
 	return nil
+
 }
 
 func (p *Postgres) Init(catalog *config.Catalog) (err error) {
@@ -59,13 +104,30 @@ func (p *Postgres) Init(catalog *config.Catalog) (err error) {
 	if err != nil {
 		return err
 	}
+
+	if catalog != nil {
+		if insertQuery == "" {
+			insertQuery, err = p.buildInsertQuery(len(catalog.Properties))
+			if err != nil {
+				return err
+			}
+		}
+		if strings.ToLower(p.Mode) == "drop-create" {
+			err := p.dropCreate(catalog)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
 func init() {
 	outputs.Add("postgres", func(config map[string]interface{}) tractor.Output {
 		pg := Postgres{
-			Port:      1521,
+			Port:      5432,
+			Host:      "localhost",
 			Parallel:  1,
 			BatchSize: 1000,
 		}

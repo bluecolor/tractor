@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
+	"github.com/bluecolor/tractor"
 	"github.com/bluecolor/tractor/config"
 	dbu "github.com/bluecolor/tractor/utils/db"
 )
@@ -81,12 +83,39 @@ func (o *Postgres) dropCreate(catalog *config.Catalog) error {
 	return dbu.CreateTable(o.db, table, columns, "")
 }
 
+func (o *Postgres) buildInsertQuery(fieldCount int) (string, error) {
+	if fieldCount == 0 {
+		return "", errors.New("Field count is zero")
+	}
+	var columns = make([]string, fieldCount)
+	for i := 0; i < fieldCount; i++ {
+		columns[i] = "$" + strconv.Itoa(i+1)
+	}
+	return fmt.Sprintf("insert into %s values(%s)", o.Table, strings.Join(columns, ", ")), nil
+}
+
+func sendErrorFeed(wire tractor.Wire, err error) error {
+	feed := tractor.NewErrorFeed(tractor.OutputPlugin, err)
+	wire.SendFeed(feed)
+	return err
+}
+
+func insert(wire tractor.Wire, tx *sql.Tx, query string, data tractor.Data) error {
+	count, err := dbu.Insert(tx, query, data)
+	if err != nil {
+		return err
+	}
+	progress := tractor.NewWriteProgress(count)
+	wire.SendFeed(progress)
+	return nil
+}
+
 func (p *Postgres) connect() error {
 	info := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		p.Host, p.Port, p.Username, p.Password, p.Database)
 
-	db, err := sql.Open("postgress", info)
+	db, err := sql.Open("postgres", info)
 	if err != nil {
 		return err
 	}

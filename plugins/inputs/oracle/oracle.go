@@ -64,12 +64,16 @@ func (o *Oracle) Read(wire tractor.Wire) error {
 	defer o.db.Close()
 	queries, err := o.getQueries()
 	if err != nil {
+		println(err.Error())
 		return err
 	}
 	for _, q := range queries {
+		println("xxxxxxxxxxx")
 		if err := db.Read(wire, q, o.db); err != nil {
+			println(err.Error())
 			return err
 		}
+		println("yyyy")
 	}
 	return nil
 }
