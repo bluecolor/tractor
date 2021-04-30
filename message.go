@@ -17,18 +17,19 @@ type progress struct {
 
 func (p progress) Count() int      { return p.count }
 func (p progress) Message() string { return p.message }
-func NewWriteProgress(count int, args ...string) Feed {
-	var msg string = ""
+func NewWriteProgress(count int, args ...interface{}) Feed {
+	var msg string
+
 	if len(args) > 0 {
-		msg = args[0]
+		msg = args[1].(string)
 	}
 	content := progress{
 		count:   count,
 		message: msg,
 	}
 	return Feed{
-		Type:    Progress,
 		Sender:  OutputPlugin,
+		Type:    Progress,
 		Content: content,
 	}
 }

@@ -73,13 +73,13 @@ func Read(wire tractor.Wire, query string, db *sql.DB, args ...interface{}) (err
 	}
 	colCount := len(columns)
 
-	var record = make([]interface{}, colCount)
-	for i := range record {
-		var v interface{}
-		record[i] = &v
-	}
 	var data tractor.Data
 	for rows.Next() {
+		var record = make([]interface{}, colCount)
+		for i := range record {
+			var v interface{}
+			record[i] = &v
+		}
 		if err := rows.Scan(record...); err != nil {
 			return err
 		}

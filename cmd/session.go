@@ -18,6 +18,7 @@ import (
 type progress struct {
 	show bool
 	data *struct {
+		wg      sync.WaitGroup
 		total   int
 		read    int
 		written int
@@ -157,6 +158,7 @@ func (s *session) initProgress() (err error) {
 
 	if s.progress.show {
 		s.progress.data = &struct {
+			wg      sync.WaitGroup
 			total   int
 			read    int
 			written int
@@ -168,7 +170,8 @@ func (s *session) initProgress() (err error) {
 			if err != nil {
 				return err
 			}
-			p := mpb.New(mpb.WithWidth(64))
+			p := mpb.New(mpb.WithWaitGroup(&s.progress.data.wg))
+			s.progress.data.wg.Add(2)
 			s.progress.data.rpb = p.AddBar(int64(s.progress.data.total),
 				mpb.PrependDecorators(
 					decor.Name("Read "),
@@ -268,9 +271,13 @@ func (s *session) listenFeeds() {
 				s.processProgressFeed(f)
 			}
 		case tractor.Success:
-			// println("Success", f.Sender)
+			if s.progress.show {
+				s.progress.data.wg.Done()
+			}
 		case tractor.Error:
-			// println("Error", f.Sender)
+			if s.progress.show {
+				s.progress.data.wg.Done()
+			}
 		}
 	}
 }

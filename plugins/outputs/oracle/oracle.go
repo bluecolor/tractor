@@ -61,11 +61,11 @@ func (o *Oracle) startWorker(wire tractor.Wire) (err error) {
 	tx, err := o.db.Begin()
 	defer func() {
 		if err != nil {
-			tx.Rollback()
+			err = tx.Rollback()
 			sendErrorFeed(wire, err)
 		} else {
-			tx.Commit()
-			o.db.Close()
+			err = tx.Commit()
+			err = o.db.Close()
 			wire.SendFeed(tractor.NewSuccessFeed(tractor.OutputPlugin))
 		}
 	}()
@@ -85,6 +85,7 @@ func (o *Oracle) Write(wire tractor.Wire) (err error) {
 		for data := range wire.ReadData() {
 			insertQuery, err = o.buildInsertQuery(len((data)[0]))
 			if err != nil {
+				println(err.Error())
 				return err
 			}
 			wire.SendData(data)

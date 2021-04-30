@@ -128,6 +128,7 @@ func insert(wire tractor.Wire, tx *sql.Tx, query string, data tractor.Data) erro
 		return err
 	}
 	progress := tractor.NewWriteProgress(count)
+	// progress := tractor.NewReadProgress(count)
 	wire.SendFeed(progress)
 	return nil
 }
