@@ -38,15 +38,19 @@ func TestOracle_LoadConfig(t *testing.T) {
 	require.Equal(t, 1000, oracle.FetchSize)
 }
 
-func TestOracle_ValidateConfig(t *testing.T) {
-	// if p, ok := getPlugin("oracle_test.yml").(tractor.Validator); ok {
-	// 	require.True(t, ok)
-	// 	require.NoError(t, p.ValidateConfig())
-	// }
+func TestOracle_Validate(t *testing.T) {
+	plugin, err := getPlugin("oracle_test.yml")
+	require.NoError(t, err)
+	oracle, ok := plugin.(*Oracle)
+	require.True(t, ok)
+	require.NoError(t, oracle.Validate())
 }
 
 func TestOracle_Initializer(t *testing.T) {
-	// if _, ok := getPlugin("oracle_test.yml").(tractor.Initializer); ok {
-	// 	require.True(t, ok)
+	// requires connection
+	// plugin, err := getPlugin("oracle_test.yml")
+	// require.NoError(t, err)
+	// if i, ok := plugin.(tractor.Initializer); ok {
+	// 	require.NoError(t, i.Init())
 	// }
 }

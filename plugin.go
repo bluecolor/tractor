@@ -9,7 +9,7 @@ type Initializer interface {
 }
 
 type Validator interface {
-	ValidateConfig() error
+	Validate() error
 }
 
 type Discoverer interface {

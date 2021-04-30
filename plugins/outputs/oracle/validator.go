@@ -2,7 +2,7 @@ package oracle
 
 import "errors"
 
-func (o *Oracle) ValidateConfig() error {
+func (o *Oracle) Validate() error {
 	switch {
 	case o.Libdir == "":
 		return errors.New("Missing libdir! Provide path to oracle instant client.")

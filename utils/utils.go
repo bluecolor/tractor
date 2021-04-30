@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"encoding/json"
+
 	"github.com/imdario/mergo"
 	"github.com/mitchellh/mapstructure"
 )
@@ -39,4 +41,16 @@ func MergeOptions(base, extend map[string]interface{}) (map[string]interface{}, 
 		return nil, err
 	}
 	return target, nil
+}
+
+func JSONLoadString(s string) (map[string]interface{}, error) {
+	var m map[string]interface{} = nil
+	if s != "" {
+		m = make(map[string]interface{})
+		err := json.Unmarshal([]byte(s), &m)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return m, nil
 }

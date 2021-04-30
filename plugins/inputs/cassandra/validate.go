@@ -2,7 +2,7 @@ package cassandra
 
 import "errors"
 
-func (c *Cassandra) ValidateConfig() error {
+func (c *Cassandra) Validate() error {
 	switch {
 	case c.Cluster == "":
 		return errors.New("Missing cluster")

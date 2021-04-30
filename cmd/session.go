@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -11,6 +10,7 @@ import (
 	cfg "github.com/bluecolor/tractor/config"
 	"github.com/bluecolor/tractor/plugins/inputs"
 	"github.com/bluecolor/tractor/plugins/outputs"
+	"github.com/bluecolor/tractor/utils"
 	"github.com/vbauerster/mpb/v6"
 	"github.com/vbauerster/mpb/v6/decor"
 )
@@ -55,7 +55,7 @@ func (s *session) start() (*sync.WaitGroup, error) {
 
 func (s *session) validateInput() error {
 	if validator, ok := s.iplugin.(tractor.Validator); ok {
-		if err := validator.ValidateConfig(); err != nil {
+		if err := validator.Validate(); err != nil {
 			return errors.New("❌  Failed to validate plugin config")
 		} else {
 			println("☑️  Plugin config validated")
@@ -67,7 +67,7 @@ func (s *session) validateInput() error {
 
 func (s *session) validateOutput() error {
 	if validator, ok := s.oplugin.(tractor.Validator); ok {
-		if err := validator.ValidateConfig(); err != nil {
+		if err := validator.Validate(); err != nil {
 			return errors.New("❌  Failed to validate plugin config")
 		} else {
 			println("☑️  Plugin config validated")
@@ -81,8 +81,7 @@ func (s *session) createInputPlugin() (err error) {
 	if creator, ok := inputs.Inputs[s.mapping.Input.Plugin]; ok {
 		var params map[string]interface{} = nil
 		if inputParams != "" {
-			params = make(map[string]interface{})
-			err := json.Unmarshal([]byte(inputParams), &params)
+			params, err = utils.JSONLoadString(inputParams)
 			if err != nil {
 				return err
 			}
@@ -111,8 +110,7 @@ func (s *session) createOutputPlugin(catalog *cfg.Catalog) (err error) {
 	if creator, ok := outputs.Outputs[s.mapping.Output.Plugin]; ok {
 		var params map[string]interface{} = nil
 		if outputParams != "" {
-			params = make(map[string]interface{})
-			err := json.Unmarshal([]byte(outputParams), &params)
+			params, err = utils.JSONLoadString(outputParams)
 			if err != nil {
 				return err
 			}
@@ -173,7 +171,7 @@ func (s *session) initProgress() (err error) {
 			p := mpb.New(mpb.WithWidth(64))
 			s.progress.data.rpb = p.AddBar(int64(s.progress.data.total),
 				mpb.PrependDecorators(
-					decor.Name("Read"),
+					decor.Name("Read "),
 					decor.Percentage(decor.WCSyncSpace),
 				),
 				mpb.AppendDecorators(
