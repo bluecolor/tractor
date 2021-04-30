@@ -85,13 +85,14 @@ func Read(wire tractor.Wire, query string, db *sql.DB, args ...interface{}) (err
 		}
 		data = append(data, record)
 		if len(data) >= batchSize {
-			wire.SendFeed(tractor.NewReadProgress(len(data)))
 			wire.SendData(data)
+			wire.SendFeed(tractor.NewReadProgress(len(data)))
 			data = nil
 		}
 	}
 	if len(data) > 0 {
 		wire.SendData(data)
+		wire.SendFeed(tractor.NewReadProgress(len(data)))
 		data = nil
 	}
 	wire.SendFeed(tractor.NewSuccessFeed(tractor.InputPlugin))

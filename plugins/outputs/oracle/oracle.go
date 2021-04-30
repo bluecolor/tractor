@@ -8,7 +8,7 @@ import (
 	"github.com/bluecolor/tractor"
 	"github.com/bluecolor/tractor/config"
 	"github.com/bluecolor/tractor/plugins/outputs"
-	"github.com/mitchellh/mapstructure"
+	"github.com/bluecolor/tractor/utils"
 )
 
 type Oracle struct {
@@ -24,7 +24,8 @@ type Oracle struct {
 	BatchSize int    `yaml:"batch_size"`
 	Parallel  int    `yaml:"parallel"`
 
-	db *sql.DB
+	catalog *config.Catalog
+	db      *sql.DB
 }
 
 var insertQuery string = ""
@@ -103,20 +104,21 @@ func (o *Oracle) Write(wire tractor.Wire) (err error) {
 	return nil
 }
 
-func (o *Oracle) Init(catalog *config.Catalog) (err error) {
+func (o *Oracle) Init() (err error) {
 	err = o.connect()
 	if err != nil {
 		return err
 	}
-	if catalog != nil {
+
+	if o.catalog != nil {
 		if insertQuery == "" {
-			insertQuery, err = o.buildInsertQuery(len(catalog.Properties))
+			insertQuery, err = o.buildInsertQuery(len(o.catalog.Properties))
 			if err != nil {
 				return err
 			}
 		}
 		if strings.ToLower(o.Mode) == "drop-create" {
-			err := o.dropCreate(catalog)
+			err := o.dropCreate(o.catalog)
 			if err != nil {
 				return err
 			}
@@ -125,21 +127,29 @@ func (o *Oracle) Init(catalog *config.Catalog) (err error) {
 	return nil
 }
 
-func init() {
-	outputs.Add("oracle", func(config map[string]interface{}) tractor.Output {
-		oracle := Oracle{
-			Port:      1521,
-			Parallel:  1,
-			BatchSize: 1000,
-		}
-		cfg := &mapstructure.DecoderConfig{
-			Metadata: nil,
-			Result:   &oracle,
-			TagName:  "yaml",
-		}
-		decoder, _ := mapstructure.NewDecoder(cfg)
-		decoder.Decode(config)
+func newOracle(options map[string]interface{}) *Oracle {
+	oracle := &Oracle{
+		Port:      1521,
+		Parallel:  1,
+		BatchSize: 1000,
+	}
+	utils.ParseOptions(oracle, options)
+	return oracle
+}
 
-		return &oracle
+func init() {
+	outputs.Add("oracle", func(
+		config map[string]interface{},
+		catalog *config.Catalog,
+		params map[string]interface{},
+	) (tractor.Output, error) {
+		options, err := utils.MergeOptions(config, params)
+		if err != nil {
+			return nil, err
+		}
+		oracle := newOracle(options)
+		oracle.catalog = catalog
+
+		return oracle, nil
 	})
 }

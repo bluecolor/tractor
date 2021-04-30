@@ -25,7 +25,11 @@ func plugin(cmd *cobra.Command, args []string) {
 	}
 	if i {
 		if creator, ok := inputs.Inputs[args[0]]; ok {
-			inputPlugin := creator(make(map[string]interface{}))
+			inputPlugin, err := creator(make(map[string]interface{}), nil, nil)
+			if err != nil {
+				println("Failed to create plugin")
+				os.Exit(1)
+			}
 			println(fmt.Sprintf("🧩 %s - Input plugin sample config", args[0]))
 			println(inputPlugin.SampleConfig())
 		} else {

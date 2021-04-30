@@ -4,8 +4,8 @@ import (
 	"github.com/bluecolor/tractor"
 	"github.com/bluecolor/tractor/config"
 	"github.com/bluecolor/tractor/plugins/inputs"
+	"github.com/bluecolor/tractor/utils"
 	gocql "github.com/gocql/gocql"
-	"github.com/mitchellh/mapstructure"
 )
 
 type Cassandra struct {
@@ -39,22 +39,27 @@ func (c *Cassandra) Count() (int, error) {
 	return c.count()
 }
 
-func (c *Cassandra) Init(catalog *config.Catalog) error {
+func (c *Cassandra) Init(catalog *config.Catalog, params map[string]interface{}) error {
 	return c.connect()
 }
 
-func init() {
-	inputs.Add("cassandra", func(config map[string]interface{}) tractor.Input {
-		cass := Cassandra{}
-		cfg := &mapstructure.DecoderConfig{
-			Metadata: nil,
-			Result:   &cass,
-			TagName:  "yaml",
-		}
-		decoder, _ := mapstructure.NewDecoder(cfg)
-		decoder.Decode(config)
+func newCassandra(options map[string]interface{}) *Cassandra {
+	cass := &Cassandra{}
+	utils.ParseOptions(cass, options)
+	return cass
+}
 
-		return &cass
+func init() {
+	inputs.Add("cassandra", func(
+		config map[string]interface{},
+		catalog *config.Catalog,
+		params map[string]interface{},
+	) (tractor.Input, error) {
+		options, err := utils.MergeOptions(config, params)
+		if err != nil {
+			return nil, err
+		}
+		return newCassandra(options), nil
 	})
 
 }

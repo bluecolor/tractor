@@ -6,9 +6,9 @@ import (
 	"github.com/bluecolor/tractor"
 	"github.com/bluecolor/tractor/config"
 	"github.com/bluecolor/tractor/plugins/inputs"
+	"github.com/bluecolor/tractor/utils"
 	"github.com/bluecolor/tractor/utils/db"
 	_ "github.com/godror/godror"
-	"github.com/mitchellh/mapstructure"
 )
 
 type Oracle struct {
@@ -68,17 +68,15 @@ func (o *Oracle) Read(wire tractor.Wire) error {
 		return err
 	}
 	for _, q := range queries {
-		println("xxxxxxxxxxx")
 		if err := db.Read(wire, q, o.db); err != nil {
 			println(err.Error())
 			return err
 		}
-		println("yyyy")
 	}
 	return nil
 }
 
-func (o *Oracle) Init(catalog *config.Catalog) error {
+func (o *Oracle) Init() error {
 	return o.connect()
 }
 
@@ -86,21 +84,26 @@ func (o *Oracle) Count() (int, error) {
 	return o.count()
 }
 
-func init() {
-	inputs.Add("oracle", func(config map[string]interface{}) tractor.Input {
-		oracle := Oracle{
-			Port:      1521,
-			Parallel:  1,
-			FetchSize: 1000,
-		}
-		cfg := &mapstructure.DecoderConfig{
-			Metadata: nil,
-			Result:   &oracle,
-			TagName:  "yaml",
-		}
-		decoder, _ := mapstructure.NewDecoder(cfg)
-		decoder.Decode(config)
+func newOracle(options map[string]interface{}) *Oracle {
+	oracle := &Oracle{
+		Port:      1521,
+		Parallel:  1,
+		FetchSize: 1000,
+	}
+	utils.ParseOptions(oracle, options)
+	return oracle
+}
 
-		return &oracle
+func init() {
+	inputs.Add("oracle", func(
+		config map[string]interface{},
+		catalog *config.Catalog,
+		params map[string]interface{},
+	) (tractor.Input, error) {
+		options, err := utils.MergeOptions(config, params)
+		if err != nil {
+			return nil, err
+		}
+		return newOracle(options), nil
 	})
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/bluecolor/tractor"
 	"github.com/bluecolor/tractor/config"
 	"github.com/bluecolor/tractor/plugins/outputs"
-	"github.com/mitchellh/mapstructure"
+	"github.com/bluecolor/tractor/utils"
 )
 
 type Csv struct {
@@ -80,25 +80,31 @@ func (c *Csv) Write(wire tractor.Wire) (err error) {
 	return nil
 }
 
-func (c *Csv) Init(catalog *config.Catalog) {
+func (c *Csv) Init() error {
+	return nil
+}
+
+func newCsv(options map[string]interface{}) *Csv {
+	csv := &Csv{
+		ColumnDelim: ",",
+		RecordDelim: "\n",
+		Parallel:    1,
+		File:        "out",
+	}
+	utils.ParseOptions(csv, options)
+	return csv
 }
 
 func init() {
-	outputs.Add("csv", func(config map[string]interface{}) tractor.Output {
-		csv := Csv{
-			ColumnDelim: ",",
-			RecordDelim: "\n",
-			Parallel:    1,
-			File:        "out",
+	outputs.Add("csv", func(
+		config map[string]interface{},
+		catalog *config.Catalog,
+		params map[string]interface{},
+	) (tractor.Output, error) {
+		options, err := utils.MergeOptions(config, params)
+		if err != nil {
+			return nil, err
 		}
-		cfg := &mapstructure.DecoderConfig{
-			Metadata: nil,
-			Result:   &csv,
-			TagName:  "yaml",
-		}
-		decoder, _ := mapstructure.NewDecoder(cfg)
-		decoder.Decode(config)
-
-		return &csv
+		return newCsv(options), nil
 	})
 }

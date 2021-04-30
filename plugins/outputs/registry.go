@@ -1,11 +1,18 @@
 package outputs
 
-import "github.com/bluecolor/tractor"
+import (
+	"github.com/bluecolor/tractor"
+	cfg "github.com/bluecolor/tractor/config"
+)
 
-type Creator func(config map[string]interface{}) tractor.Output
+type Creator func(
+	config map[string]interface{},
+	catalog *cfg.Catalog,
+	params map[string]interface{},
+) (tractor.Output, error)
 
-var Ouputs = map[string]Creator{}
+var Outputs = map[string]Creator{}
 
 func Add(name string, creator Creator) {
-	Ouputs[name] = creator
+	Outputs[name] = creator
 }

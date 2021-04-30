@@ -8,8 +8,8 @@ import (
 	"github.com/bluecolor/tractor"
 	"github.com/bluecolor/tractor/config"
 	"github.com/bluecolor/tractor/plugins/outputs"
+	"github.com/bluecolor/tractor/utils"
 	_ "github.com/lib/pq"
-	"github.com/mitchellh/mapstructure"
 )
 
 type Postgres struct {
@@ -23,7 +23,8 @@ type Postgres struct {
 	BatchSize int    `yaml:"batch_size"`
 	Parallel  int    `yaml:"parallel"`
 
-	db *sql.DB
+	catalog *config.Catalog
+	db      *sql.DB
 }
 
 var insertQuery string = ""
@@ -123,22 +124,29 @@ func (p *Postgres) Init(catalog *config.Catalog) (err error) {
 	return nil
 }
 
-func init() {
-	outputs.Add("postgres", func(config map[string]interface{}) tractor.Output {
-		pg := Postgres{
-			Port:      5432,
-			Host:      "localhost",
-			Parallel:  1,
-			BatchSize: 1000,
-		}
-		cfg := &mapstructure.DecoderConfig{
-			Metadata: nil,
-			Result:   &pg,
-			TagName:  "yaml",
-		}
-		decoder, _ := mapstructure.NewDecoder(cfg)
-		decoder.Decode(config)
+func newPostgres(options map[string]interface{}) *Postgres {
+	oracle := &Postgres{
+		Port:      1521,
+		Parallel:  1,
+		BatchSize: 1000,
+	}
+	utils.ParseOptions(oracle, options)
+	return oracle
+}
 
-		return &pg
+func init() {
+	outputs.Add("postgres", func(
+		config map[string]interface{},
+		catalog *config.Catalog,
+		params map[string]interface{},
+	) (tractor.Output, error) {
+		options, err := utils.MergeOptions(config, params)
+		if err != nil {
+			return nil, err
+		}
+		oracle := newPostgres(options)
+		oracle.catalog = catalog
+
+		return oracle, nil
 	})
 }

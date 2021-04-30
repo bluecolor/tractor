@@ -3,8 +3,10 @@ module github.com/bluecolor/tractor
 go 1.15
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/gocql/gocql v0.0.0-20210425135552-909f2a77f46e
 	github.com/godror/godror v0.24.4
+	github.com/imdario/mergo v0.3.12
 	github.com/joho/godotenv v1.3.0
 	github.com/lib/pq v1.10.1
 	github.com/mitchellh/mapstructure v1.1.2
