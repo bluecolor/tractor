@@ -7,5 +7,5 @@ import (
 
 type OutputPlugin interface {
 	plugins.PluginDescriber
-	Write(w wire.Wire) error
+	Write(w *wire.Wire) error
 }

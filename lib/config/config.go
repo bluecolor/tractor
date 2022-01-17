@@ -45,7 +45,6 @@ type Mapping struct {
 type Options struct {
 	LogLevel string `yaml:"log_level"`
 }
-
 type Config struct {
 	Options  Options   `yaml:"options"`
 	Mappings []Mapping `yaml:"mappings"`
@@ -56,7 +55,6 @@ func NewConfig() *Config {
 		Options: Options{LogLevel: "info"},
 	}
 }
-
 func (c *Config) LoadConfig(path string) error {
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -67,4 +65,12 @@ func (c *Config) LoadConfig(path string) error {
 		return err
 	}
 	return nil
+}
+func (c *Config) GetMapping(name string) (*Mapping, error) {
+	for _, m := range c.Mappings {
+		if m.Name == name {
+			return &m, nil
+		}
+	}
+	return nil, fmt.Errorf("unable to find mapping [%s]", name)
 }

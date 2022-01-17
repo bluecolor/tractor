@@ -7,5 +7,5 @@ import (
 
 type InputPlugin interface {
 	plugins.PluginDescriber
-	Read(w wire.Wire) error
+	Read(w *wire.Wire) error
 }

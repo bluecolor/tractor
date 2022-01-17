@@ -1,6 +1,7 @@
 package session
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -14,34 +15,29 @@ import (
 	"github.com/bluecolor/tractor/lib/wire"
 )
 
+type Progress struct {
+	Show bool
+	Data *struct {
+		Total   int
+		Read    int
+		Written int
+	}
+}
+
 type Session struct {
 	StartTime    time.Time
+	EndTime      time.Time
 	Mapping      *config.Mapping
-	Progress     *feed.ProgressFeed
+	Progress     *Progress
 	InputPlugin  inputs.InputPlugin
 	OutputPlugin outputs.OutputPlugin
-	Wire         wire.Wire
+	Wire         *wire.Wire
 }
 
-func (s *Session) Start() (*sync.WaitGroup, error) {
-	var wg sync.WaitGroup
-	go func(wg *sync.WaitGroup) {
-		s.InputPlugin.Read(s.Wire)
-		wg.Done()
-		s.Wire.CloseData()
-	}(&wg)
-	wg.Add(1)
-
-	go func(wg *sync.WaitGroup) {
-		s.OutputPlugin.Write(s.Wire)
-		wg.Done()
-		s.Wire.CloseFeed()
-	}(&wg)
-	wg.Add(1)
-
-	return &wg, nil
+func (s *Session) Duration() time.Duration {
+	return s.EndTime.Sub(s.StartTime)
 }
-func (s *Session) CreateInputPlugin(params string) (err error) {
+func (s *Session) createInputPlugin(params string) (err error) {
 	if creator, ok := inputs.Inputs[s.Mapping.Input.Plugin]; ok {
 		var paramsMap map[string]interface{} = nil
 		if params != "" {
@@ -59,7 +55,7 @@ func (s *Session) CreateInputPlugin(params string) (err error) {
 	}
 	return nil
 }
-func (s *Session) CreateOutputPlugin(params string) (err error) {
+func (s *Session) createOutputPlugin(catalog *config.Catalog, params string) (err error) {
 	if creator, ok := outputs.Outputs[s.Mapping.Output.Plugin]; ok {
 		var paramsMap map[string]interface{} = nil
 		if params != "" {
@@ -68,7 +64,7 @@ func (s *Session) CreateOutputPlugin(params string) (err error) {
 				return err
 			}
 		}
-		s.OutputPlugin, err = creator(s.Mapping.Output.Config, s.Mapping.Output.Catalog, paramsMap)
+		s.OutputPlugin, err = creator(s.Mapping.Output.Config, catalog, paramsMap)
 
 		if err != nil {
 			return err
@@ -78,7 +74,7 @@ func (s *Session) CreateOutputPlugin(params string) (err error) {
 	}
 	return nil
 }
-func (s *Session) InitInputPlugin() (err error) {
+func (s *Session) initInputPlugin() (err error) {
 	if initializer, ok := s.InputPlugin.(plugins.Initializer); ok {
 		err = initializer.Init()
 		if err != nil {
@@ -87,7 +83,7 @@ func (s *Session) InitInputPlugin() (err error) {
 	}
 	return nil
 }
-func (s *Session) InitOutputPlugin() (err error) {
+func (s *Session) initOutputPlugin() (err error) {
 	if initializer, ok := s.OutputPlugin.(plugins.Initializer); ok {
 		err = initializer.Init()
 		if err != nil {
@@ -95,4 +91,140 @@ func (s *Session) InitOutputPlugin() (err error) {
 		}
 	}
 	return nil
+}
+func (s *Session) initMapping(conf *config.Config, mapping string) (err error) {
+	if mapping == "" {
+		return errors.New("mapping is not given")
+	}
+	if err != nil {
+		return err
+	}
+	s.Mapping, err = conf.GetMapping(mapping)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (s *Session) initSessionProgress(showProgress bool) (err error) {
+	s.Progress = &Progress{Show: showProgress}
+	return
+}
+func (s *Session) initWire() {
+	s.Wire = wire.NewWire()
+}
+func (s *Session) processProgressFeed(f feed.Feed) {
+	p := f.Content.(feed.ProgressFeed)
+	switch f.Sender {
+	case feed.InputPlugin:
+		s.Progress.Data.Read += p.Count()
+	case feed.OutputPlugin:
+		s.Progress.Data.Written += p.Count()
+	}
+}
+func (s *Session) listen() {
+	for f := range s.Wire.ReadFeeds() {
+		switch f.Type {
+		case feed.Progress:
+			if s.Progress.Show {
+				s.processProgressFeed(f)
+			}
+		case feed.Success:
+			fmt.Println("Success") // todo
+		case feed.Error:
+			fmt.Println("Error") // todo
+		}
+	}
+}
+func (s *Session) prepare(conf *config.Config, mapping string, showProgress bool, params string) (err error) {
+	s.initWire()
+	err = s.initMapping(conf, mapping)
+	if err != nil {
+		return err
+	}
+	err = s.createInputPlugin(params)
+	if err != nil {
+		return err
+	}
+	err = s.initInputPlugin()
+	if err != nil {
+		return err
+	}
+	err = s.validateInputPlugin()
+	if err != nil {
+		return err
+	}
+
+	var catalog *config.Catalog = nil
+	if s.Mapping.Output.Catalog != nil {
+		catalog = s.Mapping.Output.Catalog
+	} else {
+		if d, ok := s.InputPlugin.(plugins.Discoverer); ok {
+			catalog, err = d.Discover()
+			if err != nil {
+				return err
+			}
+		}
+	}
+	err = s.createOutputPlugin(catalog, params)
+	if err != nil {
+		return err
+	}
+
+	err = s.initOutputPlugin()
+	if err != nil {
+		return err
+	}
+	err = s.validateOutputPlugin()
+	if err != nil {
+		return err
+	}
+
+	err = s.initSessionProgress(showProgress)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func (s *Session) start() (*sync.WaitGroup, error) {
+	s.StartTime = time.Now()
+	var wg sync.WaitGroup
+	go func(wg *sync.WaitGroup) {
+		s.InputPlugin.Read(s.Wire)
+		wg.Done()
+		s.Wire.CloseData()
+	}(&wg)
+	wg.Add(1)
+
+	go func(wg *sync.WaitGroup) {
+		s.OutputPlugin.Write(s.Wire)
+		wg.Done()
+		s.Wire.CloseFeed()
+	}(&wg)
+	wg.Add(1)
+
+	return &wg, nil
+}
+func (s *Session) end() {
+	s.EndTime = time.Now()
+	s.Wire.Close()
+}
+
+func (s *Session) Run() (err error) {
+	wg, err := s.start()
+	if err != nil {
+		return
+	}
+	go s.listen()
+	wg.Wait()
+	s.end()
+	return
+}
+func NewSession(conf *config.Config, mapping string, showProgress bool, params string) (s *Session, err error) {
+	s = &Session{}
+	err = s.prepare(conf, mapping, showProgress, params)
+	if err != nil {
+		return
+	}
+	return s, nil
 }

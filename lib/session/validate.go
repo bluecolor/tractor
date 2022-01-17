@@ -6,7 +6,7 @@ import (
 	"github.com/bluecolor/tractor/lib/plugins"
 )
 
-func (s *Session) ValidateInputPlugin() error {
+func (s *Session) validateInputPlugin() error {
 	if validator, ok := s.InputPlugin.(plugins.Validator); ok {
 		if err := validator.Validate(); err != nil {
 			return errors.New("❌  Failed to validate plugin config")
@@ -17,7 +17,7 @@ func (s *Session) ValidateInputPlugin() error {
 	return nil
 }
 
-func (s *Session) ValidateOutputPlugin() error {
+func (s *Session) validateOutputPlugin() error {
 	if validator, ok := s.OutputPlugin.(plugins.Validator); ok {
 		if err := validator.Validate(); err != nil {
 			return errors.New("❌  Failed to validate plugin config")
