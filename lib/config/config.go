@@ -20,8 +20,8 @@ func (f *Field) String() string {
 }
 
 type Catalog struct {
-	Name       string  `yaml:"name"`
-	Properties []Field `yaml:"fields"`
+	Name   string  `yaml:"name"`
+	Fields []Field `yaml:"fields"`
 }
 
 type Input struct {

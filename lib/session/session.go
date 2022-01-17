@@ -115,9 +115,9 @@ func (s *Session) initWire() {
 func (s *Session) processProgressFeed(f feed.Feed) {
 	p := f.Content.(feed.ProgressFeed)
 	switch f.Sender {
-	case feed.InputPlugin:
+	case feed.SenderInputPlugin:
 		s.Progress.Data.Read += p.Count()
-	case feed.OutputPlugin:
+	case feed.SenderOutputPlugin:
 		s.Progress.Data.Written += p.Count()
 	}
 }
