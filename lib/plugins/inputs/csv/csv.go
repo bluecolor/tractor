@@ -15,11 +15,12 @@ import (
 )
 
 type Csv struct {
-	Path        string `yaml:"path"`
-	File        string `yaml:"file"`
-	ColumnDelim string `yaml:"column_delim"`
-	Parallel    int    `yaml:"parallel"`
-	Header      bool   `yaml:"header"`
+	Path        string          `yaml:"path"`
+	File        string          `yaml:"file"`
+	ColumnDelim string          `yaml:"column_delim"`
+	Parallel    int             `yaml:"parallel"`
+	Header      bool            `yaml:"header"`
+	Catalog     *config.Catalog `yaml:"catalog"`
 }
 
 var files [][]string
@@ -31,12 +32,15 @@ var sampleConfig = `
     parallel: applies only to multifile
 `
 
-func (c *Csv) Description() string {
-	return "Read from csv file(s)"
-}
-
-func (c *Csv) SampleConfig() string {
-	return sampleConfig
+func newCsv(options map[string]interface{}, catalog *config.Catalog) *Csv {
+	csv := &Csv{
+		ColumnDelim: ",",
+		Parallel:    1,
+		Header:      false,
+		Catalog:     catalog,
+	}
+	utils.ParseOptions(csv, options)
+	return csv
 }
 
 func (c *Csv) startWorker(w *wire.Wire, files []string) error {
@@ -52,18 +56,15 @@ func (c *Csv) startWorker(w *wire.Wire, files []string) error {
 		}()
 		scanner := bufio.NewScanner(f)
 		var data feed.Data
-		header := false
+		isFirstRecord := true
 		for scanner.Scan() {
-			if c.Header && !header {
-				header = true
+			r := strings.Split(scanner.Text(), c.ColumnDelim)
+			if c.Header && isFirstRecord {
+				isFirstRecord = false
+				c.headerToCatalog(r)
 				continue
 			}
-			r := strings.Split(scanner.Text(), c.ColumnDelim)
-			var record = make([]interface{}, len(r))
-			for i, c := range r {
-				record[i] = c
-			}
-			data = append(data, record)
+			data = append(data, c.toRecord(r))
 			if len(data) > 100 {
 				w.SendFeed(feed.NewReadProgress(len(data)))
 				w.SendData(data)
@@ -77,6 +78,14 @@ func (c *Csv) startWorker(w *wire.Wire, files []string) error {
 		return err
 	}
 	return nil
+}
+
+func (c *Csv) Description() string {
+	return "Read from csv file(s)"
+}
+
+func (c *Csv) SampleConfig() string {
+	return sampleConfig
 }
 
 func (c *Csv) Read(w *wire.Wire) error {
@@ -122,16 +131,6 @@ func (c *Csv) Init() error {
 	return nil
 }
 
-func newCsv(options map[string]interface{}) *Csv {
-	csv := &Csv{
-		ColumnDelim: ",",
-		Parallel:    1,
-		Header:      false,
-	}
-	utils.ParseOptions(csv, options)
-	return csv
-}
-
 func init() {
 	inputs.Add("csv", func(
 		config map[string]interface{},
@@ -142,6 +141,6 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		return newCsv(options), nil
+		return newCsv(options, catalog), nil
 	})
 }

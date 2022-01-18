@@ -5,7 +5,7 @@ import "github.com/bluecolor/tractor/lib/config"
 type (
 	FeedType   int
 	SenderType int
-	Record     []interface{}
+	Record     map[string]interface{}
 	Data       []Record
 	Progress   interface {
 		Count() int
