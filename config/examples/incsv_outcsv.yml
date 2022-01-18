@@ -1,0 +1,15 @@
+settings:
+  log_level: info
+mappings:
+  - name: Demo
+    input:
+      plugin: csv
+      config:
+        path: /home/ceyhun/projects/tractor/.test/data/csv
+        file: movies.csv
+        header: true
+    output:
+      plugin: csv
+      config:
+        path: /home/ceyhun/projects/tractor/.test/data/csv
+        file: movies_out.csv

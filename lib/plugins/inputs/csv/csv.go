@@ -25,7 +25,7 @@ type Csv struct {
 var files [][]string
 
 var sampleConfig = `
-    path: folder to export data
+    path: folder to read data from
     file: name of the file to be ingested, leave empty for multifile
     column_delim: column delimiter
     parallel: applies only to multifile

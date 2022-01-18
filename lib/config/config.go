@@ -55,7 +55,7 @@ func NewConfig() *Config {
 		Options: Options{LogLevel: "info"},
 	}
 }
-func (c *Config) LoadConfig(path string) error {
+func (c *Config) Load(path string) error {
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err

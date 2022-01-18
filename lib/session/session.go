@@ -13,6 +13,9 @@ import (
 	"github.com/bluecolor/tractor/lib/plugins/outputs"
 	"github.com/bluecolor/tractor/lib/utils"
 	"github.com/bluecolor/tractor/lib/wire"
+
+	_ "github.com/bluecolor/tractor/lib/plugins/inputs/all"
+	_ "github.com/bluecolor/tractor/lib/plugins/outputs/all"
 )
 
 type Progress struct {
@@ -207,7 +210,6 @@ func (s *Session) start() (*sync.WaitGroup, error) {
 }
 func (s *Session) end() {
 	s.EndTime = time.Now()
-	s.Wire.Close()
 }
 
 func (s *Session) Run() (err error) {
