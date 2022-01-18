@@ -61,6 +61,7 @@ func (c *Csv) startWorker(w *wire.Wire, i int) error {
 		progress := feed.NewWriteProgress(len(data))
 		w.SendFeed(progress)
 	}
+	writer.Flush()
 	return nil
 }
 
