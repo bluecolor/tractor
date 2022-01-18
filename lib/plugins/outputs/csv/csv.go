@@ -15,11 +15,13 @@ import (
 )
 
 type Csv struct {
-	Path        string `yaml:"path"`
-	File        string `yaml:"file"`
-	ColumnDelim string `yaml:"column_delim"`
-	RecordDelim string `yaml:"record_delim"`
-	Parallel    int    `yaml:"parallel"`
+	Path        string          `yaml:"path"`
+	File        string          `yaml:"file"`
+	ColumnDelim string          `yaml:"column_delim"`
+	RecordDelim string          `yaml:"record_delim"`
+	Parallel    int             `yaml:"parallel"`
+	Header      bool            `yaml:"header"`
+	Catalog     *config.Catalog `yaml:"catalog"`
 }
 
 var sampleConfig = `
@@ -27,6 +29,8 @@ var sampleConfig = `
     file: file name, suffix will be added if parallel
     column_delim: column delimiter
     record_delim: record delimiter
+	parallel: number of parallel workers
+	header: if true will add header to output file
 `
 
 func (c *Csv) Description() string {
@@ -52,6 +56,14 @@ func (c *Csv) startWorker(w *wire.Wire, i int) error {
 		return err
 	}
 	writer := bufio.NewWriter(f)
+
+	if c.Header && c.Catalog != nil {
+		for _, field := range c.Catalog.Fields {
+			writer.WriteString(field.Name)
+			writer.WriteString(c.ColumnDelim)
+		}
+		writer.WriteString(c.RecordDelim)
+	}
 	for data := range w.ReadData() {
 		buff := c.dataToString(data)
 		_, err := writer.WriteString(fmt.Sprintf("%s%s", buff, c.RecordDelim))
@@ -86,14 +98,19 @@ func (c *Csv) Init() error {
 	return nil
 }
 
-func newCsv(options map[string]interface{}) *Csv {
+func newCsv(options map[string]interface{}, catalog *config.Catalog) *Csv {
 	csv := &Csv{
 		ColumnDelim: ",",
 		RecordDelim: "\n",
 		Parallel:    1,
-		File:        "out",
+		File:        "",
+		Header:      false,
+		Catalog:     catalog,
 	}
 	utils.ParseOptions(csv, options)
+	if csv.File == "" && csv.Catalog != nil && csv.Catalog.Name != "" {
+		csv.File = csv.Catalog.Name
+	}
 	return csv
 }
 
@@ -107,6 +124,6 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		return newCsv(options), nil
+		return newCsv(options, catalog), nil
 	})
 }

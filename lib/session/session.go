@@ -116,7 +116,7 @@ func (s *Session) initWire() {
 	s.Wire = wire.NewWire()
 }
 func (s *Session) processProgressFeed(f feed.Feed) {
-	p := f.Content.(feed.ProgressFeed)
+	p := f.Content.(feed.Progress)
 	switch f.Sender {
 	case feed.SenderInputPlugin:
 		s.Progress.Data.Read += p.Count()
@@ -125,15 +125,15 @@ func (s *Session) processProgressFeed(f feed.Feed) {
 	}
 }
 func (s *Session) listen() {
-	for f := range s.Wire.ReadFeeds() {
+	for f := range s.Wire.ReadFeed() {
 		switch f.Type {
-		case feed.Progress:
+		case feed.ProgressFeed:
 			if s.Progress.Show {
 				s.processProgressFeed(f)
 			}
-		case feed.Success:
+		case feed.SuccessFeed:
 			fmt.Println("Success") // todo
-		case feed.Error:
+		case feed.ErrorFeed:
 			fmt.Println("Error") // todo
 		}
 	}
@@ -161,8 +161,8 @@ func (s *Session) prepare(conf *config.Config, mapping string, showProgress bool
 	if s.Mapping.Output.Catalog != nil {
 		catalog = s.Mapping.Output.Catalog
 	} else {
-		if d, ok := s.InputPlugin.(plugins.Discoverer); ok {
-			catalog, err = d.Discover()
+		if d, ok := s.InputPlugin.(plugins.CatalogDiscoverer); ok {
+			catalog, err = d.DiscoverCatalog()
 			if err != nil {
 				return err
 			}

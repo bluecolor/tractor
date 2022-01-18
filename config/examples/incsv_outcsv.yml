@@ -13,3 +13,4 @@ mappings:
       config:
         path: /home/ceyhun/projects/tractor/.test/data/csv
         file: movies_out.csv
+        header: true

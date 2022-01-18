@@ -1,20 +1,24 @@
 package feed
 
+import "github.com/bluecolor/tractor/lib/config"
+
 type (
-	FeedType     int
-	SenderType   int
-	Record       []interface{}
-	Data         []Record
-	ProgressFeed interface {
+	FeedType   int
+	SenderType int
+	Record     []interface{}
+	Data       []Record
+	Progress   interface {
 		Count() int
 		Message() string
 	}
+	Catalog struct{ config.Catalog }
 )
 
 const (
-	Success FeedType = iota
-	Error
-	Progress
+	SuccessFeed FeedType = iota
+	ErrorFeed
+	ProgressFeed
+	CatalogFeed
 )
 const (
 	SenderAnonymous SenderType = iota
@@ -30,15 +34,22 @@ type Feed struct {
 
 func NewErrorFeed(sender SenderType, content interface{}) Feed {
 	return Feed{
-		Type:    Error,
+		Type:    ErrorFeed,
 		Sender:  sender,
 		Content: content,
 	}
 }
 func NewSuccessFeed(sender SenderType) Feed {
 	return Feed{
-		Type:   Success,
+		Type:   SuccessFeed,
 		Sender: sender,
+	}
+}
+func NewCatalogFeed(sender SenderType, content interface{}) Feed {
+	return Feed{
+		Type:    CatalogFeed,
+		Sender:  sender,
+		Content: content,
 	}
 }
 func NewFeed(sender SenderType, feedType FeedType, content interface{}) Feed {
@@ -72,7 +83,7 @@ func NewWriteProgress(count int, args ...interface{}) Feed {
 	}
 	return Feed{
 		Sender:  SenderOutputPlugin,
-		Type:    Progress,
+		Type:    ProgressFeed,
 		Content: content,
 	}
 }
@@ -88,7 +99,7 @@ func NewReadProgress(count int, args ...interface{}) Feed {
 	}
 	return Feed{
 		Sender:  SenderInputPlugin,
-		Type:    Progress,
+		Type:    ProgressFeed,
 		Content: content,
 	}
 }

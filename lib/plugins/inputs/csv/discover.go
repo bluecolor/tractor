@@ -10,7 +10,7 @@ import (
 	"github.com/bluecolor/tractor/lib/config"
 )
 
-func (c *Csv) Discover() (catalog *config.Catalog, err error) {
+func (c *Csv) DiscoverCatalog() (catalog *config.Catalog, err error) {
 	files, err := c.getFiles()
 	if err != nil {
 		return nil, err

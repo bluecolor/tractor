@@ -22,7 +22,7 @@ func (w *Wire) SendData(data feed.Data) {
 func (w *Wire) ReadData() <-chan feed.Data {
 	return w.DataChannel
 }
-func (w *Wire) ReadFeeds() <-chan feed.Feed {
+func (w *Wire) ReadFeed() <-chan feed.Feed {
 	return w.FeedChannel
 }
 func (w *Wire) Close() {

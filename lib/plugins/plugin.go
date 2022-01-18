@@ -10,8 +10,8 @@ type Validator interface {
 	Validate() error
 }
 
-type Discoverer interface {
-	Discover() (*config.Catalog, error)
+type CatalogDiscoverer interface {
+	DiscoverCatalog() (*config.Catalog, error)
 }
 
 type Counter interface {

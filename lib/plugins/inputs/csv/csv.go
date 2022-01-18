@@ -43,7 +43,6 @@ func (c *Csv) startWorker(w *wire.Wire, files []string) error {
 	for _, file := range files {
 		f, err := os.Open(file)
 		if err != nil {
-			println(err.Error())
 			return err
 		}
 		defer func() {
@@ -75,7 +74,6 @@ func (c *Csv) startWorker(w *wire.Wire, files []string) error {
 			w.SendData(data)
 			data = nil
 		}
-		w.SendFeed(feed.NewSuccessFeed(feed.SenderInputPlugin))
 		return err
 	}
 	return nil
@@ -88,7 +86,12 @@ func (c *Csv) Read(w *wire.Wire) error {
 	var wg sync.WaitGroup
 	for i := 0; i < len(files); i++ {
 		go func(wg *sync.WaitGroup, i int) {
-			c.startWorker(w, files[i])
+			err := c.startWorker(w, files[i])
+			if err != nil {
+				w.SendFeed(feed.NewErrorFeed(feed.SenderInputPlugin, err))
+			} else {
+				w.SendFeed(feed.NewSuccessFeed(feed.SenderInputPlugin))
+			}
 			wg.Done()
 		}(&wg, i)
 		wg.Add(1)
