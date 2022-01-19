@@ -94,10 +94,6 @@ func (c *Csv) Write(w *wire.Wire) (err error) {
 	return nil
 }
 
-func (c *Csv) Init() error {
-	return nil
-}
-
 func newCsv(options map[string]interface{}, catalog *config.Catalog) *Csv {
 	csv := &Csv{
 		ColumnDelim: ",",

@@ -13,6 +13,7 @@ type Field struct {
 	Length    int64  `yaml:"length"`
 	Precision int64  `yaml:"precision"`
 	Scale     int64  `yaml:"scale"`
+	Source    string `yaml:"source"`
 }
 
 func (f *Field) String() string {

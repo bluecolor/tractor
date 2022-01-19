@@ -9,8 +9,7 @@ mappings:
         file: movies.csv
         header: true
     output:
-      plugin: csv
+      plugin: json
       config:
         path: /home/ceyhun/projects/tractor/.test/data
-        file: movies_out.csv
-        header: true
+        file: movies_out.json

@@ -10,9 +10,13 @@ build:
 test:
 	go test ./...
 
-run_csvin_csvout:
+run_incsv_outcsv:
 	go run cmd/tractor/main.go run \
 		--config /home/ceyhun/projects/tractor/config/examples/incsv_outcsv.yml \
 		--mapping Demo
 
+run_incsv_outjson:
+	go run cmd/tractor/main.go run \
+		--config /home/ceyhun/projects/tractor/config/examples/incsv_outjson.yml \
+		--mapping Demo
 

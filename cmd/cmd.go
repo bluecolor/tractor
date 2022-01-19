@@ -39,9 +39,15 @@ func Run() {
 		Flags: []cli.Flag{},
 		Commands: []*cli.Command{
 			{
-				Name:   "run",
-				Usage:  "run",
-				Action: execRun,
+				Name:  "run",
+				Usage: "run",
+				Action: func(c *cli.Context) error {
+					err := execRun(c)
+					if err != nil {
+						return cli.Exit(err.Error(), 1)
+					}
+					return nil
+				},
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:    "config",

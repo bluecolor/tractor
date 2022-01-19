@@ -202,7 +202,6 @@ func (s *Session) start() (*sync.WaitGroup, error) {
 	go func(wg *sync.WaitGroup) {
 		s.OutputPlugin.Write(s.Wire)
 		wg.Done()
-		s.Wire.CloseFeed()
 	}(&wg)
 	wg.Add(1)
 
@@ -210,6 +209,7 @@ func (s *Session) start() (*sync.WaitGroup, error) {
 }
 func (s *Session) end() {
 	s.EndTime = time.Now()
+	s.Wire.CloseFeed()
 }
 
 func (s *Session) Run() (err error) {
