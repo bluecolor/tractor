@@ -23,9 +23,26 @@ type Json struct {
 	Catalog  *config.Catalog `yaml:"catalog"`
 }
 
+func newJson(options map[string]interface{}, sourceCatalog *config.Catalog) *Json {
+	json := &Json{
+		Parallel: 1,
+		File:     "",
+	}
+	utils.ParseOptions(json, options)
+	if json.File == "" && json.Catalog != nil && json.Catalog.Name != "" {
+		json.File = json.Catalog.Name
+	}
+	json.mergeSourceCatalog(sourceCatalog)
+	return json
+}
+
 func (j *Json) dataToString(data feed.Data) (string, error) {
 	buff := make([]string, len(data))
 	for i, record := range data {
+		err := j.mapRecord(&record)
+		if err != nil {
+			return "", err
+		}
 		jsonStr, err := json.Marshal(record)
 		if err != nil {
 			return "", err
@@ -33,18 +50,6 @@ func (j *Json) dataToString(data feed.Data) (string, error) {
 		buff[i] = string(jsonStr)
 	}
 	return strings.Join(buff, ",\n"), nil
-}
-func newJson(options map[string]interface{}, catalog *config.Catalog) *Json {
-	json := &Json{
-		Parallel: 1,
-		File:     "",
-		Catalog:  catalog,
-	}
-	utils.ParseOptions(json, options)
-	if json.File == "" && json.Catalog != nil && json.Catalog.Name != "" {
-		json.File = json.Catalog.Name
-	}
-	return json
 }
 
 func (j *Json) GetParallel() int {
@@ -64,9 +69,9 @@ func (j *Json) StartWorker(w *wire.Wire, i int) error {
 	file := func(i int) string {
 		switch {
 		case i == 0:
-			return fmt.Sprintf("%s.json", j.File)
+			return j.File
 		default:
-			return fmt.Sprintf("%s_%d.json", j.File, i)
+			return fmt.Sprintf("%d_%s", i, j.File)
 		}
 	}(i)
 	name := path.Join(j.Path, file)
@@ -75,7 +80,7 @@ func (j *Json) StartWorker(w *wire.Wire, i int) error {
 		return err
 	}
 	writer := bufio.NewWriter(f)
-	_, err = writer.WriteString("[\n")
+	_, err = writer.WriteString("[")
 	if err != nil {
 		return err
 	}
@@ -87,7 +92,7 @@ func (j *Json) StartWorker(w *wire.Wire, i int) error {
 		}
 		if isFirstBatch {
 			isFirstBatch = false
-			_, err = writer.WriteString(fmt.Sprintf("%s%s", "\n", buff))
+			_, err = writer.WriteString(fmt.Sprintf("%s%s", "", buff))
 		} else {
 			_, err = writer.WriteString(fmt.Sprintf("%s%s", ",\n", buff))
 		}
@@ -111,13 +116,13 @@ func (j *Json) Write(w *wire.Wire) (err error) {
 func init() {
 	outputs.Add("json", func(
 		config map[string]interface{},
-		catalog *config.Catalog,
+		sourceCatalog *config.Catalog,
 		params map[string]interface{},
 	) (outputs.OutputPlugin, error) {
 		options, err := utils.MergeOptions(config, params)
 		if err != nil {
 			return nil, err
 		}
-		return newJson(options, catalog), nil
+		return newJson(options, sourceCatalog), nil
 	})
 }

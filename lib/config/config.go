@@ -8,12 +8,13 @@ import (
 )
 
 type Field struct {
-	Name      string `yaml:"name"`
-	Type      string `yaml:"type"`
-	Length    int64  `yaml:"length"`
-	Precision int64  `yaml:"precision"`
-	Scale     int64  `yaml:"scale"`
-	Source    string `yaml:"source"`
+	Name      string                 `yaml:"name"`
+	Type      string                 `yaml:"type"`
+	Length    int64                  `yaml:"length"`
+	Precision int64                  `yaml:"precision"`
+	Scale     int64                  `yaml:"scale"`
+	Source    string                 `yaml:"source"`
+	Options   map[string]interface{} `yaml:"options"`
 }
 
 func (f *Field) String() string {
@@ -21,8 +22,17 @@ func (f *Field) String() string {
 }
 
 type Catalog struct {
-	Name   string  `yaml:"name"`
-	Fields []Field `yaml:"fields"`
+	Name          string  `yaml:"name"`
+	AutoMapFields bool    `yaml:"auto_map_fields"`
+	Fields        []Field `yaml:"fields"`
+}
+
+func (c *Catalog) GetFieldMap() map[string]*Field {
+	fieldMap := make(map[string]*Field)
+	for _, f := range c.Fields {
+		fieldMap[f.Name] = &f
+	}
+	return fieldMap
 }
 
 type Input struct {

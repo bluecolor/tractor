@@ -6,7 +6,7 @@ import (
 
 type Creator func(
 	config map[string]interface{},
-	catalog *config.Catalog,
+	sourceCatalog *config.Catalog,
 	params map[string]interface{},
 ) (OutputPlugin, error)
 

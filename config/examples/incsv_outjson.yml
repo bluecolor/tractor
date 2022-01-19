@@ -13,3 +13,12 @@ mappings:
       config:
         path: /home/ceyhun/projects/tractor/.test/data
         file: movies_out.json
+      catalog:
+        name: movies
+        auto_map_fields: true
+        fields:
+          - name: year
+            type: integer
+            source: year
+          - name: audience score %
+            type: integer

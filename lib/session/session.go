@@ -132,9 +132,9 @@ func (s *Session) listen() {
 				s.processProgressFeed(f)
 			}
 		case feed.SuccessFeed:
-			fmt.Println("Success") // todo
+			fmt.Println("Done") // todo
 		case feed.ErrorFeed:
-			fmt.Println("Error") // todo
+			fmt.Println("Error:", f.Content.(error).Error()) // todo
 		}
 	}
 }
@@ -193,14 +193,20 @@ func (s *Session) start() (*sync.WaitGroup, error) {
 	s.StartTime = time.Now()
 	var wg sync.WaitGroup
 	go func(wg *sync.WaitGroup) {
-		s.InputPlugin.Read(s.Wire)
+		err := s.InputPlugin.Read(s.Wire)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
 		wg.Done()
 		s.Wire.CloseData()
 	}(&wg)
 	wg.Add(1)
 
 	go func(wg *sync.WaitGroup) {
-		s.OutputPlugin.Write(s.Wire)
+		err := s.OutputPlugin.Write(s.Wire)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
 		wg.Done()
 	}(&wg)
 	wg.Add(1)

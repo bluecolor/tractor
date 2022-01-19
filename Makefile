@@ -8,7 +8,7 @@ build:
 	go build -o bin/tractor $(MODULE)/cmd/tractor
 
 test:
-	go test ./...
+	go test -v ./...
 
 run_incsv_outcsv:
 	go run cmd/tractor/main.go run \

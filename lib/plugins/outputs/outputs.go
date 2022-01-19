@@ -21,19 +21,24 @@ type ParallelWriter interface {
 func ParallelWrite(p ParallelWriter, w *wire.Wire) (err error) {
 	parallel := p.GetParallel()
 	if parallel < 2 {
-		return p.StartWorker(w, 0)
+		err = p.StartWorker(w, 0)
+		if err != nil {
+			w.SendFeed(feed.NewErrorFeed(feed.SenderOutputPlugin, err))
+		} else {
+			w.SendFeed(feed.NewSuccessFeed(feed.SenderOutputPlugin))
+		}
+		return
 	}
 	var wg sync.WaitGroup
-
 	for i := 1; i <= parallel; i++ {
 		go func(wg *sync.WaitGroup) {
 			err := p.StartWorker(w, i)
-			wg.Done()
 			if err != nil {
 				w.SendFeed(feed.NewErrorFeed(feed.SenderOutputPlugin, err))
 			} else {
 				w.SendFeed(feed.NewSuccessFeed(feed.SenderOutputPlugin))
 			}
+			wg.Done()
 		}(&wg)
 		wg.Add(1)
 	}
