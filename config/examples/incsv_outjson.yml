@@ -19,6 +19,3 @@ mappings:
         fields:
           - name: year
             type: integer
-            source: year
-          - name: audience score %
-            type: integer

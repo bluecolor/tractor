@@ -3,33 +3,34 @@ package cmd
 import (
 	"os"
 
-	"github.com/bluecolor/tractor/lib/config"
-	"github.com/bluecolor/tractor/lib/session"
+	"github.com/bluecolor/tractor/pkg/conf"
+	"github.com/bluecolor/tractor/pkg/repo"
+	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v2"
 )
 
-func execRun(c *cli.Context) (err error) {
-	configPath := c.String("config")
-	progress := c.Bool("progress")
-	params := c.String("params")
-	mapping := c.String("mapping")
-	if configPath == "" {
-		return cli.Exit("config is required", 1)
-	}
-	if mapping == "" {
-		return cli.Exit("mapping is required", 1)
-	}
-	conf := config.NewConfig()
-	err = conf.Load(configPath)
+var (
+	config     conf.Config
+	repository *repo.Repository
+)
+
+func init() {
+	var err error
+	config, err = conf.LoadConfig()
 	if err != nil {
-		return
+		panic(err)
 	}
-	s, err := session.NewSession(conf, mapping, progress, params)
+	setupLogger(config.Log)
+}
+func setupLogger(conf conf.Log) error {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+
+	level, err := zerolog.ParseLevel(conf.Level)
 	if err != nil {
-		return
+		return err
 	}
-	err = s.Run()
-	return
+	zerolog.SetGlobalLevel(level)
+	return nil
 }
 
 func Run() {
@@ -39,38 +40,48 @@ func Run() {
 		Flags: []cli.Flag{},
 		Commands: []*cli.Command{
 			{
-				Name:  "run",
-				Usage: "run",
-				Action: func(c *cli.Context) error {
-					err := execRun(c)
-					if err != nil {
-						return cli.Exit(err.Error(), 1)
-					}
-					return nil
+				Name:  "server",
+				Usage: "server command",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "start",
+						Usage:  "start tractor server",
+						Action: runServerStartCmd,
+					},
 				},
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:    "config",
-						Aliases: []string{"c"},
-						Usage:   "config file",
-						Value:   "",
+			},
+			{
+				Name:   "db",
+				Usage:  "db command",
+				Before: runConnectRepo,
+				Subcommands: []*cli.Command{
+					{
+						Name:   "migrate",
+						Usage:  "migrate",
+						Action: runDbMigrateCmd,
+						Flags: []cli.Flag{
+							&cli.BoolFlag{
+								Name:        "reset",
+								Aliases:     []string{"r"},
+								Usage:       "reset database",
+								DefaultText: "false",
+							},
+						},
 					},
-					&cli.BoolFlag{
-						Name:  "progress",
-						Usage: "show progress",
-						Value: false,
+					{
+						Name:   "drop",
+						Usage:  "drop",
+						Action: runDbDropCmd,
 					},
-					&cli.StringFlag{
-						Name:    "params",
-						Aliases: []string{"p"},
-						Usage:   "additional parameters",
-						Value:   "",
+					{
+						Name:   "seed",
+						Usage:  "seed",
+						Action: runSeedCmd,
 					},
-					&cli.StringFlag{
-						Name:    "mapping",
-						Aliases: []string{"m"},
-						Usage:   "mapping name",
-						Value:   "",
+					{
+						Name:   "reset",
+						Usage:  "reset",
+						Action: runResetCmd,
 					},
 				},
 			},

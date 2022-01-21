@@ -10,13 +10,21 @@ build:
 test:
 	go test -v ./...
 
-run_incsv_outcsv:
-	go run cmd/tractor/main.go run \
-		--config /home/ceyhun/projects/tractor/config/examples/incsv_outcsv.yml \
-		--mapping Demo
+db-drop:
+	go run cmd/tractor/main.go db drop
 
-run_incsv_outjson:
-	go run cmd/tractor/main.go run \
-		--config /home/ceyhun/projects/tractor/config/examples/incsv_outjson.yml \
-		--mapping Demo
+db-migrate:
+	go run cmd/tractor/main.go db migrate
 
+db-seed:
+	go run cmd/tractor/main.go db seed
+
+db-reset:
+	go run cmd/tractor/main.go db reset
+
+server-start:
+	go run cmd/tractor/main.go server start
+
+server-reset:
+	go run cmd/tractor/main.go db reset
+	go run cmd/tractor/main.go server start
