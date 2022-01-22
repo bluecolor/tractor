@@ -131,6 +131,7 @@ func (r *Repository) SeedConnectionTypes(basePath string) (err error) {
 		}
 		record := models.ConnectionType{
 			Name: row[0],
+			Code: row[1],
 		}
 		records = append(records, record)
 	}

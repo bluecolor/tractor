@@ -1,10 +1,15 @@
 package models
 
-import "gorm.io/datatypes"
+import (
+	"encoding/json"
+
+	"gorm.io/datatypes"
+)
 
 type ConnectionType struct {
 	Model
 	Name          string         `gorm:"size:100;not null;unique" json:"name"`
+	Code          string         `gorm:"size:100;not null;unique" json:"code"`
 	ProviderTypes []ProviderType `gorm:"many2many:connection_type_provider_types"`
 }
 type Connection struct {
@@ -16,6 +21,11 @@ type Connection struct {
 	AsSource         bool            `gorm:"default:false" json:"asSource"`
 	AsTarget         bool            `gorm:"default:false" json:"asTarget"`
 }
+
+func (c *Connection) GetConfig() json.RawMessage {
+	return json.RawMessage(c.Config)
+}
+
 type ProviderType struct {
 	Model
 	Name            string           `gorm:"size:100;not null;unique" json:"name"`

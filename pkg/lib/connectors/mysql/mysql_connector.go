@@ -3,6 +3,7 @@ package mysql
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"regexp"
 
 	"github.com/bluecolor/tractor/pkg/models"
@@ -11,7 +12,7 @@ import (
 
 type MySQLConfig struct {
 	Host     string `json:"host"`
-	Port     string `json:"port"`
+	Port     int    `json:"port"`
 	User     string `json:"user"`
 	Password string `json:"password"`
 	Database string `json:"database"`
@@ -22,10 +23,10 @@ type MySQLConnector struct {
 }
 
 type columnConfig struct {
-	Null    string `json:"null"`
-	Key     string `json:"key"`
-	Default string `json:"default"`
-	Extra   string `json:"extra"`
+	Null    sql.NullString `json:"null"`
+	Key     sql.NullString `json:"key"`
+	Default sql.NullString `json:"default"`
+	Extra   sql.NullString `json:"extra"`
 }
 type column struct {
 	Field string `json:"field"`
@@ -48,7 +49,7 @@ func (c *column) getField() models.Field {
 	}
 }
 
-func NewMySQLConnector(config string) (*MySQLConnector, error) {
+func NewMySQLConnector(config json.RawMessage) (*MySQLConnector, error) {
 	var err error
 	mysqlConfig := MySQLConfig{}
 	if err = json.Unmarshal([]byte(config), &mysqlConfig); err != nil {
@@ -59,7 +60,7 @@ func NewMySQLConnector(config string) (*MySQLConnector, error) {
 	}, nil
 }
 func (m *MySQLConnector) Connect() error {
-	dsn := m.config.User + ":" + m.config.Password + "@tcp(" + m.config.Host + ":" + m.config.Port + ")/" + m.config.Database
+	dsn := m.config.User + ":" + m.config.Password + "@tcp(" + m.config.Host + ":" + fmt.Sprint(m.config.Port) + ")/" + m.config.Database
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return err
