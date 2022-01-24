@@ -1,7 +1,6 @@
 package connection
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -12,47 +11,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (s *Service) OneDataset(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	dataset := models.Dataset{}
-	if err := s.repo.First(&dataset, id).Error; err != nil {
-		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
-	}
-	utils.RespondwithJSON(w, http.StatusOK, dataset)
-}
-func (s *Service) FindDatasets(w http.ResponseWriter, r *http.Request) {
-	datasets := []models.Dataset{}
-	if err := s.repo.Find(&datasets).Error; err != nil {
-		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
-		return
-	}
-	utils.RespondwithJSON(w, http.StatusOK, datasets)
-}
-func (s *Service) CreateDataset(w http.ResponseWriter, r *http.Request) {
-	var dataset models.Dataset
-	if err := json.NewDecoder(r.Body).Decode(&dataset); err != nil {
-		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
-		return
-	}
-	if err := s.repo.Create(&dataset).Error; err != nil {
-		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
-		return
-	}
-	utils.RespondwithJSON(w, http.StatusOK, dataset)
-}
-func (s *Service) DeleteDataset(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	dataset := models.Dataset{}
-	if err := s.repo.First(&dataset, id).Error; err != nil {
-		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
-		return
-	}
-	if err := s.repo.Delete(&dataset).Error; err != nil {
-		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
-		return
-	}
-	utils.RespondwithJSON(w, http.StatusOK, dataset)
-}
 func (s *Service) FetchDatasets(w http.ResponseWriter, r *http.Request) {
 	pattern := r.URL.Query().Get("pattern")
 	connectionID := chi.URLParam(r, "connectionID")
@@ -75,7 +33,7 @@ func (s *Service) FetchDatasets(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
-	mfc, ok := connector.(connectors.MetaFetcher)
+	mfc, ok := connector.(connectors.MetaFinder)
 	if !ok {
 		err := errors.New("connector does not implement metadata fetcher")
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
@@ -86,7 +44,7 @@ func (s *Service) FetchDatasets(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
-	datasets, err := mfc.FetchDatasets(pattern)
+	datasets, err := mfc.FindDatasets(pattern)
 	if err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return

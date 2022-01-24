@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/bluecolor/tractor/pkg/lib/cat/meta"
 	"github.com/bluecolor/tractor/pkg/lib/providers"
 	"github.com/bluecolor/tractor/pkg/lib/providers/localfs"
-	"github.com/bluecolor/tractor/pkg/models"
 )
 
 type FileConfig struct {
@@ -39,6 +39,6 @@ func NewFileConnector(config string) (*FileConnector, error) {
 	}, nil
 }
 
-func (f *FileConnector) FetchDatasetsWithPattern(pattern string) ([]models.Dataset, error) {
-	return f.Provider.FetchDatasetsWithPattern(pattern)
+func (f *FileConnector) FetchDatasetsWithPattern(pattern string) ([]meta.Dataset, error) {
+	return f.Provider.FindDatasets(pattern)
 }

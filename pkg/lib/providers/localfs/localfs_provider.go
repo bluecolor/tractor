@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"regexp"
 
-	"github.com/bluecolor/tractor/pkg/models"
+	"github.com/bluecolor/tractor/pkg/lib/cat/meta"
 )
 
 type LocalFS struct {
@@ -16,13 +16,12 @@ func NewLocalFS(config map[string]string) (*LocalFS, error) {
 		Path: config["path"],
 	}, nil
 }
-
-func (f *LocalFS) FetchDatasetsWithPattern(pattern string) ([]models.Dataset, error) {
+func (f *LocalFS) FindDatasets(pattern string) ([]meta.Dataset, error) {
 	files, err := ioutil.ReadDir(f.Path)
 	if err != nil {
 		return nil, err
 	}
-	datasets := []models.Dataset{}
+	datasets := []meta.Dataset{}
 	for _, file := range files {
 		if file.IsDir() {
 			continue
@@ -34,7 +33,7 @@ func (f *LocalFS) FetchDatasetsWithPattern(pattern string) ([]models.Dataset, er
 				continue
 			}
 		}
-		datasets = append(datasets, models.Dataset{
+		datasets = append(datasets, meta.Dataset{
 			Name: fileName,
 		})
 	}

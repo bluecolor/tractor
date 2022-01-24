@@ -1,7 +1,7 @@
 package providers
 
-import "github.com/bluecolor/tractor/pkg/models"
+import "github.com/bluecolor/tractor/pkg/lib/cat/meta"
 
 type Provider interface {
-	FetchDatasetsWithPattern(pattern string) ([]models.Dataset, error)
+	FindDatasets(pattern string) ([]meta.Dataset, error)
 }

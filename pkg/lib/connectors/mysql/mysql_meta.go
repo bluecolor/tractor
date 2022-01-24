@@ -6,7 +6,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/cat/meta"
 )
 
-func (m *MySQLConnector) FetchDatasets(pattern string) ([]meta.Dataset, error) {
+func (m *MySQLConnector) FindDatasets(pattern string) ([]meta.Dataset, error) {
 	datasets := []meta.Dataset{}
 	rows, err := m.db.Query("SHOW TABLES")
 	if err != nil {

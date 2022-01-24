@@ -33,8 +33,8 @@ type column struct {
 	columnConfig
 }
 
-func (c *column) getConfig() map[string]string {
-	config := map[string]string{}
+func (c *column) getConfig() map[string]interface{} {
+	config := map[string]interface{}{}
 	if c.Null.Valid {
 		config["null"] = c.Null.String
 	}

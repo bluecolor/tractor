@@ -10,9 +10,9 @@ type Connector interface {
 	Close() error
 }
 
-type MetaFetcher interface {
+type MetaFinder interface {
 	Connector
-	FetchDatasets(pattern string) ([]meta.Dataset, error)
+	FindDatasets(pattern string) ([]meta.Dataset, error)
 }
 
 type InputConnector interface {

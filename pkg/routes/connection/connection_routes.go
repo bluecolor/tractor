@@ -23,11 +23,7 @@ func BuildRoutes(repository *repo.Repository) *chi.Mux {
 	router.Post("/providers", service.CreateProvider)
 
 	// dataset routes
-	router.Get("/{connectionID}/datasets/fetch", service.FetchDatasets)
-	router.Get("/{connectionID}/datasets", service.FindDatasets)
-	router.Get("/{connectionID}/datasets/{id}", service.OneDataset)
-	router.Delete("/{connectionID}/datasets/{id}", service.DeleteDataset)
-	router.Post("/{connectionID}/datasets", service.CreateDataset)
+	router.Get("/{connectionID}/datasets", service.FetchDatasets)
 
 	return router
 }
