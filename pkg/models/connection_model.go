@@ -1,8 +1,7 @@
 package models
 
 import (
-	"encoding/json"
-
+	"github.com/bluecolor/tractor/pkg/lib/connectors"
 	"gorm.io/datatypes"
 )
 
@@ -22,8 +21,8 @@ type Connection struct {
 	AsTarget         bool            `gorm:"default:false" json:"asTarget"`
 }
 
-func (c *Connection) GetConfig() json.RawMessage {
-	return json.RawMessage(c.Config)
+func (c *Connection) GetConfig() connectors.ConnectorConfig {
+	return connectors.ConnectorConfig(c.Config)
 }
 
 type ProviderType struct {

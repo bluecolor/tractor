@@ -14,13 +14,14 @@ type Extraction struct {
 	TargetDataset    *Dataset        `gorm:"foreignkey:TargetDatasetID" json:"targetDataset"`
 	ExtractionModeID uint            `json:"extractionModeID"`
 	ExtractionMode   *ExtractionMode `gorm:"foreignkey:ExtractionModeID" json:"extractionMode"`
+	FieldMappings    []FieldMapping  `json:"fieldMappings"`
 }
 
-type Mapping struct {
+type FieldMapping struct {
 	Model
-	TargetFieldID uint   `json:"targetFieldID"`
-	TargetField   *Field `gorm:"foreignkey:TargetFieldID" json:"targetField"`
-	SourceFieldID uint   `json:"sourceFieldID"`
-	SourceField   *Field `gorm:"foreignkey:SourceFieldID" json:"sourceField"`
-	Expression    string `gorm:"default:NULL" json:"expression"` // reserved for future use
+	TargetField   string      `gorm:"foreignkey:TargetFieldID" json:"targetField"`
+	SourceFieldID uint        `json:"sourceFieldID"`
+	SourceField   *Field      `gorm:"foreignkey:SourceFieldID" json:"sourceField"`
+	ExtractionID  uint        `json:"extractionID"`
+	Extraction    *Extraction `gorm:"foreignkey:ExtractionID" json:"extraction"`
 }

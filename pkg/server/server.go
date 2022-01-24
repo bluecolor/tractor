@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/bluecolor/tractor/pkg/conf"
+	_ "github.com/bluecolor/tractor/pkg/lib/connectors/conreg"
 	"github.com/bluecolor/tractor/pkg/repo"
 	"github.com/bluecolor/tractor/pkg/routes"
 )

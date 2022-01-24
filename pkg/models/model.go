@@ -20,7 +20,7 @@ func init() {
 		&Extraction{},
 		&Field{},
 		&FileType{},
-		&Mapping{},
+		&FieldMapping{},
 		&Provider{},
 		&ProviderType{},
 		&Param{},

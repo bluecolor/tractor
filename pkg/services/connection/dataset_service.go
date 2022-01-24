@@ -2,6 +2,7 @@ package connection
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
@@ -62,8 +63,36 @@ func (s *Service) FetchDatasets(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
-	datasets, err := connectors.FetchDatasetsWithPattern(pattern, connection)
+	connectorCreator, ok := connectors.Connectors[connection.ConnectionType.Code]
+	if !ok {
+		err := errors.New("unsupported connection type " + connection.ConnectionType.Code)
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	connector, err := connectorCreator(connection.GetConfig())
 	if err != nil {
+		log.Error().Err(err).Msg("error creating connector")
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	mfc, ok := connector.(connectors.MetaFetcher)
+	if !ok {
+		err := errors.New("connector does not implement metadata fetcher")
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := mfc.Connect(); err != nil {
+		log.Error().Err(err).Msg("error connecting to connector")
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	datasets, err := mfc.FetchDatasets(pattern)
+	if err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := mfc.Close(); err != nil {
+		log.Error().Err(err).Msg("error closing connector")
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
