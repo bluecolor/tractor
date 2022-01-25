@@ -29,10 +29,10 @@ type OutputConnector interface {
 
 type ParallelWriter interface {
 	GetParallel() int
-	StartWorker(e meta.ExtOutput, w *wire.Wire, i int) error
+	StartWorker(e meta.ExtOutput, w wire.Wire, i int) error
 }
 
-func ParallelWrite(p ParallelWriter, e meta.ExtOutput, w *wire.Wire) (err error) {
+func ParallelWrite(p ParallelWriter, e meta.ExtOutput, w wire.Wire) (err error) {
 	parallel := p.GetParallel()
 	if parallel < 2 {
 		err = p.StartWorker(e, w, 0)
