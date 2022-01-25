@@ -1,6 +1,6 @@
 package wire
 
-import "github.com/bluecolor/tractor/lib/feed"
+import "github.com/bluecolor/tractor/pkg/lib/feed"
 
 type Wire struct {
 	FeedChannel chan feed.Feed

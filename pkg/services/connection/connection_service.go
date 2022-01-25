@@ -47,6 +47,7 @@ func (s *Service) CreateConnection(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
+	utils.RespondwithJSON(w, http.StatusOK, connection)
 }
 func (s *Service) FindConnectionTypes(w http.ResponseWriter, r *http.Request) {
 	connectionTypes := []models.ConnectionType{}

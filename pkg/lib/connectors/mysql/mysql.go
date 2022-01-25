@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/bluecolor/tractor/pkg/lib/cat/meta"
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -19,42 +18,6 @@ type MySQLConfig struct {
 type MySQLConnector struct {
 	config MySQLConfig
 	db     *sql.DB
-}
-
-type columnConfig struct {
-	Null    sql.NullString `json:"null"`
-	Key     sql.NullString `json:"key"`
-	Default sql.NullString `json:"default"`
-	Extra   sql.NullString `json:"extra"`
-}
-type column struct {
-	Field string `json:"field"`
-	Type  string `json:"type"`
-	columnConfig
-}
-
-func (c *column) getConfig() map[string]interface{} {
-	config := map[string]interface{}{}
-	if c.Null.Valid {
-		config["null"] = c.Null.String
-	}
-	if c.Key.Valid {
-		config["key"] = c.Key.String
-	}
-	if c.Default.Valid {
-		config["default"] = c.Default.String
-	}
-	if c.Extra.Valid {
-		config["extra"] = c.Extra.String
-	}
-	return config
-}
-func (c *column) getField() meta.Field {
-	return meta.Field{
-		Name:   c.Field,
-		Type:   c.Type,
-		Config: c.getConfig(),
-	}
 }
 
 func NewMySQLConnector(config connectors.ConnectorConfig) (connectors.Connector, error) {
