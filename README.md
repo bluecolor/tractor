@@ -8,6 +8,6 @@ A cross platform, plugin based data ingestion tool.
 
 ## Plugins
 
-| Name  | Input | Output |
-| ----- | ----- | ------ |
-| Mysql | [x]   | [x]    |
+| Name  | Input             | Output            |
+| ----- | ----------------- | ----------------- |
+| MySQL | :white_check_mark | :white_check_mark |
