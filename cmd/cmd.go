@@ -1,68 +1,92 @@
 package cmd
 
 import (
-	"fmt"
+	"os"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"github.com/bluecolor/tractor/pkg/conf"
+	"github.com/bluecolor/tractor/pkg/repo"
+	"github.com/rs/zerolog"
+	"github.com/urfave/cli/v2"
 )
 
 var (
-	config      string
-	showVersion bool
-	logLevel    string
-	mapping     string
-	inputFlag   bool
-	outputFlag  bool
-
-	version string
-	commit  string
-
-	// TractorCmd ...
-	TractorCmd = &cobra.Command{
-		Use:               "tractor",
-		Short:             "🚜 tractor - data ingestion tool",
-		Long:              ``,
-		SilenceErrors:     true,
-		SilenceUsage:      true,
-		PersistentPreRunE: readConfig,
-		PreRunE:           preFlight,
-		RunE:              start,
-	}
+	config     conf.Config
+	repository *repo.Repository
 )
 
-func readConfig(ccmd *cobra.Command, args []string) error {
-	viper.AddConfigPath(".")
-	viper.SetConfigName(".env")
-	viper.SetConfigType("env")
-	viper.AutomaticEnv()
+func init() {
+	var err error
+	config, err = conf.LoadConfig()
+	if err != nil {
+		panic(err)
+	}
+	setupLogger(config.Log)
+}
+func setupLogger(conf conf.Log) error {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
-	return viper.ReadInConfig()
+	level, err := zerolog.ParseLevel(conf.Level)
+	if err != nil {
+		return err
+	}
+	zerolog.SetGlobalLevel(level)
+	return nil
 }
 
-func preFlight(ccmd *cobra.Command, args []string) error {
-	if showVersion {
-		fmt.Printf("tractor %s (%s)\n", version, commit)
-		return fmt.Errorf("")
+func Run() {
+	app := &cli.App{
+		Name:  "tractor",
+		Usage: `🚜 tractor - data ingestion tool`,
+		Flags: []cli.Flag{},
+		Commands: []*cli.Command{
+			{
+				Name:  "server",
+				Usage: "server command",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "start",
+						Usage:  "start tractor server",
+						Action: runServerStartCmd,
+					},
+				},
+			},
+			{
+				Name:   "db",
+				Usage:  "db command",
+				Before: runConnectRepo,
+				Subcommands: []*cli.Command{
+					{
+						Name:   "migrate",
+						Usage:  "migrate",
+						Action: runDbMigrateCmd,
+						Flags: []cli.Flag{
+							&cli.BoolFlag{
+								Name:        "reset",
+								Aliases:     []string{"r"},
+								Usage:       "reset database",
+								DefaultText: "false",
+							},
+						},
+					},
+					{
+						Name:   "drop",
+						Usage:  "drop",
+						Action: runDbDropCmd,
+					},
+					{
+						Name:   "seed",
+						Usage:  "seed",
+						Action: runSeedCmd,
+					},
+					{
+						Name:   "reset",
+						Usage:  "reset",
+						Action: runResetCmd,
+					},
+				},
+			},
+		},
 	}
 
-	return nil
-}
-
-func start(ccmd *cobra.Command, args []string) error {
-
-	return nil
-}
-
-func init() {
-	viper.SetDefault("TRACTOR_CHANNEL_BUFFER_SIZE", 1000)
-	viper.SetDefault("TRACTOR_MAPPINGS_FILE", "mappings.yml")
-	viper.SetDefault("TRACTOR_LOG_LEVEL", "info")
-
-	TractorCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "Display the current version of this CLI")
-	TractorCmd.PersistentFlags().StringVar(&logLevel, "loglevel", "", "log level")
-	TractorCmd.PersistentFlags().StringVar(&config, "config", "tractor.yml", "Config file")
-
-	TractorCmd.AddCommand(runCmd)
-	TractorCmd.AddCommand(pluginCmd)
+	app.Run(os.Args)
 }
