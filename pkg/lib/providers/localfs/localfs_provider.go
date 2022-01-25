@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"regexp"
 
-	"github.com/bluecolor/tractor/pkg/lib/cat/meta"
+	"github.com/bluecolor/tractor/pkg/lib/meta"
 )
 
 type LocalFS struct {

@@ -37,9 +37,9 @@ func ParallelWrite(p ParallelWriter, e meta.ExtOutput, w *wire.Wire) (err error)
 	if parallel < 2 {
 		err = p.StartWorker(e, w, 0)
 		if err != nil {
-			w.SendFeed(feed.NewErrorFeed(feed.SenderOutputPlugin, err))
+			w.SendFeed(feed.NewErrorFeed(feed.SenderOutputConnector, err))
 		} else {
-			w.SendFeed(feed.NewSuccessFeed(feed.SenderOutputPlugin))
+			w.SendFeed(feed.NewSuccessFeed(feed.SenderOutputConnector))
 		}
 		return
 	}
@@ -49,9 +49,9 @@ func ParallelWrite(p ParallelWriter, e meta.ExtOutput, w *wire.Wire) (err error)
 			defer wg.Done()
 			err := p.StartWorker(e, w, i)
 			if err != nil {
-				w.SendFeed(feed.NewErrorFeed(feed.SenderOutputPlugin, err))
+				w.SendFeed(feed.NewErrorFeed(feed.SenderOutputConnector, err))
 			} else {
-				w.SendFeed(feed.NewSuccessFeed(feed.SenderOutputPlugin))
+				w.SendFeed(feed.NewSuccessFeed(feed.SenderOutputConnector))
 			}
 		}(&wg, i)
 		wg.Add(1)

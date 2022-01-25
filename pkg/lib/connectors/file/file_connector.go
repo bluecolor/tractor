@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/bluecolor/tractor/pkg/lib/cat/meta"
+	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/providers"
 	"github.com/bluecolor/tractor/pkg/lib/providers/localfs"
 )
