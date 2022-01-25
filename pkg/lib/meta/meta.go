@@ -1,5 +1,12 @@
 package meta
 
+var (
+	ExtractionModeCreate = "create"
+	ExtractionModeInsert = "insert"
+	ExtractionModeMerge  = "merge"
+	ExtractionModeAppend = "append"
+)
+
 type Config map[string]interface{}
 
 func (c Config) GetString(key string, def string) string {
@@ -35,8 +42,9 @@ type ExtInput struct {
 }
 type ExtOutput struct {
 	Dataset
-	Parallel      int            `json:"parallel"`
-	FieldMappings []FieldMapping `json:"fieldMappings"`
+	Parallel       int            `json:"parallel"`
+	FieldMappings  []FieldMapping `json:"fieldMappings"`
+	ExtractionMode string         `json:"extractionMode"`
 }
 type FieldMapping struct {
 	SourceField Field  `json:"sourceField"`

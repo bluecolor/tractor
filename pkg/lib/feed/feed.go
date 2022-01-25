@@ -18,8 +18,8 @@ const (
 )
 const (
 	SenderAnonymous SenderType = iota
-	SenderInputPlugin
-	SenderOutputPlugin
+	SenderInputConnector
+	SenderOutputConnector
 )
 
 type Feed struct {
@@ -71,7 +71,7 @@ func NewWriteProgress(count int, args ...interface{}) Feed {
 		message: msg,
 	}
 	return Feed{
-		Sender:  SenderOutputPlugin,
+		Sender:  SenderOutputConnector,
 		Type:    ProgressFeed,
 		Content: content,
 	}
@@ -87,7 +87,7 @@ func NewReadProgress(count int, args ...interface{}) Feed {
 		message: msg,
 	}
 	return Feed{
-		Sender:  SenderInputPlugin,
+		Sender:  SenderInputConnector,
 		Type:    ProgressFeed,
 		Content: content,
 	}

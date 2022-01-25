@@ -5,6 +5,7 @@ import "gorm.io/datatypes"
 type ExtractionMode struct {
 	Model
 	Name string `json:"name"`
+	Code string `json:"code"`
 }
 
 type Extraction struct {

@@ -11,8 +11,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (m *MySQLConnector) StartWorker(e meta.ExtInput, w wire.Wire, i int) (err error) {
-	query, err := m.BuildQuery(e, i)
+func (m *MySQLConnector) StartReadWorker(e meta.ExtInput, w wire.Wire, i int) (err error) {
+	query, err := m.BuildReadQuery(e, i)
 	if err != nil {
 		return err
 	}
@@ -54,30 +54,28 @@ func (m *MySQLConnector) StartWorker(e meta.ExtInput, w wire.Wire, i int) (err e
 	}
 	return
 }
-
 func (m *MySQLConnector) Read(e meta.ExtInput, w wire.Wire) (err error) {
 	var parallel int = 1
 	if e.Parallel > 1 {
-		log.Warn().Msgf("parallel is not supported for MySQL connector. Using %d", parallel)
+		log.Warn().Msgf("parallel read is not supported for MySQL connector. Using %d", parallel)
 	}
 	if e.Parallel < 1 {
-		log.Warn().Msgf("invalid parallel setting %d. Using %d", e.Parallel, parallel)
+		log.Warn().Msgf("invalid parallel read setting %d. Using %d", e.Parallel, parallel)
 	}
 	wg := &sync.WaitGroup{}
 	for i := 0; i < parallel; i++ {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, i int) {
 			defer wg.Done()
-			err := m.StartWorker(e, w, i)
+			err := m.StartReadWorker(e, w, i)
 			if err != nil {
-				w.SendFeed(feed.NewErrorFeed(feed.SenderInputPlugin, err))
+				w.SendFeed(feed.NewErrorFeed(feed.SenderInputConnector, err))
 			}
 		}(wg, i)
 	}
 	return
 }
-
-func (m *MySQLConnector) BuildQuery(e meta.ExtInput, i int) (query string, err error) {
+func (m *MySQLConnector) BuildReadQuery(e meta.ExtInput, i int) (query string, err error) {
 	if e.Fields == nil || len(e.Fields) == 0 {
 		return "", fmt.Errorf("no fields specified")
 	}

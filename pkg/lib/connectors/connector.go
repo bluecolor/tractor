@@ -45,15 +45,15 @@ func ParallelWrite(p ParallelWriter, e meta.ExtOutput, w *wire.Wire) (err error)
 	}
 	var wg sync.WaitGroup
 	for i := 1; i <= parallel; i++ {
-		go func(wg *sync.WaitGroup) {
+		go func(wg *sync.WaitGroup, i int) {
+			defer wg.Done()
 			err := p.StartWorker(e, w, i)
 			if err != nil {
 				w.SendFeed(feed.NewErrorFeed(feed.SenderOutputPlugin, err))
 			} else {
 				w.SendFeed(feed.NewSuccessFeed(feed.SenderOutputPlugin))
 			}
-			wg.Done()
-		}(&wg)
+		}(&wg, i)
 		wg.Add(1)
 	}
 	wg.Wait()
