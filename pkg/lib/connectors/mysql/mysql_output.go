@@ -14,6 +14,7 @@ import (
 // todo add batch size
 // todo use field-mapping instead of dataset
 func (m *MySQLConnector) StartWriteWorker(e meta.ExtOutput, w wire.Wire, i int) error {
+	ok := true
 	for data := range w.ReadData() {
 		query, err := m.BuildBatchInsertQuery(e.Dataset, len(data))
 		if err != nil {
@@ -23,7 +24,12 @@ func (m *MySQLConnector) StartWriteWorker(e meta.ExtOutput, w wire.Wire, i int) 
 		values := make([]interface{}, len(data)*len(e.Dataset.Fields))
 		for i, r := range data {
 			for j, f := range e.Dataset.Fields {
-				values[i*len(e.Dataset.Fields)+j] = r[f.Name]
+				values[i*len(e.Dataset.Fields)+j], ok = r[e.GetSourceFieldNameByTargetFieldName(f.Name)]
+				if !ok {
+					err = fmt.Errorf("field %s not found in record %d", f.Name, i)
+					w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
+					return err
+				}
 			}
 		}
 		_, err = m.db.Exec(query, values...)

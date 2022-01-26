@@ -83,7 +83,7 @@ func (m *MySQLConnector) BuildReadQuery(e meta.ExtInput, i int) (query string, e
 	}
 	columns := ""
 	for _, f := range e.Fields {
-		columns += f.Name + ","
+		columns += f.GetExpressionOrName() + ","
 	}
 	columns = strings.TrimRight(columns, ",")
 	query = fmt.Sprintf("SELECT %s FROM %s", columns, e.Dataset.Name)
