@@ -12,6 +12,7 @@ import (
 )
 
 // todo add batch size
+// todo use field-mapping instead of dataset
 func (m *MySQLConnector) StartWriteWorker(e meta.ExtOutput, w wire.Wire, i int) error {
 	for data := range w.ReadData() {
 		query, err := m.BuildBatchInsertQuery(e.Dataset, len(data))
@@ -26,6 +27,12 @@ func (m *MySQLConnector) StartWriteWorker(e meta.ExtOutput, w wire.Wire, i int) 
 			}
 		}
 		_, err = m.db.Exec(query, values...)
+		if err != nil {
+			w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
+			return err
+		} else {
+			w.SendFeed(feeds.NewWriteProgress(len(data)))
+		}
 	}
 	return nil
 }
