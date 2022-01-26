@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/bluecolor/tractor/pkg/lib/feed"
+	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/rs/zerolog/log"
@@ -23,7 +23,7 @@ func (m *MySQLConnector) StartReadWorker(e meta.ExtInput, w wire.Wire, i int) (e
 	defer rows.Close()
 
 	bufferSize := e.Config.GetInt("buffer_size", 100)
-	buffer := []feed.Record{}
+	buffer := []feeds.Record{}
 	for rows.Next() {
 		columns := make([]interface{}, len(e.Fields))
 		columnPointers := make([]interface{}, len(e.Fields))
@@ -33,7 +33,7 @@ func (m *MySQLConnector) StartReadWorker(e meta.ExtInput, w wire.Wire, i int) (e
 		if err := rows.Scan(columnPointers...); err != nil {
 			return err
 		}
-		record := feed.Record{}
+		record := feeds.Record{}
 		for i, f := range e.Fields {
 			if f.Name == "" {
 				f.Name = fmt.Sprintf("col%d", i)
@@ -42,15 +42,15 @@ func (m *MySQLConnector) StartReadWorker(e meta.ExtInput, w wire.Wire, i int) (e
 		}
 		if len(buffer) >= bufferSize {
 			w.SendData(buffer)
-			w.SendFeed(feed.NewReadProgress(len(buffer)))
-			buffer = []feed.Record{}
+			w.SendFeed(feeds.NewReadProgress(len(buffer)))
+			buffer = []feeds.Record{}
 		} else {
 			buffer = append(buffer, record)
 		}
 	}
 	if len(buffer) > 0 {
 		w.SendData(buffer)
-		w.SendFeed(feed.NewReadProgress(len(buffer)))
+		w.SendFeed(feeds.NewReadProgress(len(buffer)))
 	}
 	return
 }
@@ -69,10 +69,12 @@ func (m *MySQLConnector) Read(e meta.ExtInput, w wire.Wire) (err error) {
 			defer wg.Done()
 			err := m.StartReadWorker(e, w, i)
 			if err != nil {
-				w.SendFeed(feed.NewErrorFeed(feed.SenderInputConnector, err))
+				w.SendFeed(feeds.NewErrorFeed(feeds.SenderInputConnector, err))
 			}
 		}(wg, i)
 	}
+	wg.Wait()
+	w.SendFeed(feeds.NewSuccessFeed(feeds.SenderInputConnector))
 	return
 }
 func (m *MySQLConnector) BuildReadQuery(e meta.ExtInput, i int) (query string, err error) {
@@ -81,10 +83,10 @@ func (m *MySQLConnector) BuildReadQuery(e meta.ExtInput, i int) (query string, e
 	}
 	columns := ""
 	for _, f := range e.Fields {
-		columns += f.Name + ",\n"
+		columns += f.Name + ","
 	}
-	columns = strings.TrimRight(columns, ",\n")
-	query = fmt.Sprintf("select\n%s\nfrom %s", columns, e.Dataset.Name)
+	columns = strings.TrimRight(columns, ",")
+	query = fmt.Sprintf("SELECT %s FROM %s", columns, e.Dataset.Name)
 	log.Debug().Msgf("query: %s", query)
 	return
 }

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/bluecolor/tractor/pkg/lib/feed"
+	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/rs/zerolog/log"
@@ -16,7 +16,7 @@ func (m *MySQLConnector) StartWriteWorker(e meta.ExtOutput, w wire.Wire, i int) 
 	for data := range w.ReadData() {
 		query, err := m.BuildBatchInsertQuery(e.Dataset, len(data))
 		if err != nil {
-			w.SendFeed(feed.NewErrorFeed(feed.SenderOutputConnector, err))
+			w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 			return err
 		}
 		values := make([]interface{}, len(data)*len(e.Dataset.Fields))
@@ -38,7 +38,7 @@ func (m *MySQLConnector) Write(e meta.ExtOutput, w wire.Wire) (err error) {
 		log.Warn().Msgf("invalid parallel write setting %d. Using %d", e.Parallel, parallel)
 	}
 	if err = m.PrepareTable(e); err != nil {
-		w.SendFeed(feed.NewErrorFeed(feed.SenderOutputConnector, err))
+		w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 		return
 	}
 	wg := &sync.WaitGroup{}
@@ -48,10 +48,12 @@ func (m *MySQLConnector) Write(e meta.ExtOutput, w wire.Wire) (err error) {
 			defer wg.Done()
 			err := m.StartWriteWorker(e, w, i)
 			if err != nil {
-				w.SendFeed(feed.NewErrorFeed(feed.SenderOutputConnector, err))
+				w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 			}
 		}(wg, i)
 	}
+	wg.Wait()
+	w.SendFeed(feeds.NewSuccessFeed(feeds.SenderOutputConnector))
 	return
 }
 func (m *MySQLConnector) BuildCreateQuery(d meta.Dataset) (query string, err error) {

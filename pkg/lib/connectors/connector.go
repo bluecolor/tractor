@@ -3,7 +3,7 @@ package connectors
 import (
 	"sync"
 
-	"github.com/bluecolor/tractor/pkg/lib/feed"
+	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
@@ -37,9 +37,9 @@ func ParallelWrite(p ParallelWriter, e meta.ExtOutput, w wire.Wire) (err error) 
 	if parallel < 2 {
 		err = p.StartWorker(e, w, 0)
 		if err != nil {
-			w.SendFeed(feed.NewErrorFeed(feed.SenderOutputConnector, err))
+			w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 		} else {
-			w.SendFeed(feed.NewSuccessFeed(feed.SenderOutputConnector))
+			w.SendFeed(feeds.NewSuccessFeed(feeds.SenderOutputConnector))
 		}
 		return
 	}
@@ -49,9 +49,9 @@ func ParallelWrite(p ParallelWriter, e meta.ExtOutput, w wire.Wire) (err error) 
 			defer wg.Done()
 			err := p.StartWorker(e, w, i)
 			if err != nil {
-				w.SendFeed(feed.NewErrorFeed(feed.SenderOutputConnector, err))
+				w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 			} else {
-				w.SendFeed(feed.NewSuccessFeed(feed.SenderOutputConnector))
+				w.SendFeed(feeds.NewSuccessFeed(feeds.SenderOutputConnector))
 			}
 		}(&wg, i)
 		wg.Add(1)
