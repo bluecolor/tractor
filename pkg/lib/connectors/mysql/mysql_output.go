@@ -11,36 +11,58 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// todo add batch size
-// todo use field-mapping instead of dataset
-func (m *MySQLConnector) StartWriteWorker(e meta.ExtOutput, w wire.Wire, i int) error {
+func (m *MySQLConnector) Work(e meta.ExtOutput, w wire.Wire, i int, data feeds.Data) error {
 	ok := true
-	for data := range w.ReadData() {
-		query, err := m.BuildBatchInsertQuery(e.Dataset, len(data))
-		if err != nil {
-			w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
-			return err
-		}
-		values := make([]interface{}, len(data)*len(e.Dataset.Fields))
-		for i, r := range data {
-			for j, f := range e.Dataset.Fields {
-				values[i*len(e.Dataset.Fields)+j], ok = r[e.GetSourceFieldNameByTargetFieldName(f.Name)]
-				if !ok {
-					err = fmt.Errorf("field %s not found in record %d", f.Name, i)
-					w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
-					return err
-				}
+	query, err := m.BuildBatchInsertQuery(e.Dataset, len(data))
+	if err != nil {
+		log.Error().Err(err).Msg("failed to build batch insert query")
+		w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
+		return err
+	}
+	values := make([]interface{}, len(data)*len(e.Dataset.Fields))
+	for i, r := range data {
+		for j, f := range e.Dataset.Fields {
+			values[i*len(e.Dataset.Fields)+j], ok = r[e.GetSourceFieldNameByTargetFieldName(f.Name)]
+			if !ok {
+				err = fmt.Errorf("field %s not found in record %d", f.Name, i)
+				log.Error().Err(err).Msg("failed to build batch data")
+				w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
+				return err
 			}
 		}
-		_, err = m.db.Exec(query, values...)
-		if err != nil {
-			w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
-			return err
-		} else {
-			w.SendFeed(feeds.NewWriteProgress(len(data)))
-		}
+	}
+	log.Debug().Msgf("executing query: %s", query)
+	stmt, err := m.db.Prepare(query)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to prepare batch insert query")
+		w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
+		return err
+	}
+	_, err = stmt.Exec(values...)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to execute batch insert query")
+		w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
+		return err
+	} else {
+		w.SendFeed(feeds.NewWriteProgress(len(data)))
 	}
 	return nil
+}
+
+// todo add batch size
+// todo add timeout
+func (m *MySQLConnector) StartWriteWorker(e meta.ExtOutput, w wire.Wire, i int) error {
+	for {
+		select {
+		case data := <-w.ReadData():
+			err := m.Work(e, w, i, data)
+			if err != nil {
+				return err
+			}
+		case <-w.IsReadDone():
+			return nil
+		}
+	}
 }
 func (m *MySQLConnector) Write(e meta.ExtOutput, w wire.Wire) (err error) {
 	var parallel int = 1
@@ -67,6 +89,7 @@ func (m *MySQLConnector) Write(e meta.ExtOutput, w wire.Wire) (err error) {
 	}
 	wg.Wait()
 	w.SendFeed(feeds.NewSuccessFeed(feeds.SenderOutputConnector))
+	w.WriteDone()
 	return
 }
 func (m *MySQLConnector) BuildCreateQuery(d meta.Dataset) (query string, err error) {
@@ -98,14 +121,14 @@ func (m *MySQLConnector) BuildBatchInsertQuery(d meta.Dataset, recordCount int) 
 	columns := ""
 	values := ""
 	for _, f := range d.Fields {
-		columns += f.Name + ", "
+		columns += f.Name + ","
 		values += "?,"
 	}
-	columns = strings.TrimSuffix(columns, ", ")
-	values = strings.TrimSuffix(values, ", ")
+	columns = strings.TrimSuffix(columns, ",")
+	values = strings.TrimSuffix(values, ",")
 	values = strings.Repeat("("+values+"),", recordCount)
+	values = strings.TrimSuffix(values, ",")
 	query = "INSERT INTO " + d.Name + " (" + columns + ") VALUES " + values
-
 	return
 }
 func (m *MySQLConnector) CreateTable(d meta.Dataset) (err error) {

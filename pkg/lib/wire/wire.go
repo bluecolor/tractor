@@ -3,15 +3,31 @@ package wire
 import feeds "github.com/bluecolor/tractor/pkg/lib/feeds"
 
 type Wire struct {
-	FeedChannel chan feeds.Feed
-	DataChannel chan feeds.Data
+	FeedChannel      chan feeds.Feed
+	DataChannel      chan feeds.Data
+	ReadDoneChannel  chan bool
+	WriteDoneChannel chan bool
 }
 
 func NewWire() Wire {
 	return Wire{
-		FeedChannel: make(chan feeds.Feed, 10000),
-		DataChannel: make(chan feeds.Data, 10000),
+		FeedChannel:      make(chan feeds.Feed, 10000),
+		DataChannel:      make(chan feeds.Data, 10000),
+		ReadDoneChannel:  make(chan bool),
+		WriteDoneChannel: make(chan bool),
 	}
+}
+func (w *Wire) ReadDone() {
+	w.ReadDoneChannel <- true
+}
+func (w *Wire) WriteDone() {
+	w.WriteDoneChannel <- true
+}
+func (w *Wire) IsReadDone() chan bool {
+	return w.ReadDoneChannel
+}
+func (w *Wire) IsWriteDone() chan bool {
+	return w.WriteDoneChannel
 }
 func (w *Wire) SendFeed(feed feeds.Feed) {
 	w.FeedChannel <- feed

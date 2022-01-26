@@ -75,6 +75,7 @@ func (m *MySQLConnector) Read(e meta.ExtInput, w wire.Wire) (err error) {
 	}
 	wg.Wait()
 	w.SendFeed(feeds.NewSuccessFeed(feeds.SenderInputConnector))
+	w.ReadDone()
 	return
 }
 func (m *MySQLConnector) BuildReadQuery(e meta.ExtInput, i int) (query string, err error) {
