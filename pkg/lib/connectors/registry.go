@@ -14,5 +14,5 @@ func GetConnector(name string, config ConnectorConfig) (Connector, error) {
 	if creator, ok := Connectors[name]; ok {
 		return creator(config)
 	}
-	return nil, fmt.Errorf("Connector %s not found", name)
+	return nil, fmt.Errorf("connector %s not found", name)
 }

@@ -21,9 +21,8 @@ type MySQLConnector struct {
 }
 
 func NewMySQLConnector(config connectors.ConnectorConfig) (connectors.Connector, error) {
-	var err error
 	mysqlConfig := MySQLConfig{}
-	if err = config.LoadConfig(&mysqlConfig); err != nil {
+	if err := config.LoadConfig(&mysqlConfig); err != nil {
 		return nil, err
 	}
 	return &MySQLConnector{
