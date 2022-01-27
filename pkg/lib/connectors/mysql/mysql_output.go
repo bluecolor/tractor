@@ -79,13 +79,13 @@ func (m *MySQLConnector) Write(e meta.ExtOutput, w wire.Wire) (err error) {
 	wg := &sync.WaitGroup{}
 	for i := 0; i < parallel; i++ {
 		wg.Add(1)
-		go func(wg *sync.WaitGroup, i int) {
+		go func(wg *sync.WaitGroup, i int, wire wire.Wire) {
 			defer wg.Done()
 			err := m.StartWriteWorker(e, w, i)
 			if err != nil {
 				w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 			}
-		}(wg, i)
+		}(wg, i, w)
 	}
 	wg.Wait()
 	w.SendFeed(feeds.NewSuccessFeed(feeds.SenderOutputConnector))

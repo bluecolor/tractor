@@ -7,14 +7,15 @@ type Wire struct {
 	DataChannel      chan feeds.Data
 	ReadDoneChannel  chan bool
 	WriteDoneChannel chan bool
+	DoneChannel      chan bool
 }
 
 func NewWire() Wire {
 	return Wire{
 		FeedChannel:      make(chan feeds.Feed, 10000),
 		DataChannel:      make(chan feeds.Data, 10000),
-		ReadDoneChannel:  make(chan bool),
-		WriteDoneChannel: make(chan bool),
+		ReadDoneChannel:  make(chan bool, 1),
+		WriteDoneChannel: make(chan bool, 1),
 	}
 }
 func (w *Wire) ReadDone() {
@@ -22,6 +23,9 @@ func (w *Wire) ReadDone() {
 }
 func (w *Wire) WriteDone() {
 	w.WriteDoneChannel <- true
+}
+func (w *Wire) Done() {
+	w.DoneChannel <- true
 }
 func (w *Wire) IsReadDone() chan bool {
 	return w.ReadDoneChannel

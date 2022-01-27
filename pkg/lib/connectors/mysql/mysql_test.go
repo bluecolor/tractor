@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const TIMEOUT = 5 * time.Second
+const TIMEOUT = 3 * time.Second
 
 func NewMock() (*sql.DB, sqlmock.Sqlmock) {
 	db, mock, err := sqlmock.New()
@@ -71,65 +71,72 @@ func TestRead(t *testing.T) {
 	}
 	e := meta.ExtInput{Dataset: dataset, Parallel: 1}
 	query, err := m.BuildReadQuery(e, 0)
+	if err != nil {
+		t.Error(err)
+	}
 
 	rows := sqlmock.NewRows([]string{"id", "name"}).
 		AddRow(1, "name 1").
 		AddRow(2, "name 2")
 	mock.ExpectQuery(query).WillReturnRows(rows)
-	wire := wire.NewWire()
-	if err != m.Read(e, wire) {
-		t.Error(err)
-	}
+	w := wire.NewWire()
+
+	go func(e meta.ExtInput, w wire.Wire) {
+		if err := m.Read(e, w); err != nil {
+			t.Error(err)
+		}
+	}(e, w)
 
 	// todo check premature success
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup, w wire.Wire) {
 		log.Debug().Msg("waiting for feed")
 		defer wg.Done()
 		for {
 			select {
-			case feed := <-wire.FeedChannel:
+			case <-w.IsReadDone():
+				return
+			case feed := <-w.FeedChannel:
 				log.Debug().Msgf("got feed  %v", feed.Type)
 				if feed.Type == feeds.SuccessFeed && feed.Sender == feeds.SenderInputConnector {
-					wg.Done()
 					return
 				} else if feed.Type == feeds.ErrorFeed {
-					wg.Done()
 					t.Error(feed.Content)
 				}
 			case <-time.After(TIMEOUT):
-				wg.Done()
 				t.Error("timeout no success feed received")
 			}
 		}
-	}(wg)
+	}(wg, w)
 
 	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup, w wire.Wire) {
+		defer wg.Done()
 		log.Debug().Msg("waiting for data")
 		dataReceived := 0
 		for {
 			log.Debug().Msgf("data received: %d", dataReceived)
 			select {
-			case feed := <-wire.DataChannel:
+			case feed := <-w.DataChannel:
 				if feed == nil {
-					wg.Done()
 					t.Error("no data")
 				} else {
 					dataReceived += len(feed)
 				}
+			case <-w.IsReadDone():
+				return
 			case <-time.After(TIMEOUT):
 				if dataReceived < 2 {
-					wg.Done()
 					t.Error("missing data before timeout expected 2, got", dataReceived)
 				} else if dataReceived > 2 {
-					wg.Done()
 					t.Error("too much data before timeout expected 2, got", dataReceived)
 				}
 			}
 		}
-	}(wg)
+	}(wg, w)
+
+	log.Debug().Msg("waiting for done")
 
 	wg.Wait()
 }

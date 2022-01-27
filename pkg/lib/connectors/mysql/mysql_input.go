@@ -67,8 +67,7 @@ func (m *MySQLConnector) Read(e meta.ExtInput, w wire.Wire) (err error) {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, i int) {
 			defer wg.Done()
-			err := m.StartReadWorker(e, w, i)
-			if err != nil {
+			if err := m.StartReadWorker(e, w, i); err != nil {
 				w.SendFeed(feeds.NewErrorFeed(feeds.SenderInputConnector, err))
 			}
 		}(wg, i)
