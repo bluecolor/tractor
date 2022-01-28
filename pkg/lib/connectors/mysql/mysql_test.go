@@ -125,13 +125,14 @@ func TestRead(t *testing.T) {
 					dataReceived += len(feed)
 				}
 			case <-w.IsReadDone():
-				return
-			case <-time.After(TIMEOUT):
 				if dataReceived < 2 {
 					t.Error("missing data before timeout expected 2, got", dataReceived)
 				} else if dataReceived > 2 {
 					t.Error("too much data before timeout expected 2, got", dataReceived)
 				}
+				return
+			case <-time.After(TIMEOUT):
+				t.Error("timeout before read done")
 			}
 		}
 	}(wg, w)

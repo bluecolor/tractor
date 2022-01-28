@@ -8,6 +8,7 @@ import (
 
 type FileConfig struct {
 	ProviderType string                 `json:"providerType"`
+	Format       string                 `json:"format"`
 	Provider     map[string]interface{} `json:"provider"`
 }
 

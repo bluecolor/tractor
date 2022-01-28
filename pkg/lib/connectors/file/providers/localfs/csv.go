@@ -3,7 +3,9 @@ package localfs
 import (
 	"bufio"
 	"encoding/csv"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"sync"
 
@@ -15,6 +17,8 @@ import (
 
 type CsvConfig struct {
 	Delimiter string `json:"delimiter"`
+	Header    bool   `json:"header"`
+	Quoted    bool   `json:"quoted"`
 }
 
 func (f *LocalFSProvider) ReadCsvWorker(
@@ -25,13 +29,26 @@ func (f *LocalFSProvider) ReadCsvWorker(
 		return err
 	}
 	r := csv.NewReader(bufio.NewReader(file))
-	r.Comma = []rune(csvConfig.Delimiter)[0]
+	delimiter := csvConfig.Delimiter
+	if delimiter == "" {
+		delimiter = ","
+	}
+	r.Comma = []rune(delimiter)[0]
+	r.LazyQuotes = !csvConfig.Quoted
 	bufferSize := ec.GetInt("buffer_size", 100)
 	buffer := []feeds.Record{}
+	isFirst := true
 	for {
 		csvRec, err := r.Read()
 		if err != nil {
-			break
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+		if csvConfig.Header && isFirst {
+			isFirst = false
+			continue
 		}
 		record := feeds.Record{}
 		for i, f := range fields {
@@ -61,31 +78,29 @@ func (f *LocalFSProvider) ReadCsv(e meta.ExtInput, w wire.Wire) (err error) {
 	if err = utils.MapToStruct(e.Dataset.Config, &csvConfig); err != nil {
 		return err
 	}
-	path := f.config.Path + "/" + e.Dataset.Name
-	datasets, err := f.FindDatasets(path)
-	if err != nil {
-		return err
+	files, ok := e.Dataset.Config["files"].([]string)
+	if !ok {
+		return errors.New("files not found")
 	}
 	parallel := e.Parallel
-	chunkCount := len(datasets) / parallel
-	chunk := []meta.Dataset{}
+	chunkCount := len(files) / parallel
+	chunk := []string{}
 
 	wg := &sync.WaitGroup{}
-	for i, j := 0, 0; i < len(datasets); i++ {
-		chunk = append(chunk, datasets[i])
-		if (i%chunkCount == 0 && i != 0) || i == len(datasets)-1 {
+	for i, j := 0, 0; i < len(files); i++ {
+		chunk = append(chunk, files[i])
+		if (i%chunkCount == 0 && i != 0) || i == len(files)-1 {
 			j++
 			wg.Add(1)
-			go func(chunk []meta.Dataset, j int) {
+			go func(chunk []string, j int) {
 				defer wg.Done()
-				for _, d := range chunk {
-					path := f.config.Path + "/" + d.Name
-					if err := f.ReadCsvWorker(path, csvConfig, e.Config, e.Fields, w, j); err != nil {
+				for _, file := range chunk {
+					if err := f.ReadCsvWorker(file, csvConfig, e.Config, e.Fields, w, j); err != nil {
 						w.SendFeed(feeds.NewErrorFeed(feeds.SenderInputConnector, err))
 					}
 				}
 			}(chunk, j)
-			chunk = []meta.Dataset{}
+			chunk = []string{}
 		}
 	}
 

@@ -2,6 +2,8 @@ package localfs
 
 import (
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"regexp"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors/file/providers"
@@ -34,9 +36,6 @@ func (f *LocalFSProvider) FindDatasets(pattern string) ([]meta.Dataset, error) {
 	}
 	datasets := []meta.Dataset{}
 	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
 		fileName := file.Name()
 		if pattern != "" {
 			match, _ := regexp.MatchString(pattern, fileName)
@@ -50,6 +49,44 @@ func (f *LocalFSProvider) FindDatasets(pattern string) ([]meta.Dataset, error) {
 		})
 	}
 	return datasets, nil
+}
+
+func (f *LocalFSProvider) FindFiles(pattern string) ([]string, error) {
+
+	fileinfo, err := os.Stat(filepath.Join(f.config.Path, pattern))
+	if err != nil {
+		return nil, err
+	}
+	filePaths := []string{}
+	if fileinfo.IsDir() {
+		dir := filepath.Join(f.config.Path, pattern)
+		files, err := ioutil.ReadDir(dir)
+		if err != nil {
+			return nil, err
+		}
+		for _, file := range files {
+			if file.IsDir() {
+				continue
+			}
+			filePaths = append(filePaths, filepath.Join(dir, file.Name()))
+		}
+	} else {
+		files, err := ioutil.ReadDir(f.config.Path)
+		if err != nil {
+			return nil, err
+		}
+		for _, file := range files {
+			fileName := file.Name()
+			if pattern != "" {
+				match, _ := regexp.MatchString(pattern, fileName)
+				if !match {
+					continue
+				}
+			}
+			filePaths = append(filePaths, filepath.Join(f.config.Path, fileName))
+		}
+	}
+	return filePaths, nil
 }
 
 func init() {
