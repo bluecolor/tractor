@@ -3,6 +3,7 @@ package file
 import (
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
 	"github.com/bluecolor/tractor/pkg/lib/connectors/file/providers"
+	_ "github.com/bluecolor/tractor/pkg/lib/connectors/file/providers/all"
 )
 
 type FileConfig struct {

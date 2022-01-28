@@ -5,7 +5,6 @@ import (
 
 	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
-	_ "github.com/bluecolor/tractor/pkg/lib/providers/all"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
