@@ -36,6 +36,13 @@ func (w *Wire) IsWriteDone() chan bool {
 func (w *Wire) SendFeed(feed feeds.Feed) {
 	w.FeedChannel <- feed
 }
+func (w *Wire) SendInputSuccessFeed() {
+	w.SendFeed(feeds.NewSuccessFeed(feeds.SenderInputConnector))
+}
+func (w *Wire) SendOutputSuccessFeed() {
+	w.SendFeed(feeds.NewSuccessFeed(feeds.SenderOutputConnector))
+}
+
 func (w *Wire) SendData(data feeds.Data) {
 	w.DataChannel <- data
 }
