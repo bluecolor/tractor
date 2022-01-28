@@ -13,6 +13,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
+	"github.com/rs/zerolog/log"
 )
 
 type CsvConfig struct {
@@ -92,20 +93,19 @@ func (f *LocalFSProvider) ReadCsv(e meta.ExtInput, w wire.Wire) (err error) {
 		if (i%chunkCount == 0 && i != 0) || i == len(files)-1 {
 			j++
 			wg.Add(1)
-			go func(chunk []string, j int) {
+			go func(wg *sync.WaitGroup, chunk []string, j int) {
 				defer wg.Done()
 				for _, file := range chunk {
+					log.Debug().Msg(fmt.Sprintf("read csv file %s", file))
 					if err := f.ReadCsvWorker(file, csvConfig, e.Config, e.Fields, w, j); err != nil {
 						w.SendFeed(feeds.NewErrorFeed(feeds.SenderInputConnector, err))
 					}
+					log.Debug().Msgf("read csv file %s done", file)
 				}
-			}(chunk, j)
+			}(wg, chunk, j)
 			chunk = []string{}
 		}
 	}
-
 	wg.Wait()
-	w.SendInputSuccessFeed()
-	w.ReadDone()
 	return
 }

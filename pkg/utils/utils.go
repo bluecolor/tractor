@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -26,6 +27,16 @@ func MapToStruct(m map[string]interface{}, s interface{}) error {
 		return err
 	}
 	return json.Unmarshal(b, &s)
+}
+
+func TwoToOneDim(data [][]interface{}) []driver.Value {
+	var result []driver.Value
+	for _, row := range data {
+		for _, col := range row {
+			result = append(result, col)
+		}
+	}
+	return result
 }
 
 // Taken from https://github.com/lithammer/dedent

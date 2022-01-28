@@ -8,7 +8,7 @@ build:
 	go build -o bin/tractor $(MODULE)/cmd/tractor
 
 test:
-	go test -v ./...
+	go test -v ./... -count=1
 
 db-drop:
 	go run cmd/tractor/main.go db drop

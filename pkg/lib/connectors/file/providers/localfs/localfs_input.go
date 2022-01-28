@@ -1,6 +1,7 @@
 package localfs
 
 import (
+	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
@@ -17,5 +18,12 @@ func (f *LocalFSProvider) Read(format string, e meta.ExtInput, w wire.Wire) (err
 	case "csv":
 		err = f.ReadCsv(e, w)
 	}
+	if err != nil {
+		w.SendFeed(feeds.NewErrorFeed(feeds.SenderInputConnector, err))
+		return
+	}
+
+	w.SendInputSuccessFeed()
+	w.ReadDone()
 	return
 }

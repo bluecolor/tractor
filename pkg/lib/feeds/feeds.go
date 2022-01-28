@@ -1,5 +1,7 @@
 package feeds
 
+import "fmt"
+
 type (
 	FeedType   int
 	SenderType int
@@ -16,6 +18,20 @@ const (
 	ErrorFeed
 	ProgressFeed
 )
+
+func (e FeedType) String() string {
+	switch e {
+	case SuccessFeed:
+		return "SuccessFeed"
+	case ErrorFeed:
+		return "ErrorFeed"
+	case ProgressFeed:
+		return "ProgressFeed"
+	default:
+		return fmt.Sprintf("%d", int(e))
+	}
+}
+
 const (
 	SenderAnonymous SenderType = iota
 	SenderInputConnector

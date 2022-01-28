@@ -2,15 +2,14 @@ package mysql
 
 import (
 	"database/sql"
-	"database/sql/driver"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
+	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
 
@@ -24,7 +23,6 @@ func NewMock() (*sql.DB, sqlmock.Sqlmock) {
 
 	return db, mock
 }
-
 func TestBuildReadQuery(t *testing.T) {
 	dataset := meta.Dataset{
 		Name: "test",
@@ -50,7 +48,6 @@ func TestBuildReadQuery(t *testing.T) {
 		t.Errorf("query is not correct: expected %s, got %s", expected, query)
 	}
 }
-
 func TestRead(t *testing.T) {
 	db, mock := NewMock()
 	dataset := meta.Dataset{
@@ -81,35 +78,8 @@ func TestRead(t *testing.T) {
 	mock.ExpectQuery(query).WillReturnRows(rows)
 	w := wire.NewWire()
 
-	go func(e meta.ExtInput, w wire.Wire) {
-		if err := m.Read(e, w); err != nil {
-			t.Error(err)
-		}
-	}(e, w)
-
 	// todo check premature success
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func(wg *sync.WaitGroup, w wire.Wire) {
-		log.Debug().Msg("waiting for feed")
-		defer wg.Done()
-		for {
-			select {
-			case <-w.IsReadDone():
-				return
-			case feed := <-w.FeedChannel:
-				log.Debug().Msgf("got feed  %v", feed.Type)
-				if feed.Type == feeds.SuccessFeed && feed.Sender == feeds.SenderInputConnector {
-					return
-				} else if feed.Type == feeds.ErrorFeed {
-					t.Error(feed.Content)
-				}
-			case <-time.After(TIMEOUT):
-				t.Error("timeout no success feed received")
-			}
-		}
-	}(wg, w)
-
 	wg.Add(1)
 	go func(wg *sync.WaitGroup, w wire.Wire) {
 		defer wg.Done()
@@ -120,38 +90,31 @@ func TestRead(t *testing.T) {
 			select {
 			case feed := <-w.DataChannel:
 				if feed == nil {
-					t.Error("no data")
+					if dataReceived < 2 {
+						t.Error("missing data before timeout expected 2, got", dataReceived)
+					} else if dataReceived > 2 {
+						t.Error("too much data before timeout expected 2, got", dataReceived)
+					}
+					return
 				} else {
 					dataReceived += len(feed)
 				}
-			case <-w.IsReadDone():
-				if dataReceived < 2 {
-					t.Error("missing data before timeout expected 2, got", dataReceived)
-				} else if dataReceived > 2 {
-					t.Error("too much data before timeout expected 2, got", dataReceived)
-				}
-				return
 			case <-time.After(TIMEOUT):
 				t.Error("timeout before read done")
 			}
 		}
 	}(wg, w)
 
+	go func(e meta.ExtInput, w wire.Wire) {
+		if err := m.Read(e, w); err != nil {
+			t.Error(err)
+		}
+	}(e, w)
+
 	log.Debug().Msg("waiting for done")
 
 	wg.Wait()
 }
-
-func toOneDim(data [][]interface{}) []driver.Value {
-	var result []driver.Value
-	for _, row := range data {
-		for _, col := range row {
-			result = append(result, col)
-		}
-	}
-	return result
-}
-
 func TestWrite(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
@@ -222,7 +185,7 @@ func TestWrite(t *testing.T) {
 		t.Errorf("query is not correct: expected %s, got %s", expected, query)
 	}
 	prep := mock.ExpectPrepare(query)
-	prep.ExpectExec().WithArgs(toOneDim(data)...).WillReturnResult(sqlmock.NewResult(0, 2))
+	prep.ExpectExec().WithArgs(utils.TwoToOneDim(data)...).WillReturnResult(sqlmock.NewResult(0, 2))
 
 	w := wire.NewWire()
 	wg := &sync.WaitGroup{}

@@ -21,6 +21,9 @@ func (m *MySQLConnector) Work(e meta.ExtOutput, w wire.Wire, i int, data feeds.D
 	}
 	values := make([]interface{}, len(data)*len(e.Dataset.Fields))
 	for i, r := range data {
+		if r == nil {
+			return nil
+		}
 		for j, f := range e.Dataset.Fields {
 			values[i*len(e.Dataset.Fields)+j], ok = r[e.GetSourceFieldNameByTargetFieldName(f.Name)]
 			if !ok {

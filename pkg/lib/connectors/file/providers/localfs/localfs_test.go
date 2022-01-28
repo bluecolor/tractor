@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
@@ -155,40 +154,15 @@ func TestCsvRead(t *testing.T) {
 		Parallel: 1,
 	}
 	w := wire.NewWire()
-	go func() {
-		if err = provider.Read("csv", ei, w); err != nil {
-			t.Error(err)
-		}
-	}()
 
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func(wg *sync.WaitGroup, w wire.Wire) {
-		log.Debug().Msg("waiting for feed")
-		defer wg.Done()
-		for {
-			select {
-			case <-w.IsReadDone():
-				return
-			case feed := <-w.FeedChannel:
-				log.Debug().Msgf("got feed  %v", feed.Type)
-				if feed.Type == feeds.SuccessFeed && feed.Sender == feeds.SenderInputConnector {
-					return
-				} else if feed.Type == feeds.ErrorFeed {
-					t.Error(feed.Content)
-				}
-			case <-time.After(TIMEOUT):
-				t.Error("timeout no success feed received")
-			}
-		}
-	}(wg, w)
 
-	wg.Add(1)
 	csvConfig := CsvConfig{}
 	if err := utils.MapToStruct(ei.Dataset.Config, &csvConfig); err != nil {
 		t.Error(err)
 	}
 	expectedRecordCount := findRecordCount(csvConfig, csvfiles)
+	wg.Add(1)
 	go func(wg *sync.WaitGroup, w wire.Wire) {
 		defer wg.Done()
 		log.Debug().Msg("waiting for data")
@@ -196,24 +170,34 @@ func TestCsvRead(t *testing.T) {
 		for {
 			log.Debug().Msgf("data received: %d", dataReceived)
 			select {
+			case feed := <-w.FeedChannel:
+				log.Debug().Msgf("feed received: %v", feed.Type)
 			case feed := <-w.DataChannel:
 				if feed == nil {
-					t.Error("no data")
+					if dataReceived < expectedRecordCount {
+						t.Errorf("missing data expected %d got %d", expectedRecordCount, dataReceived)
+					} else if dataReceived > expectedRecordCount {
+						t.Errorf("too much data expected %d got %d", expectedRecordCount, dataReceived)
+					}
+					return // done
 				} else {
 					dataReceived += len(feed)
 				}
 			case <-w.IsReadDone():
-				if dataReceived < expectedRecordCount {
-					t.Errorf("missing data expected %d got %d", expectedRecordCount, dataReceived)
-				} else if dataReceived > expectedRecordCount {
-					t.Errorf("too much data expected %d got %d", expectedRecordCount, dataReceived)
-				}
+				log.Debug().Msg("read done")
 				return
 			case <-time.After(TIMEOUT):
 				t.Error("timeout no success message received")
+				return
 			}
 		}
 	}(wg, w)
+
+	go func() {
+		if err = provider.Read("csv", ei, w); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	wg.Wait()
 }

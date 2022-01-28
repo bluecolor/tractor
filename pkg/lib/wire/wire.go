@@ -20,6 +20,7 @@ func NewWire() Wire {
 }
 func (w *Wire) ReadDone() {
 	w.ReadDoneChannel <- true
+	w.DataChannel <- nil
 }
 func (w *Wire) WriteDone() {
 	w.WriteDoneChannel <- true
