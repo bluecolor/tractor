@@ -64,7 +64,12 @@ func (s *Service) TestConnection(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
 		return
 	}
-	connector, err := connectors.GetConnector(connection.ConnectionType.Code, connection.GetConfig())
+	connectorConfig, err := connection.GetConnectorConfig()
+	if err != nil {
+		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
+		return
+	}
+	connector, err := connectors.GetConnector(connection.ConnectionType.Code, connectorConfig)
 	if err != nil {
 		log.Error().Err(err).Msg("error getting connector")
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)

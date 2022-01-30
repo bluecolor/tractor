@@ -20,7 +20,7 @@ type MySQLConnector struct {
 	db     *sql.DB
 }
 
-func NewMySQLConnector(config connectors.ConnectorConfig) (connectors.Connector, error) {
+func New(config connectors.ConnectorConfig) (connectors.Connector, error) {
 	mysqlConfig := MySQLConfig{}
 	if err := config.LoadConfig(&mysqlConfig); err != nil {
 		return nil, err
@@ -43,6 +43,6 @@ func (m *MySQLConnector) Close() error {
 }
 func init() {
 	connectors.Add("mysql", func(config connectors.ConnectorConfig) (connectors.Connector, error) {
-		return NewMySQLConnector(config)
+		return New(config)
 	})
 }

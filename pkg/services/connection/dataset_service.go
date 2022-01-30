@@ -27,7 +27,12 @@ func (s *Service) FetchDatasets(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
-	connector, err := connectorCreator(connection.GetConfig())
+	connectorConfig, err := connection.GetConnectorConfig()
+	if err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	connector, err := connectorCreator(connectorConfig)
 	if err != nil {
 		log.Error().Err(err).Msg("error creating connector")
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)

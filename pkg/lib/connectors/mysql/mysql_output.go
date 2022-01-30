@@ -52,20 +52,18 @@ func (m *MySQLConnector) Work(e meta.ExtOutput, w wire.Wire, i int, data feeds.D
 // todo add batch size
 // todo add timeout
 func (m *MySQLConnector) StartWriteWorker(e meta.ExtOutput, w wire.Wire, i int) error {
-	for {
-		select {
-		case data := <-w.ReadData():
-			if data == nil {
-				return nil
-			}
-			err := m.Work(e, w, i, data)
-			if err != nil {
-				return err
-			}
-		case <-w.IsReadDone():
-			return nil
+
+	for data := range w.ReadData() {
+		if data == nil {
+			break
+		}
+		err := m.Work(e, w, i, data)
+		if err != nil {
+			return err
 		}
 	}
+	w.WriteWorkerDone()
+	return nil
 }
 func (m *MySQLConnector) Write(e meta.ExtOutput, w wire.Wire) (err error) {
 	var parallel int = 1

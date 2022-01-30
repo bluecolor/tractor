@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"regexp"
 	"strings"
@@ -37,6 +38,20 @@ func TwoToOneDim(data [][]interface{}) []driver.Value {
 		}
 	}
 	return result
+}
+
+func ToChunksStr(items []string, chunkCount int) [][]string {
+	cc := int(math.Min(float64(int(len(items)/chunkCount)), 1))
+	chunks := [][]string{}
+	chunk := []string{}
+	for i := 0; i < len(items); i++ {
+		chunk = append(chunk, items[i])
+		if (i%cc == 0 && i != 0) || i == len(items)-1 {
+			chunks = append(chunks, chunk)
+			chunk = []string{}
+		}
+	}
+	return chunks
 }
 
 // Taken from https://github.com/lithammer/dedent

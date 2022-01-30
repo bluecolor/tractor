@@ -2,32 +2,49 @@ package file
 
 import (
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
-	"github.com/bluecolor/tractor/pkg/lib/connectors/file/providers"
-	_ "github.com/bluecolor/tractor/pkg/lib/connectors/file/providers/all"
+	"github.com/bluecolor/tractor/pkg/lib/connectors/file/formats"
+	_ "github.com/bluecolor/tractor/pkg/lib/connectors/file/formats/all"
+	"go.beyondstorage.io/v5/types"
 )
 
+type StorageConfig map[string]interface{}
+
+func (c StorageConfig) WithURL(url string) StorageConfig {
+	c["url"] = url
+	return c
+}
+func (c StorageConfig) GetURL() string {
+	return c["url"].(string)
+}
+
 type FileConfig struct {
-	ProviderType string                 `json:"providerType"`
-	Format       string                 `json:"format"`
-	Provider     map[string]interface{} `json:"provider"`
+	StorageType   string        `json:"storageType"`
+	Format        string        `json:"format"`
+	StorageConfig StorageConfig `json:"storageConfig"`
 }
 
 type FileConnector struct {
-	config   FileConfig
-	provider providers.Provider
+	Config     FileConfig
+	FileFormat *formats.FileFormat
+	Storage    types.Storager
 }
 
-func NewFileConnector(config connectors.ConnectorConfig) (*FileConnector, error) {
-	fileConfig := FileConfig{}
-	if err := config.LoadConfig(&fileConfig); err != nil {
+func New(config connectors.ConnectorConfig) (*FileConnector, error) {
+	fc := FileConfig{}
+	if err := config.LoadConfig(&fc); err != nil {
 		return nil, err
 	}
-	provider, err := providers.GetProvider(fileConfig.ProviderType, fileConfig.Provider)
+	storage, err := getStorage(fc.StorageType, fc.StorageConfig)
+	if err != nil {
+		return nil, err
+	}
+	ff, err := formats.GetFileFormat(fc.Format, storage)
 	if err != nil {
 		return nil, err
 	}
 	return &FileConnector{
-		config:   fileConfig,
-		provider: provider,
+		Config:     fc,
+		Storage:    storage,
+		FileFormat: &ff,
 	}, nil
 }

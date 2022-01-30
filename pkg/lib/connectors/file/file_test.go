@@ -1,25 +1,24 @@
 package file
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
 )
 
 func TestNewFileConnector(t *testing.T) {
-
-	config, _ := json.Marshal(
-		FileConfig{
-			ProviderType: "localfs",
-			Provider:     map[string]interface{}{"path": "/tmp"},
+	configs := []connectors.ConnectorConfig{
+		{
+			"storageType": "fs",
+			"format":      "csv",
+			"storageConfig": map[string]interface{}{
+				"url": "fs:///tmp/",
+			},
 		},
-	)
-	connector, err := NewFileConnector(connectors.ConnectorConfig(config))
-	if err != nil {
-		t.Error(err)
 	}
-	if connector == nil {
-		t.Error("connector is nil")
+	for _, config := range configs {
+		if _, err := New(config); err != nil {
+			t.Error(err)
+		}
 	}
 }
