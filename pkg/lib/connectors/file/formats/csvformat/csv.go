@@ -2,7 +2,6 @@ package csvformat
 
 import (
 	"github.com/bluecolor/tractor/pkg/lib/connectors/file/formats"
-	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"go.beyondstorage.io/v5/types"
 )
 
@@ -10,13 +9,6 @@ type csvconfig struct {
 	Delimiter string `json:"delimiter"`
 	Header    bool   `json:"header"`
 	Quoted    bool   `json:"quoted"`
-}
-
-type options struct {
-	csvconfig  csvconfig
-	bufferSize int
-	fields     []meta.Field
-	parallel   int
 }
 
 type CsvFormat struct {

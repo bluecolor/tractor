@@ -21,7 +21,6 @@ func RespondwithJSON(w http.ResponseWriter, code int, payload interface{}) {
 func ErrorWithJSON(w http.ResponseWriter, code int, err error) {
 	RespondwithJSON(w, code, map[string]string{"error": err.Error()})
 }
-
 func MapToStruct(m map[string]interface{}, s interface{}) error {
 	b, err := json.Marshal(m)
 	if err != nil {
@@ -29,7 +28,6 @@ func MapToStruct(m map[string]interface{}, s interface{}) error {
 	}
 	return json.Unmarshal(b, &s)
 }
-
 func TwoToOneDim(data [][]interface{}) []driver.Value {
 	var result []driver.Value
 	for _, row := range data {
@@ -39,7 +37,6 @@ func TwoToOneDim(data [][]interface{}) []driver.Value {
 	}
 	return result
 }
-
 func ToChunksStr(items []string, chunkCount int) [][]string {
 	cc := int(math.Min(float64(int(len(items)/chunkCount)), 1))
 	chunks := [][]string{}
@@ -95,4 +92,18 @@ func Dedent(text string) string {
 		text = regexp.MustCompile("(?m)^"+margin).ReplaceAllString(text, "")
 	}
 	return text
+}
+func GetFileExtension(filename string) string {
+	tokens := strings.Split(filename, ".")
+	if len(tokens) == 1 {
+		return ""
+	}
+	return tokens[len(tokens)-1]
+}
+func SplitExt(filename string) (name string, ext string) {
+	tokens := strings.Split(filename, ".")
+	if len(tokens) == 1 {
+		return filename, ""
+	}
+	return strings.Join(tokens[:len(tokens)-1], "."), tokens[len(tokens)-1]
 }

@@ -3,8 +3,6 @@ package csvformat
 import (
 	"bufio"
 	"bytes"
-	"errors"
-	"fmt"
 	"strings"
 	"sync"
 
@@ -15,8 +13,15 @@ import (
 	"go.beyondstorage.io/v5/pairs"
 )
 
-func getOptions(e meta.ExtInput) (*options, error) {
-	o := &options{}
+type inputOptions struct {
+	csvconfig  csvconfig
+	bufferSize int
+	fields     []meta.Field
+	parallel   int
+}
+
+func getInputOptions(e meta.ExtInput) (*inputOptions, error) {
+	o := &inputOptions{}
 	csvconfig := csvconfig{}
 	if err := utils.MapToStruct(e.Dataset.Config, &csvconfig); err != nil {
 		return nil, err
@@ -27,47 +32,8 @@ func getOptions(e meta.ExtInput) (*options, error) {
 	o.parallel = e.Parallel
 	return o, nil
 }
-func getFileChunks(f interface{}, p int) ([][]string, error) {
-	if f == nil {
-		return nil, errors.New("files not given")
-	}
-	files, ok := f.([]string)
-	if !ok {
-		return nil, errors.New("wrong type of 'files' option")
-	}
-	return utils.ToChunksStr(files, p), nil
-}
-func toLinesWithRest(bs string) ([]string, []byte) {
-	lines := strings.Split(bs, "\n")
-	var rest []byte = nil
-	if !strings.HasSuffix(bs, "\n") {
-		if len(lines) > 1 {
-			lines = strings.Split(bs, "\n")
-			rest = []byte(lines[len(lines)-1])
-			lines = lines[:len(lines)-1]
-		} else {
-			rest = []byte(bs)
-			lines = []string{}
-		}
-	}
-	return lines, rest
-}
-func lineToRecord(line, delimiter string, fields []meta.Field) (feeds.Record, error) {
-	row := strings.Split(line, delimiter)
-	if len(row) != len(fields) {
-		return nil, errors.New("wrong number of fields in record")
-	}
-	record := feeds.Record{}
-	for i, f := range fields {
-		if f.Name == "" {
-			f.Name = fmt.Sprintf("col%d", i)
-		}
-		record[f.Name] = row[i]
-	}
-	return record, nil
-}
 
-func (f *CsvFormat) Work(filename string, o *options, w wire.Wire, wi int) error {
+func (f *CsvFormat) Work(filename string, o *inputOptions, w wire.Wire, wi int) error {
 	var buf bytes.Buffer
 	size, offset := int64(1000), int64(0) // todo size from .env
 	rest := []byte{}
@@ -108,7 +74,7 @@ func (f *CsvFormat) Work(filename string, o *options, w wire.Wire, wi int) error
 	}
 	return nil
 }
-func (f *CsvFormat) StartReadWorker(files []string, o *options, w wire.Wire, wi int) (err error) {
+func (f *CsvFormat) StartReadWorker(files []string, o *inputOptions, w wire.Wire, wi int) (err error) {
 	for _, file := range files {
 		if err = f.Work(file, o, w, wi); err != nil {
 			return
@@ -117,7 +83,7 @@ func (f *CsvFormat) StartReadWorker(files []string, o *options, w wire.Wire, wi 
 	return
 }
 func (f *CsvFormat) Read(e meta.ExtInput, w wire.Wire) (err error) {
-	options, err := getOptions(e)
+	options, err := getInputOptions(e)
 	if err != nil {
 		return err
 	}

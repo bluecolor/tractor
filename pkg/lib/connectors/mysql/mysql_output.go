@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (m *MySQLConnector) Work(e meta.ExtOutput, w wire.Wire, i int, data feeds.Data) error {
+func (m *MySQLConnector) write(e meta.ExtOutput, w wire.Wire, i int, data feeds.Data) error {
 	ok := true
 	query, err := m.BuildBatchInsertQuery(e.Dataset, len(data))
 	if err != nil {
@@ -52,12 +52,11 @@ func (m *MySQLConnector) Work(e meta.ExtOutput, w wire.Wire, i int, data feeds.D
 // todo add batch size
 // todo add timeout
 func (m *MySQLConnector) StartWriteWorker(e meta.ExtOutput, w wire.Wire, i int) error {
-
 	for data := range w.ReadData() {
 		if data == nil {
 			break
 		}
-		err := m.Work(e, w, i, data)
+		err := m.write(e, w, i, data)
 		if err != nil {
 			return err
 		}
