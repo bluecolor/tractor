@@ -36,10 +36,15 @@ func TestBuildReadQuery(t *testing.T) {
 				Type: "string",
 			},
 		},
+		Config: map[string]interface{}{
+			"parallel": 1,
+		},
 	}
-	e := meta.ExtInput{Dataset: dataset, Parallel: 1}
+	p := meta.ExtParams{}
+	p.WithInputDataset(dataset)
+
 	m := MySQLConnector{}
-	query, err := m.BuildReadQuery(e, 0)
+	query, err := m.BuildReadQuery(p, 0)
 	if err != nil {
 		t.Error(err)
 	}
@@ -62,12 +67,15 @@ func TestRead(t *testing.T) {
 				Type: "string",
 			},
 		},
+		Config: map[string]interface{}{
+			"parallel": 1,
+		},
 	}
 	m := MySQLConnector{
 		db: db,
 	}
-	e := meta.ExtInput{Dataset: dataset, Parallel: 1}
-	query, err := m.BuildReadQuery(e, 0)
+	p := meta.ExtParams{}.WithInputDataset(dataset)
+	query, err := m.BuildReadQuery(p, 0)
 	if err != nil {
 		t.Error(err)
 	}
@@ -105,11 +113,11 @@ func TestRead(t *testing.T) {
 		}
 	}(wg, w)
 
-	go func(e meta.ExtInput, w wire.Wire) {
-		if err := m.Read(e, w); err != nil {
+	go func(p meta.ExtParams, w wire.Wire) {
+		if err := m.Read(p, w); err != nil {
 			t.Error(err)
 		}
-	}(e, w)
+	}(p, w)
 
 	log.Debug().Msg("waiting for done")
 
@@ -141,9 +149,12 @@ func TestWrite(t *testing.T) {
 				Type: "string",
 			},
 		},
+		Config: map[string]interface{}{
+			"parallel": 1,
+		},
 	}
-	ei := meta.ExtInput{Dataset: inputDataset, Parallel: 1}
-	query, err := m.BuildReadQuery(ei, 0)
+	ip := meta.ExtParams{}.WithInputDataset(inputDataset)
+	query, err := m.BuildReadQuery(ip, 0)
 
 	rows := sqlmock.NewRows([]string{"id", "name"})
 	for _, row := range data {
@@ -163,20 +174,25 @@ func TestWrite(t *testing.T) {
 				Type: "string",
 			},
 		},
+		Config: map[string]interface{}{
+			"parallel": 1,
+		},
 	}
 
-	eo := meta.ExtOutput{Dataset: outputDataset, Parallel: 1, FieldMappings: []meta.FieldMapping{
-		{
-			SourceField: meta.Field{Name: "id", Type: "int"},
-			TargetField: meta.Field{Name: "id", Type: "int"},
+	op := meta.ExtParams{}.WithOutputDataset(outputDataset).WithFieldMappings(
+		[]meta.FieldMapping{
+			{
+				SourceField: meta.Field{Name: "id", Type: "int"},
+				TargetField: meta.Field{Name: "id", Type: "int"},
+			},
+			{
+				SourceField: meta.Field{Name: "name", Type: "string"},
+				TargetField: meta.Field{Name: "full_name", Type: "string"},
+			},
 		},
-		{
-			SourceField: meta.Field{Name: "name", Type: "string"},
-			TargetField: meta.Field{Name: "full_name", Type: "string"},
-		},
-	}}
+	)
 
-	query, err = m.BuildBatchInsertQuery(eo.Dataset, 2)
+	query, err = m.BuildBatchInsertQuery(*op.GetOutputDataset(), 2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -190,22 +206,22 @@ func TestWrite(t *testing.T) {
 	w := wire.NewWire()
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, w wire.Wire) {
+	go func(wg *sync.WaitGroup, ip meta.ExtParams, w wire.Wire) {
 		defer wg.Done()
-		if err != m.Read(ei, w) {
+		if err != m.Read(ip, w) {
 			t.Error(err)
 		}
 		log.Debug().Msg("read finished")
-	}(wg, w)
+	}(wg, ip, w)
 
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, w wire.Wire) {
+	go func(wg *sync.WaitGroup, op meta.ExtParams, w wire.Wire) {
 		defer wg.Done()
-		if err != m.Write(eo, w) {
+		if err != m.Write(op, w) {
 			t.Error(err)
 		}
 		log.Debug().Msg("write finished")
-	}(wg, w)
+	}(wg, op, w)
 
 	wg.Wait()
 }

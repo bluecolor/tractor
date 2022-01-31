@@ -11,18 +11,19 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (m *MySQLConnector) write(e meta.ExtOutput, w wire.Wire, i int, data feeds.Data) error {
+func (m *MySQLConnector) write(p meta.ExtParams, w wire.Wire, i int, data feeds.Data) error {
 	ok := true
-	query, err := m.BuildBatchInsertQuery(e.Dataset, len(data))
+	dataset := *p.GetOutputDataset()
+	query, err := m.BuildBatchInsertQuery(dataset, len(data))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to build batch insert query")
 		w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 		return err
 	}
-	values := make([]interface{}, len(data)*len(e.Dataset.Fields))
+	values := make([]interface{}, len(data)*len(dataset.Fields))
 	for i, r := range data {
-		for j, f := range e.Dataset.Fields {
-			values[i*len(e.Dataset.Fields)+j], ok = r[e.GetSourceFieldNameByTargetFieldName(f.Name)]
+		for j, f := range dataset.Fields {
+			values[i*len(dataset.Fields)+j], ok = r[p.GetSourceFieldNameByTargetFieldName(f.Name)]
 			if !ok {
 				err = fmt.Errorf("field %s not found in record %d", f.Name, i)
 				log.Error().Err(err).Msg("failed to build batch data")
@@ -51,12 +52,12 @@ func (m *MySQLConnector) write(e meta.ExtOutput, w wire.Wire, i int, data feeds.
 
 // todo add batch size
 // todo add timeout
-func (m *MySQLConnector) StartWriteWorker(e meta.ExtOutput, w wire.Wire, i int) error {
+func (m *MySQLConnector) StartWriteWorker(p meta.ExtParams, w wire.Wire, i int) error {
 	for data := range w.ReadData() {
 		if data == nil {
 			break
 		}
-		err := m.write(e, w, i, data)
+		err := m.write(p, w, i, data)
 		if err != nil {
 			return err
 		}
@@ -64,15 +65,15 @@ func (m *MySQLConnector) StartWriteWorker(e meta.ExtOutput, w wire.Wire, i int) 
 	w.WriteWorkerDone()
 	return nil
 }
-func (m *MySQLConnector) Write(e meta.ExtOutput, w wire.Wire) (err error) {
-	var parallel int = 1
-	if e.Parallel > 1 {
-		log.Warn().Msgf("parallel write is not supported for MySQL connector. Using %d", parallel)
+func (m *MySQLConnector) Write(p meta.ExtParams, w wire.Wire) (err error) {
+	var parallel int = p.GetOutputParallel()
+	if parallel > 1 {
+		log.Warn().Msgf("parallel write is not supported for MySQL connector. Using %d", 1)
 	}
-	if e.Parallel < 1 {
-		log.Warn().Msgf("invalid parallel write setting %d. Using %d", e.Parallel, parallel)
+	if parallel < 1 {
+		log.Warn().Msgf("invalid parallel write setting %d. Using %d", parallel, 1)
 	}
-	if err = m.PrepareTable(e); err != nil {
+	if err = m.PrepareTable(p); err != nil {
 		w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 		return
 	}
@@ -81,7 +82,7 @@ func (m *MySQLConnector) Write(e meta.ExtOutput, w wire.Wire) (err error) {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, i int, wire wire.Wire) {
 			defer wg.Done()
-			err := m.StartWriteWorker(e, w, i)
+			err := m.StartWriteWorker(p, w, i)
 			if err != nil {
 				w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 			}
@@ -149,14 +150,15 @@ func (m *MySQLConnector) TruncateTable(d meta.Dataset) (err error) {
 	_, err = m.db.Exec(query)
 	return
 }
-func (m *MySQLConnector) PrepareTable(e meta.ExtOutput) (err error) {
-	switch e.ExtractionMode {
+func (m *MySQLConnector) PrepareTable(p meta.ExtParams) (err error) {
+	dataset := *p.GetOutputDataset()
+	switch p.GetExtractionMode() {
 	case meta.ExtractionModeCreate:
-		if err = m.DropTable(e.Dataset); err != nil {
+		if err = m.DropTable(dataset); err != nil {
 			return
 		}
 	case meta.ExtractionModeInsert:
-		if err = m.TruncateTable(e.Dataset); err != nil {
+		if err = m.TruncateTable(dataset); err != nil {
 			return
 		}
 	}

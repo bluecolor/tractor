@@ -5,6 +5,11 @@ import (
 	"go.beyondstorage.io/v5/types"
 )
 
+const (
+	DelimiterKey = "delimiter"
+	FilesKey     = "files"
+)
+
 type csvconfig struct {
 	Delimiter string `json:"delimiter"`
 	Header    bool   `json:"header"`

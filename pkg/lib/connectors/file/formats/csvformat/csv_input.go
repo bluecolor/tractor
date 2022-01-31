@@ -9,31 +9,17 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
-	"github.com/bluecolor/tractor/pkg/utils"
 	"go.beyondstorage.io/v5/pairs"
 )
 
-type inputOptions struct {
-	csvconfig  csvconfig
-	bufferSize int
-	fields     []meta.Field
-	parallel   int
+func getInputCsvDelimiter(p meta.ExtParams) string {
+	return p.GetInputDataset().Config.GetString(DelimiterKey, ",")
+}
+func getInputFiles(p meta.ExtParams) []string {
+	return p.GetInputDataset().Config.GetStringArray(FilesKey, []string{})
 }
 
-func getInputOptions(e meta.ExtInput) (*inputOptions, error) {
-	o := &inputOptions{}
-	csvconfig := csvconfig{}
-	if err := utils.MapToStruct(e.Dataset.Config, &csvconfig); err != nil {
-		return nil, err
-	}
-	o.csvconfig = csvconfig
-	o.bufferSize = e.Config.GetInt("buffer_size", 100)
-	o.fields = e.Fields
-	o.parallel = e.Parallel
-	return o, nil
-}
-
-func (f *CsvFormat) Work(filename string, o *inputOptions, w wire.Wire, wi int) error {
+func (f *CsvFormat) Work(filename string, p meta.ExtParams, w wire.Wire, wi int) error {
 	var buf bytes.Buffer
 	size, offset := int64(1000), int64(0) // todo size from .env
 	rest := []byte{}
@@ -56,12 +42,12 @@ func (f *CsvFormat) Work(filename string, o *inputOptions, w wire.Wire, wi int) 
 			if len(line) == 0 {
 				continue
 			}
-			record, err := lineToRecord(line, o.csvconfig.Delimiter, o.fields)
+			record, err := lineToRecord(line, getInputCsvDelimiter(p), p.GetFMInputFields())
 			if err != nil {
 				return err
 			}
 			records = append(records, record)
-			if len(records) >= o.bufferSize {
+			if len(records) >= p.GetInputBufferSize() {
 				w.SendData(records)
 				w.SendFeed(feeds.NewReadProgress(len(records)))
 				records = []feeds.Record{}
@@ -74,20 +60,16 @@ func (f *CsvFormat) Work(filename string, o *inputOptions, w wire.Wire, wi int) 
 	}
 	return nil
 }
-func (f *CsvFormat) StartReadWorker(files []string, o *inputOptions, w wire.Wire, wi int) (err error) {
+func (f *CsvFormat) StartReadWorker(files []string, p meta.ExtParams, w wire.Wire, wi int) (err error) {
 	for _, file := range files {
-		if err = f.Work(file, o, w, wi); err != nil {
+		if err = f.Work(file, p, w, wi); err != nil {
 			return
 		}
 	}
 	return
 }
-func (f *CsvFormat) Read(e meta.ExtInput, w wire.Wire) (err error) {
-	options, err := getInputOptions(e)
-	if err != nil {
-		return err
-	}
-	chunks, err := getFileChunks(e.Dataset.Config["files"], options.parallel)
+func (f *CsvFormat) Read(p meta.ExtParams, w wire.Wire) (err error) {
+	chunks, err := getFileChunks(getInputFiles(p), p.GetInputParallel())
 	if err != nil {
 		return err
 	}
@@ -96,7 +78,7 @@ func (f *CsvFormat) Read(e meta.ExtInput, w wire.Wire) (err error) {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, chunk []string, w wire.Wire, i int) {
 			defer wg.Done()
-			if err := f.StartReadWorker(chunk, options, w, i); err != nil {
+			if err := f.StartReadWorker(chunk, p, w, i); err != nil {
 				w.SendFeed(feeds.NewErrorFeed(feeds.SenderInputConnector, err))
 			}
 		}(wg, chunk, w, i)

@@ -11,8 +11,22 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (m *MySQLConnector) StartReadWorker(e meta.ExtInput, w wire.Wire, i int) (err error) {
-	query, err := m.BuildReadQuery(e, i)
+func (m *MySQLConnector) BuildReadQuery(p meta.ExtParams, i int) (query string, err error) {
+	fields := p.GetFMInputFields()
+	if fields == nil || len(fields) == 0 {
+		return "", fmt.Errorf("no fields specified")
+	}
+	columns := ""
+	for _, f := range fields {
+		columns += f.GetExpressionOrName() + ","
+	}
+	columns = strings.TrimRight(columns, ",")
+	query = fmt.Sprintf("SELECT %s FROM %s", columns, p.GetInputDataset().Name)
+	log.Debug().Msgf("query: %s", query)
+	return
+}
+func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w wire.Wire, i int) (err error) {
+	query, err := m.BuildReadQuery(p, i)
 	if err != nil {
 		return err
 	}
@@ -22,11 +36,12 @@ func (m *MySQLConnector) StartReadWorker(e meta.ExtInput, w wire.Wire, i int) (e
 	}
 	defer rows.Close()
 
-	bufferSize := e.Config.GetInt("buffer_size", 100)
+	bufferSize := p.GetInputBufferSize()
 	buffer := []feeds.Record{}
+	fields := p.GetFMInputFields()
 	for rows.Next() {
-		columns := make([]interface{}, len(e.Fields))
-		columnPointers := make([]interface{}, len(e.Fields))
+		columns := make([]interface{}, len(fields))
+		columnPointers := make([]interface{}, len(fields))
 		for i := range columns {
 			columnPointers[i] = &columns[i]
 		}
@@ -34,7 +49,7 @@ func (m *MySQLConnector) StartReadWorker(e meta.ExtInput, w wire.Wire, i int) (e
 			return err
 		}
 		record := feeds.Record{}
-		for i, f := range e.Fields {
+		for i, f := range fields {
 			if f.Name == "" {
 				f.Name = fmt.Sprintf("col%d", i)
 			}
@@ -54,20 +69,22 @@ func (m *MySQLConnector) StartReadWorker(e meta.ExtInput, w wire.Wire, i int) (e
 	}
 	return
 }
-func (m *MySQLConnector) Read(e meta.ExtInput, w wire.Wire) (err error) {
-	var parallel int = 1
-	if e.Parallel > 1 {
-		log.Warn().Msgf("parallel read is not supported for MySQL connector. Using %d", parallel)
+func (m *MySQLConnector) Read(p meta.ExtParams, w wire.Wire) (err error) {
+	var parallel int = p.GetInputParallel()
+	if parallel > 1 {
+		log.Warn().Msgf("parallel read is not supported for MySQL connector. Using %d", 1)
+		parallel = 1
 	}
-	if e.Parallel < 1 {
-		log.Warn().Msgf("invalid parallel read setting %d. Using %d", e.Parallel, parallel)
+	if parallel < 1 {
+		log.Warn().Msgf("invalid parallel read setting %d. Using %d", parallel, 1)
+		parallel = 1
 	}
 	wg := &sync.WaitGroup{}
 	for i := 0; i < parallel; i++ {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, i int) {
 			defer wg.Done()
-			if err := m.StartReadWorker(e, w, i); err != nil {
+			if err := m.StartReadWorker(p, w, i); err != nil {
 				w.SendFeed(feeds.NewErrorFeed(feeds.SenderInputConnector, err))
 			}
 		}(wg, i)
@@ -75,18 +92,5 @@ func (m *MySQLConnector) Read(e meta.ExtInput, w wire.Wire) (err error) {
 	wg.Wait()
 	w.SendFeed(feeds.NewSuccessFeed(feeds.SenderInputConnector))
 	w.ReadDone()
-	return
-}
-func (m *MySQLConnector) BuildReadQuery(e meta.ExtInput, i int) (query string, err error) {
-	if e.Fields == nil || len(e.Fields) == 0 {
-		return "", fmt.Errorf("no fields specified")
-	}
-	columns := ""
-	for _, f := range e.Fields {
-		columns += f.GetExpressionOrName() + ","
-	}
-	columns = strings.TrimRight(columns, ",")
-	query = fmt.Sprintf("SELECT %s FROM %s", columns, e.Dataset.Name)
-	log.Debug().Msgf("query: %s", query)
 	return
 }

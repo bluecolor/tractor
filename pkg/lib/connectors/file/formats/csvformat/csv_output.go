@@ -12,32 +12,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type outputOptions struct {
-	csvconfig     csvconfig
-	bufferSize    int
-	parallel      int
-	fieldMappings []meta.FieldMapping
-	
+func getOutputCsvDelimiter(p meta.ExtParams) string {
+	return p.GetOutputDataset().Config.GetString(DelimiterKey, ",")
 }
-type 
 
-func getOutputOptions(e meta.ExtOutput) (*outputOptions, error) {
-	o := &outputOptions{}
-	csvconfig := csvconfig{}
-	if err := utils.MapToStruct(e.Dataset.Config, &csvconfig); err != nil {
-		return nil, err
-	}
-	o.csvconfig = csvconfig
-	o.bufferSize = e.Config.GetInt("buffer_size", 100)
-	o.parallel = e.Parallel
-	return o, nil
-}
-func generateHeader(fields []meta.Field, csvconfig csvconfig) string {
+func generateHeader(p meta.ExtParams) string {
 	var header []string
-	for _, field := range fields {
+	for _, field := range p.GetOutputDatasetFields() {
 		header = append(header, field.Name)
 	}
-	return strings.Join(header, csvconfig.Delimiter)
+	return strings.Join(header, getOutputCsvDelimiter(p))
 }
 func generateFileNames(filename string, parallel int) []string {
 	if parallel == 1 {
@@ -52,15 +36,15 @@ func generateFileNames(filename string, parallel int) []string {
 }
 
 func (f *CsvFormat) write(data feeds.Data) (err error) {
-	var line []string
-	for _, field := range data.Fields {
-		line = append(line, field.Value)
-	}
-	f.writer.Write([]byte(strings.Join(line, f.csvconfig.Delimiter)))
+	// var line []string
+	// for _, field := range data.Fields {
+	// 	line = append(line, field.Value)
+	// }
+	// f.writer.Write([]byte(strings.Join(line, f.csvconfig.Delimiter)))
 	return nil
 }
 
-func (f *CsvFormat) StartWriteWorker(filename string, o *outputOptions, w wire.Wire) (err error) {
+func (f *CsvFormat) StartWriteWorker(filename string, p meta.ExtParams, w wire.Wire) (err error) {
 
 	file, err := os.Create(filename)
 	if err != nil {
@@ -82,25 +66,19 @@ func (f *CsvFormat) StartWriteWorker(filename string, o *outputOptions, w wire.W
 	return nil
 }
 
-func (f *CsvFormat) Write(e meta.ExtOutput, w wire.Wire) (err error) {
-	var parallel int = 1
-	if e.Parallel < 1 {
-		log.Warn().Msgf("invalid parallel write setting %d. Using %d", e.Parallel, parallel)
-	} else {
-		parallel = e.Parallel
+func (f *CsvFormat) Write(p meta.ExtParams, w wire.Wire) (err error) {
+	var parallel int = p.GetOutputParallel()
+	if parallel < 1 {
+		log.Warn().Msgf("invalid parallel write setting %d. Using %d", parallel, 1)
 	}
-	files := generateFileNames(e.Dataset.Name, parallel)
-	options, err := getOutputOptions(e)
-	if err != nil {
-		return err
-	}
+	files := generateFileNames(p.GetOutputDataset().Name, parallel)
 
 	wg := &sync.WaitGroup{}
 	for i, file := range files {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, file string, w wire.Wire, wi int) {
 			defer wg.Done()
-			err := f.StartWriteWorker(file, options, w)
+			err := f.StartWriteWorker(file, p, w)
 			if err != nil {
 				w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 			}

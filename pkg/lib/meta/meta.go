@@ -1,13 +1,44 @@
 package meta
 
-import "fmt"
+type ExtractionMode int
 
-var (
-	ExtractionModeCreate = "create"
-	ExtractionModeInsert = "insert"
-	ExtractionModeMerge  = "merge"
-	ExtractionModeAppend = "append"
+const (
+	ExtractionModeCreate ExtractionMode = iota
+	ExtractionModeInsert
+	ExtractionModeUpdate
+	ExtractionModeDelete
 )
+
+func (m ExtractionMode) String() string {
+	switch m {
+	case ExtractionModeCreate:
+		return "create"
+	case ExtractionModeInsert:
+		return "insert"
+	case ExtractionModeUpdate:
+		return "update"
+	case ExtractionModeDelete:
+		return "delete"
+	}
+	return "create"
+}
+func ExtractionModeFromString(mode string) ExtractionMode {
+	var m ExtractionMode
+	return m.FromString(mode)
+}
+func (m ExtractionMode) FromString(mode string) ExtractionMode {
+	switch mode {
+	case "create":
+		return ExtractionModeCreate
+	case "insert":
+		return ExtractionModeInsert
+	case "update":
+		return ExtractionModeUpdate
+	case "delete":
+		return ExtractionModeDelete
+	}
+	return ExtractionModeCreate
+}
 
 type Config map[string]interface{}
 
@@ -23,6 +54,14 @@ func (c Config) GetInt(key string, def int) int {
 	if v, ok := c[key]; ok {
 		if i, ok := v.(int); ok {
 			return i
+		}
+	}
+	return def
+}
+func (c Config) GetStringArray(key string, def []string) []string {
+	if v, ok := c[key]; ok {
+		if s, ok := v.([]string); ok {
+			return s
 		}
 	}
 	return def
@@ -47,35 +86,8 @@ func (f *Field) GetExpressionOrName() string {
 	return f.Name
 }
 
-type ExtInput struct {
-	Dataset
-	Parallel int `json:"parallel"`
-}
 type FieldMapping struct {
 	SourceField Field  `json:"sourceField"`
 	TargetField Field  `json:"targetField"`
 	Config      Config `json:"config"`
-}
-type ExtOutput struct {
-	Dataset
-	Parallel       int            `json:"parallel"`
-	FieldMappings  []FieldMapping `json:"fieldMappings"`
-	ExtractionMode string         `json:"extractionMode"`
-}
-
-func (e *ExtOutput) GetSourceFieldNameByTargetFieldName(targetFieldName string) string {
-	for _, fm := range e.FieldMappings {
-		if fm.TargetField.Name == targetFieldName {
-			return fm.SourceField.Name
-		}
-	}
-	return ""
-}
-func (e *ExtOutput) GetSourceFieldByTarget(f Field) (*Field, error) {
-	for _, fm := range e.FieldMappings {
-		if fm.TargetField.Name == f.Name {
-			return &fm.SourceField, nil
-		}
-	}
-	return nil, fmt.Errorf("field %s not found", f.Name)
 }
