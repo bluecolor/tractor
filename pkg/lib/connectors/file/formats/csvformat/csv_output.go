@@ -1,7 +1,7 @@
 package csvformat
 
 import (
-	"os"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -15,7 +15,6 @@ import (
 func getOutputCsvDelimiter(p meta.ExtParams) string {
 	return p.GetOutputDataset().Config.GetString(DelimiterKey, ",")
 }
-
 func generateHeader(p meta.ExtParams) string {
 	var header []string
 	for _, field := range p.GetOutputDatasetFields() {
@@ -30,42 +29,60 @@ func generateFileNames(filename string, parallel int) []string {
 	name, extention := utils.SplitExt(filename)
 	var fileNames []string
 	for i := 0; i < parallel; i++ {
-		fileNames = append(fileNames, name+"_"+string(i)+extention)
+		fileNames = append(fileNames, name+"_"+fmt.Sprint(i)+extention)
 	}
 	return fileNames
 }
 
-func (f *CsvFormat) write(data feeds.Data) (err error) {
-	// var line []string
-	// for _, field := range data.Fields {
-	// 	line = append(line, field.Value)
-	// }
-	// f.writer.Write([]byte(strings.Join(line, f.csvconfig.Delimiter)))
-	return nil
-}
-
-func (f *CsvFormat) StartWriteWorker(filename string, p meta.ExtParams, w wire.Wire) (err error) {
-
-	file, err := os.Create(filename)
+func (f *CsvFormat) write(filename string, data feeds.Data, p meta.ExtParams, wi int) (err error) {
+	od := p.GetOutputDataset()
+	buffer := make([][]string, len(data))
+	for i, r := range data {
+		for _, f := range od.Fields {
+			colval, ok := r[p.GetSourceFieldNameByTargetFieldName(f.Name)]
+			if !ok {
+				err = fmt.Errorf("field %s not found in record %d", f.Name, i)
+				log.Error().Err(err).Msg("failed to build batch data")
+				return err
+			}
+			buffer[i] = append(buffer[i], colval.(string))
+		}
+	}
+	if len(buffer) == 0 {
+		return
+	}
+	lines := make([]string, len(buffer))
+	for i, row := range buffer {
+		lines[i] = strings.Join(row, getOutputCsvDelimiter(p))
+	}
+	content := strings.Join(lines, "\n") + "\n"
+	_, err = f.storage.Write(filename, strings.NewReader(content), int64(len(content)))
 	if err != nil {
+		log.Error().Err(err).Msg("failed to write data")
 		return err
 	}
-	defer file.Close()
-	// header := generateHeader(, o.csvconfig)
+	return
+}
 
+// todo add batch size, buffer
+// todo add timeout
+func (f *CsvFormat) StartWriteWorker(filename string, p meta.ExtParams, w wire.Wire, wi int) (err error) {
+	f.storage.Create(filename)
+	header := generateHeader(p) + "\n"
+	f.storage.Write(filename, strings.NewReader(header), int64(len(header)))
 	for data := range w.ReadData() {
 		if data == nil {
 			break
 		}
-		err := f.write(data)
+		err := f.write(filename, data, p, wi)
 		if err != nil {
 			return err
 		}
+		w.SendFeed(feeds.NewWriteProgress(len(data)))
 	}
 	w.WriteWorkerDone()
 	return nil
 }
-
 func (f *CsvFormat) Write(p meta.ExtParams, w wire.Wire) (err error) {
 	var parallel int = p.GetOutputParallel()
 	if parallel < 1 {
@@ -78,7 +95,7 @@ func (f *CsvFormat) Write(p meta.ExtParams, w wire.Wire) (err error) {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, file string, w wire.Wire, wi int) {
 			defer wg.Done()
-			err := f.StartWriteWorker(file, p, w)
+			err := f.StartWriteWorker(file, p, w, wi)
 			if err != nil {
 				w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 			}

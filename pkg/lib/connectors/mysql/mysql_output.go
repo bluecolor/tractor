@@ -11,13 +11,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (m *MySQLConnector) write(p meta.ExtParams, w wire.Wire, i int, data feeds.Data) error {
+func (m *MySQLConnector) write(p meta.ExtParams, i int, data feeds.Data) error {
 	ok := true
 	dataset := *p.GetOutputDataset()
 	query, err := m.BuildBatchInsertQuery(dataset, len(data))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to build batch insert query")
-		w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 		return err
 	}
 	values := make([]interface{}, len(data)*len(dataset.Fields))
@@ -27,7 +26,6 @@ func (m *MySQLConnector) write(p meta.ExtParams, w wire.Wire, i int, data feeds.
 			if !ok {
 				err = fmt.Errorf("field %s not found in record %d", f.Name, i)
 				log.Error().Err(err).Msg("failed to build batch data")
-				w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 				return err
 			}
 		}
@@ -36,31 +34,29 @@ func (m *MySQLConnector) write(p meta.ExtParams, w wire.Wire, i int, data feeds.
 	stmt, err := m.db.Prepare(query)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to prepare batch insert query")
-		w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 		return err
 	}
 	_, err = stmt.Exec(values...)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to execute batch insert query")
-		w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 		return err
-	} else {
-		w.SendFeed(feeds.NewWriteProgress(len(data)))
 	}
 	return nil
 }
 
-// todo add batch size
+// todo add batch size, buffer
 // todo add timeout
 func (m *MySQLConnector) StartWriteWorker(p meta.ExtParams, w wire.Wire, i int) error {
 	for data := range w.ReadData() {
 		if data == nil {
 			break
 		}
-		err := m.write(p, w, i, data)
+		err := m.write(p, i, data)
 		if err != nil {
+			w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 			return err
 		}
+		w.SendFeed(feeds.NewWriteProgress(len(data)))
 	}
 	w.WriteWorkerDone()
 	return nil
