@@ -8,6 +8,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
+	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
 
@@ -95,7 +96,8 @@ func (m *MySQLConnector) BuildCreateQuery(d meta.Dataset) (query string, err err
 		columns += f.Name + " " + f.Type + ",\n"
 	}
 	columns = strings.TrimSuffix(columns, ",\n")
-	query = "CREATE TABLE IF NOT EXISTS " + d.Name + " (\n" + columns + "\n);"
+	query = "CREATE TABLE IF NOT EXISTS " + d.Name + " (\n" + columns + "\n)"
+	query = utils.Dedent(query)
 	return
 }
 func (m *MySQLConnector) BuildTruncateQuery(d meta.Dataset) (query string) {
@@ -103,7 +105,7 @@ func (m *MySQLConnector) BuildTruncateQuery(d meta.Dataset) (query string) {
 	return
 }
 func (m *MySQLConnector) BuildDropQuery(d meta.Dataset) (query string) {
-	query = "DROP TABLE IF EXISTS " + d.Name + ";"
+	query = "DROP TABLE IF EXISTS " + d.Name
 	return
 }
 func (m *MySQLConnector) BuildBatchInsertQuery(d meta.Dataset, recordCount int) (query string, err error) {
@@ -130,6 +132,7 @@ func (m *MySQLConnector) BuildBatchInsertQuery(d meta.Dataset, recordCount int) 
 }
 func (m *MySQLConnector) CreateTable(d meta.Dataset) (err error) {
 	query, err := m.BuildCreateQuery(d)
+	log.Debug().Msgf("executing query: %s", query)
 	if err != nil {
 		return
 	}
@@ -138,6 +141,7 @@ func (m *MySQLConnector) CreateTable(d meta.Dataset) (err error) {
 }
 func (m *MySQLConnector) DropTable(d meta.Dataset) (err error) {
 	query := m.BuildDropQuery(d)
+	log.Debug().Msgf("executing query: %s", query)
 	_, err = m.db.Exec(query)
 	return
 }
@@ -151,6 +155,9 @@ func (m *MySQLConnector) PrepareTable(p meta.ExtParams) (err error) {
 	switch p.GetExtractionMode() {
 	case meta.ExtractionModeCreate:
 		if err = m.DropTable(dataset); err != nil {
+			return
+		}
+		if err = m.CreateTable(dataset); err != nil {
 			return
 		}
 	case meta.ExtractionModeInsert:

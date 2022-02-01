@@ -1,8 +1,8 @@
 package csvformat
 
 import (
-	"bufio"
 	"bytes"
+	"encoding/csv"
 	"strings"
 	"sync"
 
@@ -15,34 +15,54 @@ import (
 func getInputCsvDelimiter(p meta.ExtParams) string {
 	return p.GetInputDataset().Config.GetString(DelimiterKey, ",")
 }
+func getLazyQuotes(p meta.ExtParams) bool {
+	return p.GetInputDataset().Config.GetBool(QuotesKey, true)
+}
 func getInputFiles(p meta.ExtParams) []string {
 	return p.GetInputDataset().Config.GetStringArray(FilesKey, []string{})
 }
+func getHeader(p meta.ExtParams) bool {
+	return p.GetInputDataset().Config.GetBool(HeaderKey, true)
+}
 
-func (f *CsvFormat) Work(filename string, p meta.ExtParams, w wire.Wire, wi int) error {
+func (f *CsvFormat) Work(filename string, p meta.ExtParams, w wire.Wire, wi int) (err error) {
 	var buf bytes.Buffer
 	size, offset := int64(1000), int64(0) // todo size from .env
 	rest := []byte{}
 	records := []feeds.Record{}
 	var lines []string
+	var isFirstRecord = true
+	var hasHeader = getHeader(p)
+	var readBytes int64 = -1
 	for {
-		n, err := f.storage.Read(filename, &buf, pairs.WithOffset(offset), pairs.WithSize(size))
-		if err != nil {
-			return err
-		} else if n == 0 {
+		if readBytes != 0 {
+			readBytes, err = f.storage.Read(filename, &buf, pairs.WithOffset(offset), pairs.WithSize(size))
+			offset += readBytes
+			if err != nil {
+				return err
+			}
+		}
+		if readBytes == 0 && len(rest) == 0 {
 			break
 		}
 		if len(rest) > 0 {
+			rest = append(rest, []byte("\n")...)
 			buf = *bytes.NewBuffer(append(rest, buf.Bytes()...))
 		}
 		lines, rest = toLinesWithRest(buf.String())
-		scanner := bufio.NewScanner(strings.NewReader(strings.Join(lines, "\n")))
-		for scanner.Scan() {
-			line := scanner.Text()
-			if len(line) == 0 {
+		csvReader := csv.NewReader(strings.NewReader(strings.Join(lines, "\n")))
+		csvReader.Comma = []rune(getInputCsvDelimiter(p))[0]
+		csvReader.LazyQuotes = getLazyQuotes(p)
+		rows, err := csvReader.ReadAll()
+		if err != nil {
+			return err
+		}
+		for _, row := range rows {
+			if isFirstRecord && hasHeader {
+				isFirstRecord = false
 				continue
 			}
-			record, err := lineToRecord(line, getInputCsvDelimiter(p), p.GetFMInputFields())
+			record, err := toRecord(row, p.GetInputDataset().Fields)
 			if err != nil {
 				return err
 			}
@@ -53,6 +73,7 @@ func (f *CsvFormat) Work(filename string, p meta.ExtParams, w wire.Wire, wi int)
 				records = []feeds.Record{}
 			}
 		}
+		buf.Reset()
 	}
 	if len(records) > 0 {
 		w.SendData(records)

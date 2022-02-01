@@ -35,8 +35,8 @@ func toLinesWithRest(bs string) ([]string, []byte) {
 	}
 	return lines, rest
 }
-func lineToRecord(line, delimiter string, fields []meta.Field) (feeds.Record, error) {
-	row := strings.Split(line, delimiter)
+
+func toRecord(row []string, fields []meta.Field) (feeds.Record, error) {
 	if len(row) != len(fields) {
 		return nil, errors.New("wrong number of fields in record")
 	}

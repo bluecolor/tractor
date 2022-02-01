@@ -12,6 +12,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func getOutputFileName(p meta.ExtParams) string {
+	return p.GetOutputDataset().Config.GetString(FileNameKey, p.GetOutputDataset().Name+".csv")
+}
 func getOutputCsvDelimiter(p meta.ExtParams) string {
 	return p.GetOutputDataset().Config.GetString(DelimiterKey, ",")
 }
@@ -88,7 +91,7 @@ func (f *CsvFormat) Write(p meta.ExtParams, w wire.Wire) (err error) {
 	if parallel < 1 {
 		log.Warn().Msgf("invalid parallel write setting %d. Using %d", parallel, 1)
 	}
-	files := generateFileNames(p.GetOutputDataset().Name, parallel)
+	files := generateFileNames(getOutputFileName(p), parallel)
 
 	wg := &sync.WaitGroup{}
 	for i, file := range files {

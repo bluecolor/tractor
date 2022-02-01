@@ -40,8 +40,20 @@ func TestBuildReadQuery(t *testing.T) {
 			"parallel": 1,
 		},
 	}
-	p := meta.ExtParams{}
-	p.WithInputDataset(dataset)
+	fm := []meta.FieldMapping{
+		{
+			SourceField: meta.Field{Name: "id"},
+			TargetField: meta.Field{Name: "id"},
+		},
+		{
+			SourceField: meta.Field{Name: "name"},
+			TargetField: meta.Field{Name: "name"},
+		},
+	}
+
+	p := meta.ExtParams{}.
+		WithInputDataset(dataset).
+		WithFieldMappings(fm)
 
 	m := MySQLConnector{}
 	query, err := m.BuildReadQuery(p, 0)
@@ -71,15 +83,24 @@ func TestRead(t *testing.T) {
 			"parallel": 1,
 		},
 	}
+	fm := []meta.FieldMapping{
+		{
+			SourceField: meta.Field{Name: "id"},
+			TargetField: meta.Field{Name: "id"},
+		},
+		{
+			SourceField: meta.Field{Name: "name"},
+			TargetField: meta.Field{Name: "name"},
+		},
+	}
 	m := MySQLConnector{
 		db: db,
 	}
-	p := meta.ExtParams{}.WithInputDataset(dataset)
+	p := meta.ExtParams{}.WithInputDataset(dataset).WithFieldMappings(fm)
 	query, err := m.BuildReadQuery(p, 0)
 	if err != nil {
 		t.Error(err)
 	}
-
 	rows := sqlmock.NewRows([]string{"id", "name"}).
 		AddRow(1, "name 1").
 		AddRow(2, "name 2")
@@ -96,7 +117,7 @@ func TestRead(t *testing.T) {
 		for {
 			log.Debug().Msgf("data received: %d", dataReceived)
 			select {
-			case feed := <-w.DataChannel:
+			case feed := <-w.ReadData():
 				if feed == nil {
 					if dataReceived < 2 {
 						t.Error("missing data before timeout expected 2, got", dataReceived)
@@ -153,15 +174,26 @@ func TestWrite(t *testing.T) {
 			"parallel": 1,
 		},
 	}
-	ip := meta.ExtParams{}.WithInputDataset(inputDataset)
+	fm := []meta.FieldMapping{
+		{
+			SourceField: meta.Field{Name: "id"},
+			TargetField: meta.Field{Name: "id"},
+		},
+		{
+			SourceField: meta.Field{Name: "name"},
+			TargetField: meta.Field{Name: "full_name", Type: "string"},
+		},
+	}
+	ip := meta.ExtParams{}.WithInputDataset(inputDataset).WithFieldMappings(fm)
 	query, err := m.BuildReadQuery(ip, 0)
+	if err != nil {
+		t.Error(err)
+	}
 
 	rows := sqlmock.NewRows([]string{"id", "name"})
 	for _, row := range data {
 		rows.AddRow(row[0], row[1])
 	}
-	mock.ExpectQuery(query).WillReturnRows(rows)
-
 	outputDataset := meta.Dataset{
 		Name: "test_out",
 		Fields: []meta.Field{
@@ -179,18 +211,13 @@ func TestWrite(t *testing.T) {
 		},
 	}
 
-	op := meta.ExtParams{}.WithOutputDataset(outputDataset).WithFieldMappings(
-		[]meta.FieldMapping{
-			{
-				SourceField: meta.Field{Name: "id", Type: "int"},
-				TargetField: meta.Field{Name: "id", Type: "int"},
-			},
-			{
-				SourceField: meta.Field{Name: "name", Type: "string"},
-				TargetField: meta.Field{Name: "full_name", Type: "string"},
-			},
-		},
-	)
+	mock.ExpectExec("DROP TABLE IF EXISTS test_out").WillReturnResult(sqlmock.NewResult(0, 0))
+
+	dq, _ := m.BuildCreateQuery(outputDataset)
+	mock.ExpectExec(dq).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(query).WillReturnRows(rows)
+
+	op := meta.ExtParams{}.WithOutputDataset(outputDataset).WithFieldMappings(fm)
 
 	query, err = m.BuildBatchInsertQuery(*op.GetOutputDataset(), 2)
 	if err != nil {
@@ -200,15 +227,17 @@ func TestWrite(t *testing.T) {
 	if query != expected {
 		t.Errorf("query is not correct: expected %s, got %s", expected, query)
 	}
-	prep := mock.ExpectPrepare(query)
-	prep.ExpectExec().WithArgs(utils.TwoToOneDim(data)...).WillReturnResult(sqlmock.NewResult(0, 2))
+	mock.ExpectPrepare(query).
+		ExpectExec().
+		WithArgs(utils.TwoToOneDim(data)...).
+		WillReturnResult(sqlmock.NewResult(0, 2))
 
 	w := wire.NewWire()
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func(wg *sync.WaitGroup, ip meta.ExtParams, w wire.Wire) {
 		defer wg.Done()
-		if err != m.Read(ip, w) {
+		if err := m.Read(ip, w); err != nil {
 			t.Error(err)
 		}
 		log.Debug().Msg("read finished")
@@ -217,7 +246,7 @@ func TestWrite(t *testing.T) {
 	wg.Add(1)
 	go func(wg *sync.WaitGroup, op meta.ExtParams, w wire.Wire) {
 		defer wg.Done()
-		if err != m.Write(op, w) {
+		if err := m.Write(op, w); err != nil {
 			t.Error(err)
 		}
 		log.Debug().Msg("write finished")

@@ -8,13 +8,10 @@ import (
 const (
 	DelimiterKey = "delimiter"
 	FilesKey     = "files"
+	QuotesKey    = "quotes"
+	HeaderKey    = "header"
+	FileNameKey  = "file_name"
 )
-
-type csvconfig struct {
-	Delimiter string `json:"delimiter"`
-	Header    bool   `json:"header"`
-	Quoted    bool   `json:"quoted"`
-}
 
 type CsvFormat struct {
 	storage types.Storager

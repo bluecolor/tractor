@@ -66,6 +66,14 @@ func (c Config) GetStringArray(key string, def []string) []string {
 	}
 	return def
 }
+func (c Config) GetBool(key string, def bool) bool {
+	if v, ok := c[key]; ok {
+		if b, ok := v.(bool); ok {
+			return b
+		}
+	}
+	return def
+}
 
 type Dataset struct {
 	Name   string  `json:"name"`

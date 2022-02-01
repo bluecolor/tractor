@@ -25,7 +25,7 @@ type FileConfig struct {
 
 type FileConnector struct {
 	Config     FileConfig
-	FileFormat *formats.FileFormat
+	FileFormat formats.FileFormat
 	Storage    types.Storager
 }
 
@@ -34,17 +34,32 @@ func New(config connectors.ConnectorConfig) (*FileConnector, error) {
 	if err := config.LoadConfig(&fc); err != nil {
 		return nil, err
 	}
-	storage, err := getStorage(fc.StorageType, fc.StorageConfig)
-	if err != nil {
-		return nil, err
-	}
-	ff, err := formats.GetFileFormat(fc.Format, storage)
-	if err != nil {
-		return nil, err
-	}
 	return &FileConnector{
-		Config:     fc,
-		Storage:    storage,
-		FileFormat: &ff,
+		Config: fc,
 	}, nil
+}
+
+func (f *FileConnector) Connect() error {
+	storage, err := getStorage(f.Config.StorageType, f.Config.StorageConfig)
+	if err != nil {
+		return err
+	}
+	ff, err := formats.GetFileFormat(f.Config.Format, storage)
+	if err != nil {
+		return err
+	}
+	f.FileFormat = ff
+	f.Storage = storage
+
+	return nil
+}
+func (f *FileConnector) Close() error {
+	return nil
+}
+func (f *FileConnector) GetPath(filename string) string {
+	url := f.Config.StorageConfig.GetURL()
+	if url[len(url)-1] != '/' {
+		url += "/"
+	}
+	return url + filename
 }
