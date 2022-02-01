@@ -12,7 +12,7 @@ type Connector interface {
 
 type BaseConnector struct{}
 
-func (c BaseConnector) Open() error {
+func (c BaseConnector) Connect() error {
 	return nil
 }
 func (c BaseConnector) Close() error {

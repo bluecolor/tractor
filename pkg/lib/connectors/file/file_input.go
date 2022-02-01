@@ -5,6 +5,6 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-func (f *FileConnector) Read(p meta.ExtParams, w wire.Wire) (err error) {
-	return f.FileFormat.Read(p, w)
+func (c *FileConnector) Read(p meta.ExtParams, w wire.Wire) (err error) {
+	return c.FileFormat.Read(p, w)
 }

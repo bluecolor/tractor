@@ -63,3 +63,9 @@ func (f *FileConnector) GetPath(filename string) string {
 	}
 	return url + filename
 }
+
+func init() {
+	connectors.Add("file", func(config connectors.ConnectorConfig) (connectors.Connector, error) {
+		return New(config)
+	})
+}

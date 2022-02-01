@@ -1,5 +1,7 @@
 package meta
 
+import "github.com/bluecolor/tractor/pkg/lib/feeds"
+
 type ExtractionMode int
 
 const (
@@ -73,6 +75,14 @@ func (c Config) GetBool(key string, def bool) bool {
 		}
 	}
 	return def
+}
+func (c Config) GetChannel(key string) chan feeds.Data {
+	if v, ok := c[key]; ok {
+		if ch, ok := v.(chan feeds.Data); ok {
+			return ch
+		}
+	}
+	return nil
 }
 
 type Dataset struct {
