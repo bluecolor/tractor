@@ -138,7 +138,8 @@ func (p ExtParams) GetOutputDatasetFields() []Field {
 
 // todo check nil
 func (e ExtParams) GetSourceFieldNameByTargetFieldName(targetFieldName string) string {
-	for _, fm := range e.GetFieldMappings() {
+	mappings := e.GetFieldMappings()
+	for _, fm := range mappings {
 		if fm.TargetField.Name == targetFieldName {
 			return fm.SourceField.Name
 		}

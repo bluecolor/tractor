@@ -14,7 +14,7 @@ type Wire struct {
 	doneChannel          chan bool
 }
 
-func NewWire() Wire {
+func New() Wire {
 	return Wire{
 		feedChannel:          make(chan feeds.Feed, 10000),
 		errorChannel:         make(chan feeds.Feed, 10000),
@@ -62,6 +62,12 @@ func (w *Wire) SendFeed(feed feeds.Feed) {
 		}
 	}
 	w.feedChannel <- feed
+}
+func (w *Wire) SendReadErrorFeed(err error) {
+	w.SendFeed(feeds.NewErrorFeed(feeds.SenderInputConnector, err))
+}
+func (w *Wire) SendWriteErrorFeed(err error) {
+	w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
 }
 func (w *Wire) SendReadProgress(count int, args ...interface{}) {
 	w.SendFeed(feeds.NewReadProgress(count, args...))

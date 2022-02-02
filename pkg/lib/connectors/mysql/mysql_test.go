@@ -105,7 +105,7 @@ func TestRead(t *testing.T) {
 		AddRow(1, "name 1").
 		AddRow(2, "name 2")
 	mock.ExpectQuery(query).WillReturnRows(rows)
-	w := wire.NewWire()
+	w := wire.New()
 
 	// todo check premature success
 	wg := &sync.WaitGroup{}
@@ -232,7 +232,7 @@ func TestWrite(t *testing.T) {
 		WithArgs(utils.TwoToOneDim(data)...).
 		WillReturnResult(sqlmock.NewResult(0, 2))
 
-	w := wire.NewWire()
+	w := wire.New()
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func(wg *sync.WaitGroup, ip meta.ExtParams, w wire.Wire) {

@@ -25,9 +25,7 @@ func (m *MySQLConnector) write(p meta.ExtParams, i int, data feeds.Data) error {
 		for j, f := range dataset.Fields {
 			values[i*len(dataset.Fields)+j], ok = r[p.GetSourceFieldNameByTargetFieldName(f.Name)]
 			if !ok {
-				err = fmt.Errorf("field %s not found in record %d", f.Name, i)
-				log.Error().Err(err).Msg("failed to build batch data")
-				return err
+				log.Debug().Msgf("field %s not found in record %d", f.Name, i)
 			}
 		}
 	}

@@ -44,9 +44,7 @@ func (f *CsvFormat) write(filename string, data feeds.Data, p meta.ExtParams, wi
 		for _, f := range od.Fields {
 			colval, ok := r[p.GetSourceFieldNameByTargetFieldName(f.Name)]
 			if !ok {
-				err = fmt.Errorf("field %s not found in record %d", f.Name, i)
-				log.Error().Err(err).Msg("failed to build batch data")
-				return err
+				log.Debug().Msgf("field %s not found in record %d", f.Name, i)
 			}
 			buffer[i] = append(buffer[i], colval.(string))
 		}

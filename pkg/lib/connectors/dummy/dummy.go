@@ -7,8 +7,8 @@ type DummyConnector struct {
 }
 
 const (
-	InputChannelKey  = "input_channel"
-	OutputChannelKey = "output_channel"
+	InputChannelKey  = "channel"
+	OutputChannelKey = "channel"
 )
 
 func New(config connectors.ConnectorConfig) *DummyConnector {

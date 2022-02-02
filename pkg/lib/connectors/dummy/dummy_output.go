@@ -7,9 +7,25 @@ import (
 )
 
 func getOutputChannel(p meta.ExtParams) chan<- feeds.Data {
-	return p.GetInputDataset().Config.GetChannel(OutputChannelKey)
+	return p.GetOutputDataset().Config.GetChannel("channel")
 }
 
 func (c *DummyConnector) Write(p meta.ExtParams, w wire.Wire) (err error) {
+	ch := getOutputChannel(p)
+	for {
+		d := <-w.ReadData()
+		if d == nil {
+			break
+		}
+		od, err := meta.ToOutputData(d, p)
+		if err != nil {
+			w.SendWriteErrorFeed(err)
+			return err
+		}
+		ch <- od
+		w.SendWriteProgress(len(od))
+	}
+	w.WriteDone()
+	w.SendOutputSuccessFeed()
 	return
 }

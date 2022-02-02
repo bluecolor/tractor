@@ -11,5 +11,14 @@ func getInputChannel(p meta.ExtParams) <-chan feeds.Data {
 }
 
 func (c *DummyConnector) Read(p meta.ExtParams, w wire.Wire) (err error) {
+	for d := range getInputChannel(p) {
+		if d == nil {
+			break
+		}
+		w.SendData(d)
+		w.SendReadProgress(len(d))
+	}
+	w.ReadDone()
+	w.SendInputSuccessFeed()
 	return
 }

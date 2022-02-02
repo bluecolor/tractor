@@ -108,7 +108,7 @@ func testCsvRead(connector *FileConnector, t *testing.T) {
 			TargetField: fields[2],
 		},
 	})
-	w := wire.NewWire()
+	w := wire.New()
 	params := map[string]interface{}{
 		"ext_params":   p,
 		"record_count": getRecordCount(csvTestFiles, true),
@@ -159,7 +159,7 @@ func testCsvWrite(connector *FileConnector, t *testing.T) {
 			TargetField: fields[2],
 		},
 	})
-	w := wire.NewWire()
+	w := wire.New()
 
 	go func(w wire.Wire, p meta.ExtParams) {
 		if err := connector.Write(p, w); err != nil {
