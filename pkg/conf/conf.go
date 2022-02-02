@@ -28,8 +28,12 @@ type Config struct {
 	App App `mapstructure:",squash"`
 }
 
-func LoadConfig() (config Config, err error) {
-	viper.SetConfigFile(".env")
+func LoadConfig(args ...string) (config Config, err error) {
+	envfile := ".env"
+	if len(args) > 0 {
+		envfile = args[0]
+	}
+	viper.SetConfigFile(envfile)
 
 	viper.AutomaticEnv()
 	err = viper.ReadInConfig()
