@@ -188,11 +188,6 @@ func testCsvWrite(connector *FileConnector, t *testing.T) {
 				}
 				return
 			}
-		case <-w.IsWriteDone():
-			if recordCount != expectedRecordCount {
-				t.Errorf("expected %d records, got %d", expectedRecordCount, recordCount)
-			}
-			return
 		case <-time.After(TIMEOUT):
 			t.Error("write timeout")
 		}

@@ -71,18 +71,20 @@ func (f *CsvFormat) StartWriteWorker(filename string, p meta.ExtParams, w wire.W
 	f.storage.Create(filename)
 	header := generateHeader(p) + "\n"
 	f.storage.Write(filename, strings.NewReader(header), int64(len(header)))
-	for data := range w.ReadData() {
-		if data == nil {
+
+	for {
+		data, ok := <-w.ReadData()
+		if !ok {
 			break
 		}
-		err := f.write(filename, data, p, wi)
-		if err != nil {
+		if err := f.write(filename, data, p, wi); err != nil {
+			w.SendWriteErrorFeed(err)
 			return err
 		}
-		w.SendFeed(feeds.NewWriteProgress(len(data)))
+		w.SendWriteProgress(len(data))
 	}
 	w.WriteWorkerDone()
-	return nil
+	return
 }
 func (f *CsvFormat) Write(p meta.ExtParams, w wire.Wire) (err error) {
 	var parallel int = p.GetOutputParallel()

@@ -26,11 +26,8 @@ func New() Wire {
 		writeDoneChannel:     make(chan bool, 1),
 	}
 }
-func (w *Wire) SignalDataTerm() {
-	w.SendData(nil)
-}
+
 func (w *Wire) WriteWorkerDone() {
-	w.SignalDataTerm()
 }
 func (w *Wire) ReadDone() {
 	w.readDoneChannel <- true

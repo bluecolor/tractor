@@ -13,8 +13,8 @@ func getOutputChannel(p meta.ExtParams) chan<- feeds.Data {
 func (c *DummyConnector) Write(p meta.ExtParams, w wire.Wire) (err error) {
 	ch := getOutputChannel(p)
 	for {
-		d := <-w.ReadData()
-		if d == nil {
+		d, ok := <-w.ReadData()
+		if !ok {
 			break
 		}
 		od, err := meta.ToOutputData(d, p)

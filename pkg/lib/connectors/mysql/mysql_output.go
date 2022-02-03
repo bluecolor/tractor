@@ -46,12 +46,12 @@ func (m *MySQLConnector) write(p meta.ExtParams, i int, data feeds.Data) error {
 // todo add batch size, buffer
 // todo add timeout
 func (m *MySQLConnector) StartWriteWorker(p meta.ExtParams, w wire.Wire, i int) error {
-	for data := range w.ReadData() {
-		if data == nil {
+	for {
+		data, ok := <-w.ReadData()
+		if !ok {
 			break
 		}
-		err := m.write(p, i, data)
-		if err != nil {
+		if err := m.write(p, i, data); err != nil {
 			w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
 			return err
 		}
