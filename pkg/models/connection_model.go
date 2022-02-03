@@ -17,8 +17,8 @@ type Connection struct {
 	Model
 	Name             string          `gorm:"size:100;not null;unique" json:"name"`
 	ConnectionTypeID uint            `json:"connectionTypeId"`
-	ConnectionType   *ConnectionType `gorm:"foreignkey:ConnectionTypeID" json:"connectionType"`
-	Config           datatypes.JSON  `gorm:"type:text" json:"config"`
+	ConnectionType   *ConnectionType `fake:"skip" gorm:"foreignkey:ConnectionTypeID" json:"connectionType"`
+	Config           datatypes.JSON  `fake:"skip" gorm:"type:text" json:"config"`
 	AsSource         bool            `gorm:"default:false" json:"asSource"`
 	AsTarget         bool            `gorm:"default:false" json:"asTarget"`
 }
