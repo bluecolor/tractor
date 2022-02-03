@@ -31,17 +31,18 @@ func getRepository(db *sql.DB) (*repo.Repository, error) {
 	return &repo.Repository{DB: gdb}, nil
 }
 
-func TestTestConnection(t *testing.T) {
+func TestFindConnectionTypes(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Error(err)
 	}
 	test.PrepareMock(mock)
-	mock.ExpectBegin()
-	mock.ExpectPrepare("INSERT INTO").ExpectExec().
-		WithArgs(test.GenSQLMockAnyArg(8)...).
-		WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectCommit()
+
+	rows := sqlmock.NewRows([]string{"id", "name"}).
+		AddRow(1, "name 1").
+		AddRow(2, "name 2")
+	mock.ExpectQuery("^SELECT(.+?)FROM `connection_types`").WillReturnRows(rows)
+
 	repository, err := getRepository(db)
 	if err != nil {
 		t.Error(err)
@@ -55,16 +56,8 @@ func TestTestConnection(t *testing.T) {
 	defer ts.Close()
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(service.CreateConnection)
-
-	var b bytes.Buffer
-	connection := models.Connection{}
-	gofakeit.Struct(&connection)
-	if err = json.NewEncoder(&b).Encode(connection); err != nil {
-		t.Fatal(err)
-	}
-
-	req, err := http.NewRequest(http.MethodPost, "http://localhsot", bytes.NewReader(b.Bytes()))
+	handler := http.HandlerFunc(service.FindConnectionTypes)
+	req, err := http.NewRequest(http.MethodGet, "http://localhsot", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,12 +70,12 @@ func TestTestConnection(t *testing.T) {
 	if json.Valid(rr.Body.Bytes()) == false {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), "")
 	}
-	result := models.Connection{}
+	result := []models.ConnectionType{}
 	if err = json.NewDecoder(rr.Body).Decode(&result); err != nil {
 		t.Fatal(err)
 	}
-	if result.ID != connection.ID {
-		t.Errorf("handler returned unexpected body: got conn id %v want %v", result.ID, connection.ID)
+	if len(result) != 2 {
+		t.Errorf("handler returned unexpected body: got %v want %v", len(result), 2)
 	}
 }
 
