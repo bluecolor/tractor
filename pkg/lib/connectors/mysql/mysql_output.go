@@ -52,7 +52,7 @@ func (m *MySQLConnector) StartWriteWorker(p meta.ExtParams, w wire.Wire, i int) 
 		}
 		err := m.write(p, i, data)
 		if err != nil {
-			w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
+			w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
 			return err
 		}
 		w.SendFeed(feeds.NewWriteProgress(len(data)))
@@ -69,7 +69,7 @@ func (m *MySQLConnector) Write(p meta.ExtParams, w wire.Wire) (err error) {
 		log.Warn().Msgf("invalid parallel write setting %d. Using %d", parallel, 1)
 	}
 	if err = m.PrepareTable(p); err != nil {
-		w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
+		w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
 		return
 	}
 	wg := &sync.WaitGroup{}
@@ -79,12 +79,12 @@ func (m *MySQLConnector) Write(p meta.ExtParams, w wire.Wire) (err error) {
 			defer wg.Done()
 			err := m.StartWriteWorker(p, w, i)
 			if err != nil {
-				w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
+				w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
 			}
 		}(wg, i, w)
 	}
 	wg.Wait()
-	w.SendFeed(feeds.NewSuccessFeed(feeds.SenderOutputConnector))
+	w.SendFeed(feeds.NewSuccess(feeds.SenderOutputConnector))
 	w.WriteDone()
 	return
 }

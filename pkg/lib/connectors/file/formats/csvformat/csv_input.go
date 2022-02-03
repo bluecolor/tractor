@@ -100,12 +100,12 @@ func (f *CsvFormat) Read(p meta.ExtParams, w wire.Wire) (err error) {
 		go func(wg *sync.WaitGroup, chunk []string, w wire.Wire, i int) {
 			defer wg.Done()
 			if err := f.StartReadWorker(chunk, p, w, i); err != nil {
-				w.SendFeed(feeds.NewErrorFeed(feeds.SenderInputConnector, err))
+				w.SendFeed(feeds.NewError(feeds.SenderInputConnector, err))
 			}
 		}(wg, chunk, w, i)
 	}
 	wg.Wait()
-	w.SendFeed(feeds.NewSuccessFeed(feeds.SenderInputConnector))
+	w.SendFeed(feeds.NewSuccess(feeds.SenderInputConnector))
 	w.ReadDone()
 	return
 }

@@ -98,12 +98,12 @@ func (f *CsvFormat) Write(p meta.ExtParams, w wire.Wire) (err error) {
 			defer wg.Done()
 			err := f.StartWriteWorker(file, p, w, wi)
 			if err != nil {
-				w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
+				w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
 			}
 		}(wg, file, w, i)
 	}
 	wg.Wait()
-	w.SendFeed(feeds.NewSuccessFeed(feeds.SenderOutputConnector))
+	w.SendFeed(feeds.NewSuccess(feeds.SenderOutputConnector))
 	w.WriteDone()
 	return
 }

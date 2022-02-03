@@ -10,6 +10,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/test"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
+	"github.com/rs/zerolog/log"
 )
 
 const TIMEOUT = 3 * time.Second
@@ -64,14 +65,18 @@ func TestWrite(t *testing.T) {
 		writeCount := 0
 		for {
 			select {
-			case feed := <-w.WriteProgressFeeds():
-				progress := feed.Content.(feeds.ProgressMessage)
-				writeCount += progress.Count()
-			case <-w.IsWriteDone():
-				if writeCount != recordCount {
-					t.Errorf("expected %d records, got %d", recordCount, writeCount)
+			case feed, ok := <-w.WriteProgressFeeds():
+				if ok {
+					progress := feed.Content.(feeds.ProgressMessage)
+					writeCount += progress.Count()
+				} else {
+					if recordCount != writeCount {
+						t.Errorf("expected %d records, got %d", recordCount, writeCount)
+					}
+					return
 				}
-				return
+			case <-w.IsWriteDone():
+				log.Debug().Msg("write done")
 			case <-time.After(TIMEOUT):
 				t.Errorf("write timeout; expected %d records, got %d", recordCount, writeCount)
 				return

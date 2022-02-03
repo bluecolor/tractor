@@ -264,3 +264,57 @@ func TestTestConnection(t *testing.T) {
 			status, http.StatusOK)
 	}
 }
+
+func TestProviders(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Error(err)
+	}
+	test.PrepareMock(mock)
+
+	mock.ExpectBegin()
+	mock.ExpectPrepare("INSERT INTO `providers`").ExpectExec().WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	repository, err := getRepository(db)
+	if err != nil {
+		t.Error(err)
+	}
+	service := NewService(repository)
+
+	ts := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, "Hello, client")
+		}))
+	defer ts.Close()
+
+	var b bytes.Buffer
+	provider := models.Provider{
+		Name: "name",
+	}
+	if err = json.NewEncoder(&b).Encode(provider); err != nil {
+		t.Fatal(err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, "http://localhsot", bytes.NewReader(b.Bytes()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(service.CreateProvider)
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+	if json.Valid(rr.Body.Bytes()) == false {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), "")
+	}
+	result := models.Provider{}
+	if err = json.NewDecoder(rr.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Name != provider.Name {
+		t.Errorf("handler returned unexpected body: got conn id %v want %v", result.Name, provider.Name)
+	}
+}

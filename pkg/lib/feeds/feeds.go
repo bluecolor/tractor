@@ -44,27 +44,6 @@ type Feed struct {
 	Content interface{}
 }
 
-func NewErrorFeed(sender SenderType, content interface{}) Feed {
-	return Feed{
-		Type:    ErrorFeed,
-		Sender:  sender,
-		Content: content,
-	}
-}
-func NewSuccessFeed(sender SenderType) Feed {
-	return Feed{
-		Type:   SuccessFeed,
-		Sender: sender,
-	}
-}
-func NewFeed(sender SenderType, feedType FeedType, content interface{}) Feed {
-	return Feed{
-		Type:    feedType,
-		Sender:  sender,
-		Content: content,
-	}
-}
-
 type ProgressMessage struct {
 	count   int
 	message string
@@ -76,6 +55,28 @@ func (p *ProgressMessage) Count() int {
 func (p *ProgressMessage) Message() string {
 	return p.message
 }
+
+func NewError(sender SenderType, content interface{}) Feed {
+	return Feed{
+		Type:    ErrorFeed,
+		Sender:  sender,
+		Content: content,
+	}
+}
+func NewSuccess(sender SenderType) Feed {
+	return Feed{
+		Type:   SuccessFeed,
+		Sender: sender,
+	}
+}
+func New(sender SenderType, feedType FeedType, content interface{}) Feed {
+	return Feed{
+		Type:    feedType,
+		Sender:  sender,
+		Content: content,
+	}
+}
+
 func NewWriteProgress(count int, args ...interface{}) Feed {
 	var msg string
 
@@ -104,6 +105,13 @@ func NewReadProgress(count int, args ...interface{}) Feed {
 	}
 	return Feed{
 		Sender:  SenderInputConnector,
+		Type:    ProgressFeed,
+		Content: content,
+	}
+}
+func NewProgress(sender SenderType, content interface{}) Feed {
+	return Feed{
+		Sender:  sender,
 		Type:    ProgressFeed,
 		Content: content,
 	}

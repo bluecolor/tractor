@@ -178,9 +178,16 @@ func testCsvWrite(connector *FileConnector, t *testing.T) {
 
 	for {
 		select {
-		case feed := <-w.WriteProgressFeeds():
-			progress := feed.Content.(feeds.ProgressMessage)
-			recordCount += progress.Count()
+		case feed, ok := <-w.WriteProgressFeeds():
+			if ok {
+				progress := feed.Content.(feeds.ProgressMessage)
+				recordCount += progress.Count()
+			} else {
+				if recordCount != expectedRecordCount {
+					t.Errorf("expected %d records, got %d", expectedRecordCount, recordCount)
+				}
+				return
+			}
 		case <-w.IsWriteDone():
 			if recordCount != expectedRecordCount {
 				t.Errorf("expected %d records, got %d", expectedRecordCount, recordCount)

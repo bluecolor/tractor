@@ -34,10 +34,12 @@ func (w *Wire) WriteWorkerDone() {
 }
 func (w *Wire) ReadDone() {
 	w.readDoneChannel <- true
-	w.SignalDataTerm()
+	w.CloseData()
+	w.CloseReadProgress()
 }
 func (w *Wire) WriteDone() {
 	w.writeDoneChannel <- true
+	w.CloseWriteProgress()
 }
 func (w *Wire) Done() {
 	w.doneChannel <- true
@@ -64,10 +66,10 @@ func (w *Wire) SendFeed(feed feeds.Feed) {
 	w.feedChannel <- feed
 }
 func (w *Wire) SendReadErrorFeed(err error) {
-	w.SendFeed(feeds.NewErrorFeed(feeds.SenderInputConnector, err))
+	w.SendFeed(feeds.NewError(feeds.SenderInputConnector, err))
 }
 func (w *Wire) SendWriteErrorFeed(err error) {
-	w.SendFeed(feeds.NewErrorFeed(feeds.SenderOutputConnector, err))
+	w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
 }
 func (w *Wire) SendReadProgress(count int, args ...interface{}) {
 	w.SendFeed(feeds.NewReadProgress(count, args...))
@@ -76,10 +78,16 @@ func (w *Wire) SendWriteProgress(count int, args ...interface{}) {
 	w.SendFeed(feeds.NewWriteProgress(count, args...))
 }
 func (w *Wire) SendInputSuccessFeed() {
-	w.SendFeed(feeds.NewSuccessFeed(feeds.SenderInputConnector))
+	w.SendFeed(feeds.NewSuccess(feeds.SenderInputConnector))
 }
 func (w *Wire) SendOutputSuccessFeed() {
-	w.SendFeed(feeds.NewSuccessFeed(feeds.SenderOutputConnector))
+	w.SendFeed(feeds.NewSuccess(feeds.SenderOutputConnector))
+}
+func (w *Wire) SendReadSuccessFeed() {
+	w.SendInputSuccessFeed()
+}
+func (w *Wire) SendWriteSuccessFeed() {
+	w.SendOutputSuccessFeed()
 }
 func (w *Wire) SendData(data feeds.Data) {
 	w.dataChannel <- data
@@ -105,10 +113,10 @@ func (w *Wire) CloseErrorFeed() {
 func (w *Wire) CloseProgressFeed() {
 	close(w.progressChannel)
 }
-func (w *Wire) CloseReadProgressFeed() {
+func (w *Wire) CloseReadProgress() {
 	close(w.readProgressChannel)
 }
-func (w *Wire) CloseWriteProgressFeed() {
+func (w *Wire) CloseWriteProgress() {
 	close(w.writeProgressChannel)
 }
 func (w *Wire) CloseReadDone() {
