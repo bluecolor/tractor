@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (s *Service) FetchDatasets(w http.ResponseWriter, r *http.Request) {
+func (s *Service) FindDatasets(w http.ResponseWriter, r *http.Request) {
 	pattern := r.URL.Query().Get("pattern")
 	connectionID := chi.URLParam(r, "connectionID")
 

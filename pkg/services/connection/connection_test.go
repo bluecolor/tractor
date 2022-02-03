@@ -2,12 +2,16 @@ package connection
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	_ "github.com/bluecolor/tractor/pkg/lib/connectors/all"
@@ -15,8 +19,10 @@ import (
 	"github.com/bluecolor/tractor/pkg/repo"
 	"github.com/bluecolor/tractor/pkg/test"
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/go-chi/chi"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func getRepository(db *sql.DB) (*repo.Repository, error) {
@@ -25,7 +31,18 @@ func getRepository(db *sql.DB) (*repo.Repository, error) {
 		DriverName: "mysql",
 		Conn:       db,
 	})
-	gdb, err := gorm.Open(dialect, &gorm.Config{})
+	lg := logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
+		logger.Config{
+			SlowThreshold:             time.Second, // Slow SQL threshold
+			LogLevel:                  logger.Info, // Log level
+			IgnoreRecordNotFoundError: true,        // Ignore ErrRecordNotFound error for logger
+			Colorful:                  false,       // Disable color
+		},
+	)
+	gdb, err := gorm.Open(dialect, &gorm.Config{
+		Logger: lg,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +282,7 @@ func TestTestConnection(t *testing.T) {
 	}
 }
 
-func TestProviders(t *testing.T) {
+func TestCreateProvider(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Error(err)
@@ -316,5 +333,202 @@ func TestProviders(t *testing.T) {
 	}
 	if result.Name != provider.Name {
 		t.Errorf("handler returned unexpected body: got conn id %v want %v", result.Name, provider.Name)
+	}
+}
+
+func TestFindProviders(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Error(err)
+	}
+	test.PrepareMock(mock)
+
+	rows := sqlmock.NewRows([]string{"id", "name"}).
+		AddRow(1, "name 1").
+		AddRow(2, "name 2")
+	mock.ExpectQuery("^SELECT(.+?)FROM `providers`").WillReturnRows(rows)
+
+	repository, err := getRepository(db)
+	if err != nil {
+		t.Error(err)
+	}
+	service := NewService(repository)
+
+	ts := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, "Hello, client")
+		}))
+	defer ts.Close()
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(service.FindProviders)
+	req, err := http.NewRequest(http.MethodGet, "http://localhsot", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+	if json.Valid(rr.Body.Bytes()) == false {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), "")
+	}
+	result := []models.Provider{}
+	if err = json.NewDecoder(rr.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	if len(result) != 2 {
+		t.Errorf("handler returned unexpected body: got %v want %v", len(result), 2)
+	}
+}
+
+func TestOneProvider(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Error(err)
+	}
+	test.PrepareMock(mock)
+
+	rows := sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "name 1")
+	mock.ExpectQuery("^SELECT(.+?)FROM `providers`").WillReturnRows(rows)
+
+	repository, err := getRepository(db)
+	if err != nil {
+		t.Error(err)
+	}
+	service := NewService(repository)
+
+	ts := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, "Hello, client")
+		}))
+	defer ts.Close()
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(service.OneProvider)
+	req, err := http.NewRequest(http.MethodGet, "http://localhsot", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+	if json.Valid(rr.Body.Bytes()) == false {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), "")
+	}
+	result := models.Provider{}
+	if err = json.NewDecoder(rr.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	if result.ID != 1 {
+		t.Errorf("handler returned unexpected body: got %v want %v", result.ID, 1)
+	}
+}
+
+func TestDeleteProvider(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Error(err)
+	}
+	test.PrepareMock(mock)
+
+	rows := sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "name 1")
+	mock.ExpectQuery("^SELECT(.+?)FROM `providers` WHERE").WillReturnRows(rows)
+	mock.ExpectBegin()
+	mock.ExpectPrepare("^DELETE FROM `providers` WHERE").ExpectExec().
+		WithArgs(test.GenSQLMockAnyArg(1)...).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	repository, err := getRepository(db)
+	if err != nil {
+		t.Error(err)
+	}
+	service := NewService(repository)
+
+	ts := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, "Hello, client")
+		}))
+	defer ts.Close()
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(service.DeleteProvider)
+
+	req, err := http.NewRequest(http.MethodDelete, "http://localhsot/{id}", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := chi.NewRouteContext()
+	ctx.URLParams.Add("id", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, ctx))
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+	if json.Valid(rr.Body.Bytes()) == false {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), "")
+	}
+	result := models.Provider{}
+	if err = json.NewDecoder(rr.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	if result.ID != 1 {
+		t.Errorf("handler returned unexpected body: got %v want %v", result.ID, 1)
+	}
+}
+
+func TestFindDatasets(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Error(err)
+	}
+	test.PrepareMock(mock)
+
+	rows := sqlmock.NewRows([]string{"id", "name", "connection_type_id", "config"}).AddRow(1, "name 1", 1, "{}")
+	mock.ExpectQuery("^SELECT(.+?)FROM `connections`").WillReturnRows(rows)
+	mock.ExpectQuery("^SELECT(.+?)FROM `connection_types`").WillReturnRows(sqlmock.NewRows(
+		[]string{"id", "code"}).AddRow(1, "dummy"),
+	)
+
+	repository, err := getRepository(db)
+	if err != nil {
+		t.Error(err)
+	}
+	service := NewService(repository)
+
+	ts := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, "Hello, client")
+		}))
+	defer ts.Close()
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(service.FindDatasets)
+
+	req, err := http.NewRequest(http.MethodDelete, "http://localhsot/{connectionID}", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rctx := &chi.Context{
+		URLParams: chi.RouteParams{
+			Keys:   []string{"connectionID"},
+			Values: []string{"1"},
+		},
+	}
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
 	}
 }
