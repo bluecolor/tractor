@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	_ "github.com/bluecolor/tractor/pkg/lib/connectors/all"
 	"github.com/bluecolor/tractor/pkg/models"
 	"github.com/bluecolor/tractor/pkg/repo"
 	"github.com/bluecolor/tractor/pkg/test"
@@ -181,5 +182,85 @@ func TestOneConnection(t *testing.T) {
 	}
 	if result.ID != 1 {
 		t.Errorf("handler returned unexpected body: got %v want %v", result.ID, 1)
+	}
+}
+
+func TestFindConnections(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Error(err)
+	}
+	test.PrepareMock(mock)
+
+	rows := sqlmock.NewRows([]string{"id", "name"}).
+		AddRow(1, "name 1").
+		AddRow(2, "name 2")
+	mock.ExpectQuery("^SELECT(.+?)FROM `connections`").WillReturnRows(rows)
+
+	repository, err := getRepository(db)
+	if err != nil {
+		t.Error(err)
+	}
+	service := NewService(repository)
+
+	ts := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, "Hello, client")
+		}))
+	defer ts.Close()
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(service.FindConnections)
+	req, err := http.NewRequest(http.MethodGet, "http://localhsot", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+	if json.Valid(rr.Body.Bytes()) == false {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), "")
+	}
+	result := []models.ConnectionType{}
+	if err = json.NewDecoder(rr.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	if len(result) != 2 {
+		t.Errorf("handler returned unexpected body: got %v want %v", len(result), 2)
+	}
+}
+
+func TestTestConnection(t *testing.T) {
+	service := NewService(&repo.Repository{})
+
+	ts := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, "Hello, client")
+		}))
+	defer ts.Close()
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(service.TestConnection)
+
+	var b bytes.Buffer
+	conn := models.Connection{
+		ConnectionType: &models.ConnectionType{Code: "dummy"},
+	}
+	if err := json.NewEncoder(&b).Encode(conn); err != nil {
+		t.Fatal(err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, "http://localhsot", bytes.NewReader(b.Bytes()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
 	}
 }
