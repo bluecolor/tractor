@@ -48,7 +48,6 @@ func getRepository(db *sql.DB) (*repo.Repository, error) {
 	}
 	return &repo.Repository{DB: gdb}, nil
 }
-
 func TestFindConnectionTypes(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -96,7 +95,6 @@ func TestFindConnectionTypes(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got %v want %v", len(result), 2)
 	}
 }
-
 func TestCreateConnection(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -155,7 +153,6 @@ func TestCreateConnection(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got conn id %v want %v", result.ID, connection.ID)
 	}
 }
-
 func TestOneConnection(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -164,7 +161,7 @@ func TestOneConnection(t *testing.T) {
 	test.PrepareMock(mock)
 
 	rows := sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "name 1")
-	mock.ExpectQuery("^SELECT(.+?)FROM `connections`").WillReturnRows(rows)
+	mock.ExpectQuery("^SELECT(.+?)FROM `connections` WHERE").WillReturnRows(rows)
 
 	repository, err := getRepository(db)
 	if err != nil {
@@ -180,10 +177,14 @@ func TestOneConnection(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(service.OneConnection)
-	req, err := http.NewRequest(http.MethodGet, "http://localhsot", nil)
+	req, err := http.NewRequest(http.MethodGet, "http://localhsot/{id}", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	ctx := chi.NewRouteContext()
+	ctx.URLParams.Add("id", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, ctx))
+
 	handler.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
@@ -201,7 +202,6 @@ func TestOneConnection(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got %v want %v", result.ID, 1)
 	}
 }
-
 func TestFindConnections(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -249,7 +249,6 @@ func TestFindConnections(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got %v want %v", len(result), 2)
 	}
 }
-
 func TestTestConnection(t *testing.T) {
 	service := NewService(&repo.Repository{})
 
@@ -279,6 +278,62 @@ func TestTestConnection(t *testing.T) {
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusOK)
+	}
+}
+
+func TestDeleteConnection(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Error(err)
+	}
+	test.PrepareMock(mock)
+
+	rows := sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "name 1")
+	mock.ExpectQuery("^SELECT(.+?)FROM `connections` WHERE").WillReturnRows(rows)
+	mock.ExpectBegin()
+	mock.ExpectPrepare("^DELETE FROM `connections` WHERE").ExpectExec().
+		WithArgs(test.GenSQLMockAnyArg(1)...).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	repository, err := getRepository(db)
+	if err != nil {
+		t.Error(err)
+	}
+	service := NewService(repository)
+
+	ts := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, "Hello, client")
+		}))
+	defer ts.Close()
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(service.DeleteConnection)
+
+	req, err := http.NewRequest(http.MethodDelete, "http://localhsot/{id}", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := chi.NewRouteContext()
+	ctx.URLParams.Add("id", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, ctx))
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+	if json.Valid(rr.Body.Bytes()) == false {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), "")
+	}
+	result := models.Connection{}
+	if err = json.NewDecoder(rr.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	if result.ID != 1 {
+		t.Errorf("handler returned unexpected body: got %v want %v", result.ID, 1)
 	}
 }
 
@@ -335,7 +390,6 @@ func TestCreateProvider(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got conn id %v want %v", result.Name, provider.Name)
 	}
 }
-
 func TestFindProviders(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -383,7 +437,6 @@ func TestFindProviders(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got %v want %v", len(result), 2)
 	}
 }
-
 func TestOneProvider(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -429,7 +482,6 @@ func TestOneProvider(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got %v want %v", result.ID, 1)
 	}
 }
-
 func TestDeleteProvider(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -485,7 +537,6 @@ func TestDeleteProvider(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got %v want %v", result.ID, 1)
 	}
 }
-
 func TestFindDatasets(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {

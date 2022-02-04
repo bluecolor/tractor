@@ -2,6 +2,7 @@ package repo
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"log"
 	"os"
 	"testing"
@@ -9,11 +10,25 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/bluecolor/tractor/pkg/models"
-	"github.com/bluecolor/tractor/pkg/test"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
+
+func genSQLMockAnyArg(count int) []driver.Value {
+	args := make([]driver.Value, count)
+	for i := 0; i < count; i++ {
+		args[i] = sqlmock.AnyArg()
+	}
+	return args
+}
+
+func prepareMock(mock sqlmock.Sqlmock) {
+	mock.MatchExpectationsInOrder(false)
+	mock.ExpectQuery("SELECT VERSION()").
+		WillReturnRows(sqlmock.NewRows([]string{"version"}).
+			AddRow("5.7.25-0ubuntu0.18.04.1"))
+}
 
 func getRepository(db *sql.DB) (*Repository, error) {
 	dialect := mysql.New(mysql.Config{
@@ -43,7 +58,7 @@ func getMockRepo() (*Repository, sqlmock.Sqlmock, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	test.PrepareMock(mock)
+	prepareMock(mock)
 	r, err := getRepository(db)
 	if err != nil {
 		return nil, nil, err
