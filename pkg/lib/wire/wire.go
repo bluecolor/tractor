@@ -41,6 +41,9 @@ func (w *Wire) WriteDone() {
 func (w *Wire) Done() {
 	w.doneChannel <- true
 }
+func (w *Wire) IsDone() chan bool {
+	return w.doneChannel
+}
 func (w *Wire) IsReadDone() chan bool {
 	return w.readDoneChannel
 }
@@ -62,10 +65,19 @@ func (w *Wire) SendFeed(feed feeds.Feed) {
 	}
 	w.feedChannel <- feed
 }
+func (w *Wire) SendErrorFeed(sender feeds.SenderType, err error) {
+	w.SendFeed(feeds.NewError(sender, err))
+}
 func (w *Wire) SendReadErrorFeed(err error) {
 	w.SendFeed(feeds.NewError(feeds.SenderInputConnector, err))
 }
 func (w *Wire) SendWriteErrorFeed(err error) {
+	w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
+}
+func (w *Wire) SendInputErrorFeed(err error) {
+	w.SendFeed(feeds.NewError(feeds.SenderInputConnector, err))
+}
+func (w *Wire) SendOutputErrorFeed(err error) {
 	w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
 }
 func (w *Wire) SendReadProgress(count int, args ...interface{}) {

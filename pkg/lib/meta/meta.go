@@ -109,3 +109,11 @@ type FieldMapping struct {
 	TargetField Field  `json:"targetField"`
 	Config      Config `json:"config"`
 }
+
+type Connection struct {
+	Name           string `json:"name"`
+	ConnectionType string `json:"connectionType"`
+	Config         Config `json:"config"`
+	AsSource       bool   `json:"asSource"`
+	AsTarget       bool   `json:"asTarget"`
+}
