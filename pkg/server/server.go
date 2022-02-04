@@ -10,7 +10,7 @@ import (
 )
 
 func Start(config conf.Config) error {
-	repository, err := repo.NewRepository(config.DB)
+	repository, err := repo.New(config.DB)
 	if err != nil {
 		return err
 	}

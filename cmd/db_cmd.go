@@ -8,7 +8,7 @@ import (
 
 func runConnectRepo(c *cli.Context) (err error) {
 	log.Info().Msg("connecting to the repository")
-	repository, err = repo.NewRepository(config.DB)
+	repository, err = repo.New(config.DB)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to connect to the repository")
 	}

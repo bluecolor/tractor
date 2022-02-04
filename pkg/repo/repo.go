@@ -18,7 +18,7 @@ type Repository struct {
 	*gorm.DB
 }
 
-func NewRepository(config conf.DB) (*Repository, error) {
+func New(config conf.DB) (*Repository, error) {
 	zlog := log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC822}).With().Caller().Logger()
 	newLogger := logger.New(
 		&zlog, // IO.writer
