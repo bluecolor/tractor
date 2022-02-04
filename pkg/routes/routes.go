@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/bluecolor/tractor/pkg/repo"
 	"github.com/bluecolor/tractor/pkg/routes/connection"
+	"github.com/bluecolor/tractor/pkg/routes/extraction"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -29,6 +30,7 @@ func BuildRoutes(repository *repo.Repository) *chi.Mux {
 
 	r.Route("/api/v1", func(rt chi.Router) {
 		rt.Mount("/connections", connection.BuildRoutes(repository))
+		rt.Mount("/extractions", extraction.BuildRoutes(repository))
 	})
 	return r
 }
