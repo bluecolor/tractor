@@ -60,10 +60,10 @@ func (r *Runner) Run(p meta.ExtParams) error {
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
 	// supervisor
-	go func(wg *sync.WaitGroup) {
+	go func(wg *sync.WaitGroup, p meta.ExtParams) {
 		defer wg.Done()
-		r.Supervise()
-	}(wg)
+		r.Supervise(p.GetTimeout())
+	}(wg, p)
 	// input
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -106,26 +106,30 @@ func (r *Runner) RunOutput(p meta.ExtParams) error {
 	return r.outputConnector.Write(p, r.wire)
 }
 
-func (r *Runner) Supervise() error {
-	done := 2
+func (r *Runner) Supervise(timeout time.Duration) error {
+	success := 2
 	for {
 		select {
 		case <-r.wire.IsReadDone():
 			log.Info().Msg("read done")
-			done--
-			if done == 0 {
+			success--
+			if success == 0 {
 				r.wire.Done()
 			}
 		case <-r.wire.IsWriteDone():
 			log.Info().Msg("write done")
-			done--
-			if done == 0 {
+			success--
+			if success == 0 {
 				r.wire.Done()
 			}
 		case <-r.wire.IsDone():
 			log.Info().Msg("done")
 			return nil
-		case <-time.After(time.Second * 10):
+		case <-time.After(timeout):
+			log.Info().Msg("timeout")
+			err := fmt.Errorf("timeout")
+			r.Error = err
+			return err
 		}
 	}
 }

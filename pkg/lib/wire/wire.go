@@ -3,41 +3,83 @@ package wire
 import feeds "github.com/bluecolor/tractor/pkg/lib/feeds"
 
 type Wire struct {
-	feedChannel          chan feeds.Feed
-	errorChannel         chan feeds.Feed
-	progressChannel      chan feeds.Feed
-	readProgressChannel  chan feeds.Feed
-	writeProgressChannel chan feeds.Feed
-	dataChannel          chan feeds.Data
-	readDoneChannel      chan bool
-	writeDoneChannel     chan bool
-	doneChannel          chan bool
+	// data
+	dataChannel chan feeds.Data
+	// feeds
+	feedChannel         chan feeds.Feed // all feeds
+	errorFeedChannel    chan feeds.Feed // error feeds
+	successFeedChannel  chan feeds.Feed // success feeds
+	progressFeedChannel chan feeds.Feed // progress feeds
+	// read
+	readProgressFeedChannel chan feeds.Feed // read progress feeds
+	readErrorFeedChannel    chan feeds.Feed // read error feeds
+	readSuccessFeedChannel  chan feeds.Feed // read success feeds
+	// write
+	writeProgressFeedChannel chan feeds.Feed // write progress feeds
+	writeErrorFeedChannel    chan feeds.Feed // write error feeds
+	writeSuccessFeedChannel  chan feeds.Feed // write success feeds
+	// read
+	isReadSuccessChannel chan bool
+	// write
+	isWriteSuccessChannel chan bool // write
+	isWriteErrorChannel   chan bool
+	isWriteDoneChannel    chan bool
+	// read/write done
+	isDoneChannel chan bool
 }
 
 func New() Wire {
 	return Wire{
-		feedChannel:          make(chan feeds.Feed, 10000),
-		errorChannel:         make(chan feeds.Feed, 10000),
-		progressChannel:      make(chan feeds.Feed, 10000),
-		readProgressChannel:  make(chan feeds.Feed, 10000),
-		writeProgressChannel: make(chan feeds.Feed, 10000),
-		dataChannel:          make(chan feeds.Data, 10000),
-		readDoneChannel:      make(chan bool, 1),
-		writeDoneChannel:     make(chan bool, 1),
+		dataChannel:              make(chan feeds.Data, 1000),
+		feedChannel:              make(chan feeds.Feed, 1000),
+		errorFeedChannel:         make(chan feeds.Feed, 1000),
+		progressFeedChannel:      make(chan feeds.Feed, 1000),
+		readProgressFeedChannel:  make(chan feeds.Feed, 1000),
+		readErrorFeedChannel:     make(chan feeds.Feed, 1000),
+		readSuccessFeedChannel:   make(chan feeds.Feed, 1000),
+		writeProgressFeedChannel: make(chan feeds.Feed, 1000),
+		writeErrorFeedChannel:    make(chan feeds.Feed, 1000),
+		writeSuccessFeedChannel:  make(chan feeds.Feed, 1000),
+		isReadSuccessChannel:     make(chan bool, 1),
+		isReadErrorChannel:       make(chan bool, 1),
+		isReadDoneChannel:        make(chan bool, 1),
+		isWriteSuccessChannel:    make(chan bool, 1),
+		isWriteErrorChannel:      make(chan bool, 1),
+		isWriteDoneChannel:       make(chan bool, 1),
+		isDoneChannel:            make(chan bool, 1),
 	}
 }
 
-func (w *Wire) WriteWorkerDone() {
+//  parallel read/write workers
+// -------------------------------------------------------------------
+func (w *Wire) ReadWorkerDone() {
+	// done message for parallel read workers
 }
+func (w *Wire) WriteWorkerDone() {
+	// done message for parallel write workers
+}
+
+// read/write success
+// -------------------------------------------------------------------
+func (w *Wire) ReadSuccess() {
+	// all read workers done with success
+	w.isReadSuccessChannel <- true
+}
+func (w *Wire) WriteSuccess() {
+	// all write workers done with success
+	w.writeSuccessChannel <- true
+}
+
+// read/write done
+// -------------------------------------------------------------------
 func (w *Wire) ReadDone() {
+	// all read workers done whether success or not
 	w.readDoneChannel <- true
-	w.CloseData()
-	w.CloseReadProgress()
 }
 func (w *Wire) WriteDone() {
 	w.writeDoneChannel <- true
-	w.CloseWriteProgress()
 }
+
 func (w *Wire) Done() {
 	w.doneChannel <- true
 }

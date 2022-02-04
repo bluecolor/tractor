@@ -13,7 +13,7 @@ import (
 
 func (m *MySQLConnector) BuildReadQuery(p meta.ExtParams, i int) (query string, err error) {
 	fields := p.GetFMInputFields()
-	if fields == nil || len(fields) == 0 {
+	if len(fields) == 0 {
 		return "", fmt.Errorf("no fields specified")
 	}
 	columns := ""
