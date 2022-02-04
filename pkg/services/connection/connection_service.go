@@ -87,3 +87,16 @@ func (s *Service) TestConnection(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.RespondwithJSON(w, http.StatusOK, "success")
 }
+func (s *Service) DeleteConnection(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	connection := models.Connection{}
+	if err := s.repo.First(&connection, id).Error; err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := s.repo.Delete(&connection).Error; err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	utils.RespondwithJSON(w, http.StatusOK, connection)
+}
