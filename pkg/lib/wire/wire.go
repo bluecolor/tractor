@@ -1,24 +1,46 @@
 package wire
 
 import (
+	"context"
+
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 )
 
+type Status struct {
+	InputError  error
+	OutputError error
+	Closed      bool
+}
+
+func (s *Status) HasError() bool {
+	return s.InputError != nil || s.OutputError != nil
+}
+
 type Wire struct {
+	ctx      context.Context
 	data     chan *msg.Message
 	feedback chan *msg.Message
+	status   *Status
 }
 
-func New() Wire {
-	return Wire{
+func New(ctx context.Context) *Wire {
+	return &Wire{
+		ctx:      ctx,
 		data:     make(chan *msg.Message, 1000),
 		feedback: make(chan *msg.Message, 1000),
+		status:   &Status{},
 	}
 }
-
+func (w *Wire) Context() context.Context {
+	return w.ctx
+}
+func (w *Wire) IsClosed() bool {
+	return w.status.Closed
+}
 func (w *Wire) Close() {
 	w.CloseData()
 	w.CloseFeedback()
+	w.status.Closed = true
 }
 func (w *Wire) CloseFeedback() {
 	close(w.feedback)

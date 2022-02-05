@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func TestRead(connector connectors.InputConnector, w wire.Wire, params map[string]interface{}, t *testing.T) {
+func TestRead(connector connectors.Input, w wire.Wire, params map[string]interface{}, t *testing.T) {
 
 	p, ok := params["ext_params"].(meta.ExtParams)
 	if !ok {
@@ -31,7 +31,6 @@ func TestRead(connector connectors.InputConnector, w wire.Wire, params map[strin
 		log.Debug().Msg("waiting for data")
 		dataReceived := 0
 		for {
-			log.Debug().Msgf("data received: %d", dataReceived)
 			select {
 			case feed := <-w.ReadFeeds():
 				log.Debug().Msgf("received data feed %v", feed)

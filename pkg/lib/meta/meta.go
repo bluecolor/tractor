@@ -1,6 +1,6 @@
 package meta
 
-import "github.com/bluecolor/tractor/pkg/lib/feeds"
+import "github.com/bluecolor/tractor/pkg/lib/msg"
 
 type ExtractionMode int
 
@@ -76,9 +76,17 @@ func (c Config) GetBool(key string, def bool) bool {
 	}
 	return def
 }
-func (c Config) GetChannel(key string) chan feeds.Data {
+func (c Config) GetChannel(key string) chan interface{} {
 	if v, ok := c[key]; ok {
-		if ch, ok := v.(chan feeds.Data); ok {
+		if ch, ok := v.(chan interface{}); ok {
+			return ch
+		}
+	}
+	return nil
+}
+func (c Config) GetMessageChannel(key string) chan *msg.Message {
+	if v, ok := c[key]; ok {
+		if ch, ok := v.(chan *msg.Message); ok {
 			return ch
 		}
 	}
