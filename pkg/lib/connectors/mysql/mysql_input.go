@@ -26,6 +26,7 @@ func (m *MySQLConnector) BuildReadQuery(p meta.ExtParams, i int) (query string, 
 	return
 }
 func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w wire.Wire, i int) (err error) {
+	bw := wire.Buffered(w, p.GetInputBufferSize())
 	query, err := m.BuildReadQuery(p, i)
 	if err != nil {
 		return err
@@ -36,8 +37,6 @@ func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w wire.Wire, i int) (
 	}
 	defer rows.Close()
 
-	bufferSize := p.GetInputBufferSize()
-	buffer := []msg.Record{}
 	fields := p.GetFMInputFields()
 	for rows.Next() {
 		columns := make([]interface{}, len(fields))
@@ -55,16 +54,9 @@ func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w wire.Wire, i int) (
 			}
 			record[f.Name] = columns[i]
 		}
-		if len(buffer) >= bufferSize {
-			w.SendData(buffer)
-			buffer = []msg.Record{}
-		} else {
-			buffer = append(buffer, record)
-		}
+		bw.Send(record)
 	}
-	if len(buffer) > 0 {
-		w.SendData(buffer)
-	}
+	bw.Flush()
 	return
 }
 func (m *MySQLConnector) Read(p meta.ExtParams, w wire.Wire) (err error) {
