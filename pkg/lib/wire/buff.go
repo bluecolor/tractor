@@ -15,7 +15,7 @@ type BufferedWire struct {
 	size   int
 }
 
-func Buffered(w Wire, size ...int) BufferedWire {
+func NewBuffered(w Wire, size ...int) BufferedWire {
 	var sz int = BufferSize
 	if len(size) > 0 {
 		sz = size[0]

@@ -26,7 +26,7 @@ func (m *MySQLConnector) BuildReadQuery(p meta.ExtParams, i int) (query string, 
 	return
 }
 func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w wire.Wire, i int) (err error) {
-	bw := wire.Buffered(w, p.GetInputBufferSize())
+	bw := wire.NewBuffered(w, p.GetInputBufferSize())
 	query, err := m.BuildReadQuery(p, i)
 	if err != nil {
 		return err
