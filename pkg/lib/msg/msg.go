@@ -129,3 +129,10 @@ func NewInputProgress(count int) *Message {
 		Content: count,
 	}
 }
+func NewProgress(sender Sender, count int) *Message {
+	return &Message{
+		Sender:  sender,
+		Type:    Progress,
+		Content: count,
+	}
+}

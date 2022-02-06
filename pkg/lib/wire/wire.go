@@ -2,18 +2,19 @@ package wire
 
 import (
 	"context"
+	"time"
 
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 )
 
 type Status struct {
-	InputError  error
-	OutputError error
-	Closed      bool
+	inputError  error
+	outputError error
+	closed      bool
 }
 
 func (s *Status) HasError() bool {
-	return s.InputError != nil || s.OutputError != nil
+	return s.inputError != nil || s.outputError != nil
 }
 
 type Wire struct {
@@ -28,19 +29,52 @@ func New(ctx context.Context) *Wire {
 		ctx:      ctx,
 		data:     make(chan *msg.Message, 1000),
 		feedback: make(chan *msg.Message, 1000),
-		status:   &Status{},
+		status: &Status{
+			closed: false,
+		},
 	}
+}
+func NewWithTimeout(timeout time.Duration) (*Wire, context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	return New(ctx), ctx, cancel
+}
+
+func (w *Wire) GetInputError() error {
+	return w.status.inputError
+}
+func (w *Wire) GetOutputError() error {
+	return w.status.outputError
+}
+func (w *Wire) IsClosed() bool {
+	return w.status.closed
+}
+func (w *Wire) HasError() bool {
+	return w.status.HasError()
+}
+func (w *Wire) SetError(sender msg.Sender, err error) {
+	switch sender {
+	case msg.InputConnector:
+		w.status.inputError = err
+	case msg.OutputConnector:
+		w.status.outputError = err
+	}
+}
+func (w *Wire) SetInputError(err error) {
+	w.SetError(msg.InputConnector, err)
+}
+func (w *Wire) SetOutputError(err error) {
+	w.SetError(msg.OutputConnector, err)
+}
+func (w *Wire) SetClosed() {
+	w.status.closed = true
 }
 func (w *Wire) Context() context.Context {
 	return w.ctx
 }
-func (w *Wire) IsClosed() bool {
-	return w.status.Closed
-}
 func (w *Wire) Close() {
 	w.CloseData()
 	w.CloseFeedback()
-	w.status.Closed = true
+	w.SetClosed()
 }
 func (w *Wire) CloseFeedback() {
 	close(w.feedback)
@@ -60,6 +94,9 @@ func (w *Wire) GetFeedback() <-chan *msg.Message {
 func (w *Wire) SendSuccess(sender msg.Sender, args ...interface{}) {
 	w.feedback <- msg.NewSuccess(sender, args)
 }
+func (w *Wire) SendProgress(sender msg.Sender, count int) {
+	w.feedback <- msg.NewProgress(sender, count)
+}
 func (w *Wire) SendError(sender msg.Sender, err error) {
 	w.feedback <- msg.NewError(sender, err)
 }
@@ -73,48 +110,38 @@ func (w *Wire) SendDebug(sender msg.Sender, content interface{}) {
 	w.feedback <- msg.NewDebug(sender, content)
 }
 func (w *Wire) SendInputProgress(progress int) {
-	w.feedback <- msg.NewInputProgress(progress)
+	w.SendProgress(msg.InputConnector, progress)
 }
 func (w *Wire) SendInputSuccess(args ...interface{}) {
-	sender := msg.InputConnector
-	w.feedback <- msg.NewSuccess(sender, args)
+	w.SendSuccess(msg.InputConnector, args...)
 }
 func (w *Wire) SendInputError(err error) {
-	sender := msg.InputConnector
-	w.feedback <- msg.NewError(sender, err)
+	w.SendError(msg.InputConnector, err)
 }
 func (w *Wire) SendInputInfo(content interface{}) {
-	sender := msg.InputConnector
-	w.feedback <- msg.NewInfo(sender, content)
+	w.SendInfo(msg.InputConnector, content)
 }
 func (w *Wire) SendInputWarning(content interface{}) {
-	sender := msg.InputConnector
-	w.feedback <- msg.NewWarning(sender, content)
+	w.SendWarning(msg.InputConnector, content)
 }
 func (w *Wire) SendInputDebug(content interface{}) {
-	sender := msg.InputConnector
-	w.feedback <- msg.NewDebug(sender, content)
+	w.SendDebug(msg.InputConnector, content)
 }
 func (w *Wire) SendOutputProgress(count int) {
-	w.feedback <- msg.NewOutputProgress(count)
+	w.SendProgress(msg.OutputConnector, count)
 }
 func (w *Wire) SendOutputSuccess(args ...interface{}) {
-	sender := msg.OutputConnector
-	w.feedback <- msg.NewSuccess(sender, args)
+	w.SendSuccess(msg.OutputConnector, args...)
 }
 func (w *Wire) SendOutputError(err error) {
-	sender := msg.OutputConnector
-	w.feedback <- msg.NewError(sender, err)
+	w.SendError(msg.OutputConnector, err)
 }
 func (w *Wire) SendOutputInfo(content interface{}) {
-	sender := msg.OutputConnector
-	w.feedback <- msg.NewInfo(sender, content)
+	w.SendInfo(msg.OutputConnector, content)
 }
 func (w *Wire) SendOutputWarning(content interface{}) {
-	sender := msg.OutputConnector
-	w.feedback <- msg.NewWarning(sender, content)
+	w.SendWarning(msg.OutputConnector, content)
 }
 func (w *Wire) SendOutputDebug(content interface{}) {
-	sender := msg.OutputConnector
-	w.feedback <- msg.NewDebug(sender, content)
+	w.SendDebug(msg.OutputConnector, content)
 }
