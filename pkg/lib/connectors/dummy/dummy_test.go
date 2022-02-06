@@ -1,107 +1,82 @@
 package dummy
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/test"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
-	"github.com/rs/zerolog/log"
 )
 
 const TIMEOUT = 3 * time.Second
 
 func TestNew(t *testing.T) {
 	config := connectors.ConnectorConfig{}
-	c := New(config)
-	if c == nil {
+	connector := New(config)
+	if connector == nil {
 		t.Error("expected a connector, got nil")
 	}
 }
 
-func TestRead(t *testing.T) {
+func Test(t *testing.T) {
 	recordCount := 100
 	config := connectors.ConnectorConfig{}
-	c := New(config)
+	connector := New(config)
 	p := test.GetExtParams()
-	w := wire.New()
-
+	w, _, cancel := wire.NewWithTimeout(TIMEOUT)
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	params := map[string]interface{}{
-		"ext_params":   p,
-		"record_count": recordCount,
-	}
-	go func(wg *sync.WaitGroup, params map[string]interface{}, w wire.Wire) {
-		defer wg.Done()
-		test.TestRead(c, w, params, t)
-	}(wg, params, w)
 
-	go func(p meta.ExtParams) {
+	// collect test results
+	wg.Add(1)
+	go func(wg *sync.WaitGroup, c context.CancelFunc, t *testing.T) {
+		defer wg.Done()
+		casette := test.Record(w, c)
+		memo := casette.GetMemo()
+		if memo.HasError() {
+			for _, e := range memo.Errors {
+				t.Error(e)
+			}
+		}
+		if memo.ReadCount != recordCount {
+			t.Errorf("(read) expected %d records, got %d", recordCount, memo.ReadCount)
+		}
+		if memo.WriteCount != recordCount {
+			t.Errorf("(write) expected %d records, got %d", recordCount, memo.WriteCount)
+		}
+	}(wg, cancel, t)
+
+	// generate test data
+	wg.Add(1)
+	go func(wg *sync.WaitGroup, p meta.ExtParams) {
 		ch := p.GetInputDataset().Config.GetChannel("channel")
 		defer close(ch)
+		defer wg.Done()
 		if err := test.GenerateTestData(recordCount, ch); err != nil {
 			t.Error(err)
 		}
-	}(p)
-	wg.Wait()
-}
+	}(wg, p)
 
-func TestWrite(t *testing.T) {
-	recordCount := 2
-	config := connectors.ConnectorConfig{}
-	c := New(config)
-	p := test.GetExtParams()
-	w := wire.New()
-
-	wg := &sync.WaitGroup{}
+	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, w wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p meta.ExtParams, w wire.Wire) {
 		defer wg.Done()
-		writeCount := 0
-		for {
-			select {
-			case feed, ok := <-w.WriteProgressFeeds():
-				if ok {
-					progress := feed.Content.(feeds.ProgressMessage)
-					writeCount += progress.Count()
-				} else {
-					if recordCount != writeCount {
-						t.Errorf("expected %d records, got %d", recordCount, writeCount)
-					}
-					return
-				}
-			case <-w.IsWriteDone():
-				log.Debug().Msg("write done")
-			case <-time.After(TIMEOUT):
-				t.Errorf("write timeout; expected %d records, got %d", recordCount, writeCount)
-				return
-			}
-		}
-	}(wg, w)
-
-	go func(c connectors.OutputConnector, p meta.ExtParams, w wire.Wire) {
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
 		}
-	}(c, p, w)
+	}(wg, connector, p, w)
 
-	go func(c connectors.InputConnector, p meta.ExtParams, w wire.Wire) {
+	// start input connector
+	go func(wg *sync.WaitGroup, c connectors.Input, p meta.ExtParams, w wire.Wire) {
+		wg.Add(1)
+		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)
 		}
-	}(c, p, w)
-
-	go func(p meta.ExtParams) {
-		ch := p.GetInputDataset().Config.GetChannel("channel")
-		if err := test.GenerateTestData(recordCount, ch); err != nil {
-			t.Error(err)
-		}
-	}(p)
+	}(wg, connector, p, w)
 
 	wg.Wait()
 }

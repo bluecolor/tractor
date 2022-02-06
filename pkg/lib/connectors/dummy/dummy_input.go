@@ -1,24 +1,31 @@
 package dummy
 
 import (
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-func getInputChannel(p meta.ExtParams) <-chan feeds.Data {
+func getInputChannel(p meta.ExtParams) <-chan interface{} {
 	return p.GetInputDataset().Config.GetChannel(InputChannelKey)
 }
 
 func (c *DummyConnector) Read(p meta.ExtParams, w wire.Wire) (err error) {
-	for d := range getInputChannel(p) {
-		if d == nil {
-			break
+	var channel <-chan interface{} = getInputChannel(p)
+
+	for {
+		select {
+		case <-w.Context().Done():
+			err = w.Context().Err()
+			if err != nil {
+				w.SendInputCancelled(err)
+			}
+			return
+		case data, ok := <-channel:
+			if !ok {
+				w.SendInputSuccess()
+				return
+			}
+			w.SendData(data)
 		}
-		w.SendData(d)
-		w.SendReadProgress(len(d))
 	}
-	w.ReadDone()
-	w.SendInputSuccessFeed()
-	return
 }

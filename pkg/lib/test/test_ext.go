@@ -1,45 +1,31 @@
 package test
 
 import (
+	"context"
+
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-type Expect struct {
-	TestReadCount  bool
-	ReadCount      int
-	TestWriteCount bool
-	WriteCount     int
-}
+func Record(w wire.Wire, cancel context.CancelFunc) *wire.Casette {
+	var inputSuccess, outputSuccess bool
 
-type Result struct {
-	ReadCount  int
-	WriteCount int
-	Feedbacks  []*msg.Message
-}
-
-func (r *Result) ProcessFeedback(f *msg.Message) {
-	r.Feedbacks = append(r.Feedbacks, f)
-	if f.Sender == msg.InputConnector {
-		switch f.Type {
-		case msg.Progress:
-			r.ReadCount += f.Content.(int)
-
-
-	return nil
-}
-func NewResult() *Result {
-	return &Result{
-		Feedbacks: make([]*msg.Message, 0),
+	cb := func(m *msg.Message, cancel context.CancelFunc) {
+		if m.Type == msg.Error {
+			cancel()
+			w.Close()
+		} else if m.Type == msg.Success {
+			if m.Sender == msg.InputConnector {
+				inputSuccess = true
+			} else if m.Sender == msg.OutputConnector {
+				outputSuccess = true
+			}
+			if inputSuccess && outputSuccess {
+				w.Close()
+			}
+		}
 	}
-}
-
-func TestExt(w wire.Wire, e Expect) error {
-
-	r := NewResult()
-	for f := range w.GetFeedback() {
-		r.ProcessFeedback(f)
-	}
-
-	return nil
+	c := wire.NewCasette()
+	c.RecordWithCancellable(w, cancel, cb)
+	return c
 }

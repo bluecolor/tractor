@@ -7,66 +7,22 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 )
 
-type Status struct {
-	inputError  error
-	outputError error
-	closed      bool
-}
-
-func (s *Status) HasError() bool {
-	return s.inputError != nil || s.outputError != nil
-}
-
 type Wire struct {
 	ctx      context.Context
 	data     chan *msg.Message
 	feedback chan *msg.Message
-	status   *Status
 }
 
-func New(ctx context.Context) *Wire {
-	return &Wire{
+func New(ctx context.Context) Wire {
+	return Wire{
 		ctx:      ctx,
 		data:     make(chan *msg.Message, 1000),
 		feedback: make(chan *msg.Message, 1000),
-		status: &Status{
-			closed: false,
-		},
 	}
 }
-func NewWithTimeout(timeout time.Duration) (*Wire, context.Context, context.CancelFunc) {
+func NewWithTimeout(timeout time.Duration) (Wire, context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	return New(ctx), ctx, cancel
-}
-
-func (w *Wire) GetInputError() error {
-	return w.status.inputError
-}
-func (w *Wire) GetOutputError() error {
-	return w.status.outputError
-}
-func (w *Wire) IsClosed() bool {
-	return w.status.closed
-}
-func (w *Wire) HasError() bool {
-	return w.status.HasError()
-}
-func (w *Wire) SetError(sender msg.Sender, err error) {
-	switch sender {
-	case msg.InputConnector:
-		w.status.inputError = err
-	case msg.OutputConnector:
-		w.status.outputError = err
-	}
-}
-func (w *Wire) SetInputError(err error) {
-	w.SetError(msg.InputConnector, err)
-}
-func (w *Wire) SetOutputError(err error) {
-	w.SetError(msg.OutputConnector, err)
-}
-func (w *Wire) SetClosed() {
-	w.status.closed = true
 }
 func (w *Wire) Context() context.Context {
 	return w.ctx
@@ -74,7 +30,6 @@ func (w *Wire) Context() context.Context {
 func (w *Wire) Close() {
 	w.CloseData()
 	w.CloseFeedback()
-	w.SetClosed()
 }
 func (w *Wire) CloseFeedback() {
 	close(w.feedback)
@@ -82,10 +37,18 @@ func (w *Wire) CloseFeedback() {
 func (w *Wire) CloseData() {
 	close(w.data)
 }
-func (w *Wire) SendData(data interface{}) {
-	w.data <- msg.NewData(data)
+func (w *Wire) SendData(data interface{}, args ...interface{}) {
+	var sendProgress bool = true
+	if len(args) > 0 {
+		sendProgress = args[0].(bool)
+	}
+	message := msg.NewData(data)
+	w.data <- message
+	if sendProgress {
+		w.SendInputProgress(message.Count())
+	}
 }
-func (w *Wire) GetData() <-chan *msg.Message {
+func (w *Wire) GetDataMessage() <-chan *msg.Message {
 	return w.data
 }
 func (w *Wire) GetFeedback() <-chan *msg.Message {
@@ -144,4 +107,13 @@ func (w *Wire) SendOutputWarning(content interface{}) {
 }
 func (w *Wire) SendOutputDebug(content interface{}) {
 	w.SendDebug(msg.OutputConnector, content)
+}
+func (w *Wire) SendCancelled(sender msg.Sender, args ...interface{}) {
+	w.feedback <- msg.NewCancelled(sender, args)
+}
+func (w *Wire) SendInputCancelled(args ...interface{}) {
+	w.SendCancelled(msg.InputConnector, args...)
+}
+func (w *Wire) SendOutputCancelled(args ...interface{}) {
+	w.SendCancelled(msg.OutputConnector, args...)
 }

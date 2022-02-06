@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/brianvoe/gofakeit/v6"
 )
 
@@ -32,8 +32,8 @@ type testrecord struct {
 }
 
 func GetExtParams() meta.ExtParams {
-	inChannel := make(chan feeds.Data, 1000)
-	outChannel := make(chan feeds.Data, 1000)
+	inChannel := make(chan interface{}, 1000)
+	outChannel := make(chan interface{}, 1000)
 	inputDataset := meta.Dataset{
 		Name: "test_input",
 		Fields: []meta.Field{
@@ -119,8 +119,8 @@ func GetExtParams() meta.ExtParams {
 		WithFieldMappings(fm).
 		WithOutputDataset(outputDataset)
 }
-func GenerateTestData(recordCount int, ch chan<- feeds.Data) (err error) {
-	data := []feeds.Record{}
+func GenerateTestData(recordCount int, ch chan<- interface{}) (err error) {
+	data := []msg.Record{}
 	for i := 0; i < recordCount; i++ {
 		fake := testrecord{}
 		gofakeit.Struct(&fake)
@@ -128,13 +128,13 @@ func GenerateTestData(recordCount int, ch chan<- feeds.Data) (err error) {
 		if err != nil {
 			return err
 		}
-		record := feeds.Record{}
+		record := msg.Record{}
 		if err = json.Unmarshal(r, &record); err != nil {
 			return err
 		}
 		data = append(data, record)
 		ch <- data
-		data = []feeds.Record{}
+		data = []msg.Record{}
 	}
 	ch <- nil
 	return

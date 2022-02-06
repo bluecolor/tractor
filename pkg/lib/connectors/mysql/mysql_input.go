@@ -3,11 +3,11 @@ package mysql
 import (
 	"fmt"
 	"strings"
-	"sync"
 
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
+	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
 
@@ -37,7 +37,7 @@ func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w wire.Wire, i int) (
 	defer rows.Close()
 
 	bufferSize := p.GetInputBufferSize()
-	buffer := []feeds.Record{}
+	buffer := []msg.Record{}
 	fields := p.GetFMInputFields()
 	for rows.Next() {
 		columns := make([]interface{}, len(fields))
@@ -48,7 +48,7 @@ func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w wire.Wire, i int) (
 		if err := rows.Scan(columnPointers...); err != nil {
 			return err
 		}
-		record := feeds.Record{}
+		record := msg.Record{}
 		for i, f := range fields {
 			if f.Name == "" {
 				f.Name = fmt.Sprintf("col%d", i)
@@ -57,15 +57,13 @@ func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w wire.Wire, i int) (
 		}
 		if len(buffer) >= bufferSize {
 			w.SendData(buffer)
-			w.SendFeed(feeds.NewReadProgress(len(buffer)))
-			buffer = []feeds.Record{}
+			buffer = []msg.Record{}
 		} else {
 			buffer = append(buffer, record)
 		}
 	}
 	if len(buffer) > 0 {
 		w.SendData(buffer)
-		w.SendFeed(feeds.NewReadProgress(len(buffer)))
 	}
 	return
 }
@@ -79,18 +77,16 @@ func (m *MySQLConnector) Read(p meta.ExtParams, w wire.Wire) (err error) {
 		log.Warn().Msgf("invalid parallel read setting %d. Using %d", parallel, 1)
 		parallel = 1
 	}
-	wg := &sync.WaitGroup{}
+	wg := utils.NewWaitGroup()
 	for i := 0; i < parallel; i++ {
 		wg.Add(1)
-		go func(wg *sync.WaitGroup, i int) {
+		go func(wg *utils.WaitGroup, i int) {
 			defer wg.Done()
 			if err := m.StartReadWorker(p, w, i); err != nil {
-				w.SendFeed(feeds.NewError(feeds.SenderInputConnector, err))
+				w.SendInputError(err)
 			}
 		}(wg, i)
 	}
-	wg.Wait()
-	w.SendInputSuccessFeed()
-	w.ReadDone()
+	wg.Supervise(w, msg.InputConnector)
 	return
 }

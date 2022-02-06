@@ -21,6 +21,7 @@ const (
 	Info
 	Warning
 	Debug
+	Cancelled
 )
 
 func (m MessageType) String() string {
@@ -56,14 +57,24 @@ func (m *Message) String() string {
 func (m *Message) Data() []Record {
 	return m.Content.([]Record)
 }
+func (m *Message) Count() int {
+	if m.Type == Data {
+		return len(m.Data())
+	}
+	return 0
+}
+func (m *Message) Error() error {
+	return m.Content.(error)
+}
+
 func NewData(data interface{}, args ...interface{}) *Message {
-	var d []Record
+	var content []Record
 	var sender Sender = InputConnector
 	switch val := data.(type) {
 	case []Record:
-		d = val
+		content = val
 	case Record:
-		d = []Record{val}
+		content = []Record{val}
 	default:
 		return nil
 	}
@@ -73,7 +84,7 @@ func NewData(data interface{}, args ...interface{}) *Message {
 	return &Message{
 		Sender:  sender,
 		Type:    Data,
-		Content: d,
+		Content: content,
 	}
 }
 func NewError(sender Sender, err error) *Message {
@@ -134,5 +145,38 @@ func NewProgress(sender Sender, count int) *Message {
 		Sender:  sender,
 		Type:    Progress,
 		Content: count,
+	}
+}
+func NewCancelled(sender Sender, args ...interface{}) *Message {
+	var content interface{}
+	if len(args) > 0 {
+		content = args[0]
+	}
+	return &Message{
+		Type:    Cancelled,
+		Sender:  sender,
+		Content: content,
+	}
+}
+func NewInputCancelled(args ...interface{}) *Message {
+	var content interface{}
+	if len(args) > 0 {
+		content = args[0]
+	}
+	return &Message{
+		Type:    Cancelled,
+		Sender:  InputConnector,
+		Content: content,
+	}
+}
+func NewOutputCancelled(args ...interface{}) *Message {
+	var content interface{}
+	if len(args) > 0 {
+		content = args[0]
+	}
+	return &Message{
+		Type:    Cancelled,
+		Sender:  OutputConnector,
+		Content: content,
 	}
 }
