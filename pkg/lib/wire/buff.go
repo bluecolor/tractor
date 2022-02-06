@@ -1,10 +1,15 @@
 package wire
 
-import "github.com/bluecolor/tractor/pkg/lib/msg"
+import (
+	"sync"
+
+	"github.com/bluecolor/tractor/pkg/lib/msg"
+)
 
 const BufferSize = 1000 // todo from .env
 
 type BufferedWire struct {
+	mu sync.Mutex
 	Wire
 	buffer []msg.Record
 	size   int
@@ -22,6 +27,8 @@ func Buffered(w Wire, size ...int) BufferedWire {
 	}
 }
 func (bw *BufferedWire) Send(data interface{}) {
+	bw.mu.Lock()
+	defer bw.mu.Unlock()
 	var box []msg.Record
 	switch val := data.(type) {
 	case []msg.Record:
@@ -40,6 +47,8 @@ func (bw *BufferedWire) Send(data interface{}) {
 	}
 }
 func (bw *BufferedWire) Flush() {
+	bw.mu.Lock()
+	defer bw.mu.Unlock()
 	if len(bw.buffer) > 0 {
 		bw.Wire.SendData(bw.buffer)
 		bw.buffer = []msg.Record{}
