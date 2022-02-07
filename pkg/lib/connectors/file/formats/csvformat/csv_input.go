@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/csv"
 	"strings"
-	"sync"
 
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
+	"github.com/bluecolor/tractor/pkg/lib/esync"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"go.beyondstorage.io/v5/pairs"
 )
@@ -24,16 +24,15 @@ func getInputFiles(p meta.ExtParams) []string {
 func getHeader(p meta.ExtParams) bool {
 	return p.GetInputDataset().Config.GetBool(HeaderKey, true)
 }
-
 func (f *CsvFormat) Work(filename string, p meta.ExtParams, w wire.Wire, wi int) (err error) {
 	var buf bytes.Buffer
 	size, offset := int64(1000), int64(0) // todo size from .env
 	rest := []byte{}
-	records := []feeds.Record{}
 	var lines []string
 	var isFirstRecord = true
 	var hasHeader = getHeader(p)
 	var readBytes int64 = -1
+	bw := wire.NewBuffered(w, p.GetInputBufferSize())
 	for {
 		if readBytes != 0 {
 			readBytes, err = f.storage.Read(filename, &buf, pairs.WithOffset(offset), pairs.WithSize(size))
@@ -66,19 +65,11 @@ func (f *CsvFormat) Work(filename string, p meta.ExtParams, w wire.Wire, wi int)
 			if err != nil {
 				return err
 			}
-			records = append(records, record)
-			if len(records) >= p.GetInputBufferSize() {
-				w.SendData(records)
-				w.SendFeed(feeds.NewReadProgress(len(records)))
-				records = []feeds.Record{}
-			}
+			bw.Send(record)
 		}
 		buf.Reset()
 	}
-	if len(records) > 0 {
-		w.SendData(records)
-		w.SendFeed(feeds.NewReadProgress(len(records)))
-	}
+	bw.Flush()
 	return nil
 }
 func (f *CsvFormat) StartReadWorker(files []string, p meta.ExtParams, w wire.Wire, wi int) (err error) {
@@ -94,18 +85,16 @@ func (f *CsvFormat) Read(p meta.ExtParams, w wire.Wire) (err error) {
 	if err != nil {
 		return err
 	}
-	wg := &sync.WaitGroup{}
+	mwg := esync.NewManagedWaitGroup(w, types.InputConnector)
 	for i, chunk := range chunks {
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, chunk []string, w wire.Wire, i int) {
+		mwg.Add(1)
+		go func(wg *esync.ManagedWaitGroup, chunk []string, w wire.Wire, i int) {
 			defer wg.Done()
 			if err := f.StartReadWorker(chunk, p, w, i); err != nil {
-				w.SendFeed(feeds.NewError(feeds.SenderInputConnector, err))
+				w.SendInputError(err)
 			}
-		}(wg, chunk, w, i)
+		}(mwg, chunk, w, i)
 	}
-	wg.Wait()
-	w.SendFeed(feeds.NewSuccess(feeds.SenderInputConnector))
-	w.ReadDone()
+	mwg.Wait()
 	return
 }

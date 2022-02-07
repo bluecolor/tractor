@@ -3,16 +3,17 @@ package mysql
 import (
 	"fmt"
 	"strings"
-	"sync"
 
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
+	"github.com/bluecolor/tractor/pkg/lib/esync"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
 
-func (m *MySQLConnector) write(p meta.ExtParams, i int, data feeds.Data) error {
+func (m *MySQLConnector) write(p meta.ExtParams, i int, data []msg.Record) error {
 	ok := true
 	dataset := *p.GetOutputDataset()
 	query, err := m.BuildBatchInsertQuery(dataset, len(data))
@@ -47,18 +48,25 @@ func (m *MySQLConnector) write(p meta.ExtParams, i int, data feeds.Data) error {
 // todo add timeout
 func (m *MySQLConnector) StartWriteWorker(p meta.ExtParams, w wire.Wire, i int) error {
 	for {
-		data, ok := <-w.ReadData()
-		if !ok {
-			break
+		select {
+		case msg, ok := <-w.GetDataMessage():
+			if !ok {
+				w.SendOutputSuccess()
+				return nil
+			}
+			data := msg.Data()
+			if !ok {
+				return nil
+			}
+			if err := m.write(p, i, data); err != nil {
+				w.SendOutputError(err)
+				return err
+			}
+			w.SendOutputProgress(len(data))
+		case <-w.Context().Done():
+			return w.Context().Err()
 		}
-		if err := m.write(p, i, data); err != nil {
-			w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
-			return err
-		}
-		w.SendFeed(feeds.NewWriteProgress(len(data)))
 	}
-	w.WriteWorkerDone()
-	return nil
 }
 func (m *MySQLConnector) Write(p meta.ExtParams, w wire.Wire) (err error) {
 	var parallel int = p.GetOutputParallel()
@@ -69,23 +77,21 @@ func (m *MySQLConnector) Write(p meta.ExtParams, w wire.Wire) (err error) {
 		log.Warn().Msgf("invalid parallel write setting %d. Using %d", parallel, 1)
 	}
 	if err = m.PrepareTable(p); err != nil {
-		w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
+		w.SendOutputError(err)
 		return
 	}
-	wg := &sync.WaitGroup{}
+	mwg := esync.NewManagedWaitGroup(w, types.OutputConnector)
 	for i := 0; i < parallel; i++ {
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, i int, wire wire.Wire) {
-			defer wg.Done()
+		mwg.Add(1)
+		go func(mwg *esync.ManagedWaitGroup, i int, wire wire.Wire) {
+			defer mwg.Done()
 			err := m.StartWriteWorker(p, w, i)
 			if err != nil {
-				w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
+				w.SendOutputError(err)
 			}
-		}(wg, i, w)
+		}(mwg, i, w)
 	}
-	wg.Wait()
-	w.SendFeed(feeds.NewSuccess(feeds.SenderOutputConnector))
-	w.WriteDone()
+	mwg.Wait()
 	return
 }
 func (m *MySQLConnector) BuildCreateQuery(d meta.Dataset) (query string, err error) {

@@ -22,7 +22,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func Test(t *testing.T) {
+func TestReadWrite(t *testing.T) {
 	recordCount := 100
 	config := connectors.ConnectorConfig{}
 	connector := New(config)

@@ -1,6 +1,10 @@
 package msg
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/bluecolor/tractor/pkg/lib/types"
+)
 
 type (
 	MessageType int
@@ -23,6 +27,17 @@ const (
 	Debug
 	Cancelled
 )
+
+func SenderFromConnectorType(ct types.ConnectorType) Sender {
+	switch ct {
+	case types.InputConnector:
+		return InputConnector
+	case types.OutputConnector:
+		return OutputConnector
+	default:
+		return Anonymous
+	}
+}
 
 func (m MessageType) String() string {
 	switch m {

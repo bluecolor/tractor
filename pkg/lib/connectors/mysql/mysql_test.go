@@ -1,13 +1,16 @@
 package mysql
 
 import (
+	"context"
 	"database/sql"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/bluecolor/tractor/pkg/lib/connectors"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/test"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
@@ -65,92 +68,13 @@ func TestBuildReadQuery(t *testing.T) {
 		t.Errorf("query is not correct: expected %s, got %s", expected, query)
 	}
 }
-func TestRead(t *testing.T) {
-	db, mock := NewMock()
-	dataset := meta.Dataset{
-		Name: "test",
-		Fields: []meta.Field{
-			{
-				Name: "id",
-				Type: "int",
-			},
-			{
-				Name: "name",
-				Type: "string",
-			},
-		},
-		Config: map[string]interface{}{
-			"parallel": 1,
-		},
-	}
-	fm := []meta.FieldMapping{
-		{
-			SourceField: meta.Field{Name: "id"},
-			TargetField: meta.Field{Name: "id"},
-		},
-		{
-			SourceField: meta.Field{Name: "name"},
-			TargetField: meta.Field{Name: "name"},
-		},
-	}
-	m := MySQLConnector{
-		db: db,
-	}
-	p := meta.ExtParams{}.WithInputDataset(dataset).WithFieldMappings(fm)
-	query, err := m.BuildReadQuery(p, 0)
-	if err != nil {
-		t.Error(err)
-	}
-	rows := sqlmock.NewRows([]string{"id", "name"}).
-		AddRow(1, "name 1").
-		AddRow(2, "name 2")
-	mock.ExpectQuery(query).WillReturnRows(rows)
-	w := wire.New()
-
-	// todo check premature success
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func(wg *sync.WaitGroup, w wire.Wire) {
-		defer wg.Done()
-		log.Debug().Msg("waiting for data")
-		dataReceived := 0
-		for {
-			log.Debug().Msgf("data received: %d", dataReceived)
-			select {
-			case feed := <-w.ReadData():
-				if feed == nil {
-					if dataReceived < 2 {
-						t.Error("missing data before timeout expected 2, got", dataReceived)
-					} else if dataReceived > 2 {
-						t.Error("too much data before timeout expected 2, got", dataReceived)
-					}
-					return
-				} else {
-					dataReceived += len(feed)
-				}
-			case <-time.After(TIMEOUT):
-				t.Error("timeout before read done")
-			}
-		}
-	}(wg, w)
-
-	go func(p meta.ExtParams, w wire.Wire) {
-		if err := m.Read(p, w); err != nil {
-			t.Error(err)
-		}
-	}(p, w)
-
-	log.Debug().Msg("waiting for done")
-
-	wg.Wait()
-}
-func TestWrite(t *testing.T) {
+func TestReadWrite(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		log.Fatal().Err(err).Msg("error creating mock db")
 	}
 
-	m := MySQLConnector{
+	connector := &MySQLConnector{
 		db: db,
 	}
 	data := [][]interface{}{
@@ -185,7 +109,7 @@ func TestWrite(t *testing.T) {
 		},
 	}
 	ip := meta.ExtParams{}.WithInputDataset(inputDataset).WithFieldMappings(fm)
-	query, err := m.BuildReadQuery(ip, 0)
+	query, err := connector.BuildReadQuery(ip, 0)
 	if err != nil {
 		t.Error(err)
 	}
@@ -213,13 +137,13 @@ func TestWrite(t *testing.T) {
 
 	mock.ExpectExec("DROP TABLE IF EXISTS test_out").WillReturnResult(sqlmock.NewResult(0, 0))
 
-	dq, _ := m.BuildCreateQuery(outputDataset)
+	dq, _ := connector.BuildCreateQuery(outputDataset)
 	mock.ExpectExec(dq).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectQuery(query).WillReturnRows(rows)
 
 	op := meta.ExtParams{}.WithOutputDataset(outputDataset).WithFieldMappings(fm)
 
-	query, err = m.BuildBatchInsertQuery(*op.GetOutputDataset(), 2)
+	query, err = connector.BuildBatchInsertQuery(*op.GetOutputDataset(), 2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -232,25 +156,46 @@ func TestWrite(t *testing.T) {
 		WithArgs(utils.TwoToOneDim(data)...).
 		WillReturnResult(sqlmock.NewResult(0, 2))
 
-	w := wire.New()
+	w, _, cancel := wire.NewWithDefaultTimeout()
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func(wg *sync.WaitGroup, ip meta.ExtParams, w wire.Wire) {
-		defer wg.Done()
-		if err := m.Read(ip, w); err != nil {
-			t.Error(err)
-		}
-		log.Debug().Msg("read finished")
-	}(wg, ip, w)
+	expectedrc := len(data)
 
+	// collect test results
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, op meta.ExtParams, w wire.Wire) {
+	go func(wg *sync.WaitGroup, c context.CancelFunc, t *testing.T) {
 		defer wg.Done()
-		if err := m.Write(op, w); err != nil {
+		casette := test.Record(w, c)
+		memo := casette.GetMemo()
+		if memo.HasError() {
+			for _, e := range memo.Errors {
+				t.Error(e)
+			}
+		}
+		if memo.ReadCount != expectedrc {
+			t.Errorf("(read) expected %d records, got %d", expectedrc, memo.ReadCount)
+		}
+		if memo.WriteCount != expectedrc {
+			t.Errorf("(write) expected %d records, got %d", expectedrc, memo.WriteCount)
+		}
+	}(wg, cancel, t)
+
+	// start output connector
+	wg.Add(1)
+	go func(wg *sync.WaitGroup, c connectors.Output, p meta.ExtParams, w wire.Wire) {
+		defer wg.Done()
+		if err := c.Write(p, w); err != nil {
 			t.Error(err)
 		}
-		log.Debug().Msg("write finished")
-	}(wg, op, w)
+	}(wg, connector, op, w)
+
+	// start input connector
+	go func(wg *sync.WaitGroup, c connectors.Input, p meta.ExtParams, w wire.Wire) {
+		wg.Add(1)
+		defer wg.Done()
+		if err := c.Read(p, w); err != nil {
+			t.Error(err)
+		}
+	}(wg, connector, ip, w)
 
 	wg.Wait()
 }

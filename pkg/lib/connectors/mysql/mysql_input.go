@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/bluecolor/tractor/pkg/lib/esync"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
-	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
 
@@ -69,16 +70,16 @@ func (m *MySQLConnector) Read(p meta.ExtParams, w wire.Wire) (err error) {
 		log.Warn().Msgf("invalid parallel read setting %d. Using %d", parallel, 1)
 		parallel = 1
 	}
-	wg := utils.NewWaitGroup()
+	mwg := esync.NewManagedWaitGroup(w, types.InputConnector)
 	for i := 0; i < parallel; i++ {
-		wg.Add(1)
-		go func(wg *utils.WaitGroup, i int) {
-			defer wg.Done()
+		mwg.Add(1)
+		go func(mwg *esync.ManagedWaitGroup, i int) {
+			defer mwg.Done()
 			if err := m.StartReadWorker(p, w, i); err != nil {
 				w.SendInputError(err)
 			}
-		}(wg, i)
+		}(mwg, i)
 	}
-	wg.Supervise(w, msg.InputConnector)
+	mwg.Wait()
 	return
 }

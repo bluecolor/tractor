@@ -24,6 +24,11 @@ func NewWithTimeout(timeout time.Duration) (Wire, context.Context, context.Cance
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	return New(ctx), ctx, cancel
 }
+func NewWithDefaultTimeout() (Wire, context.Context, context.CancelFunc) {
+	timeout := time.Second * 5 //todo default timeout
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	return New(ctx), ctx, cancel
+}
 func (w *Wire) Context() context.Context {
 	return w.ctx
 }
