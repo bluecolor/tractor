@@ -73,10 +73,14 @@ func (m *Message) Data() []Record {
 	return m.Content.([]Record)
 }
 func (m *Message) Count() int {
-	if m.Type == Data {
+	switch m.Type {
+	case Progress:
+		return m.Content.(int)
+	case Data:
 		return len(m.Data())
+	default:
+		return 0
 	}
-	return 0
 }
 func (m *Message) Error() error {
 	return m.Content.(error)

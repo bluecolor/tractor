@@ -136,6 +136,5 @@ func GenerateTestData(recordCount int, ch chan<- interface{}) (err error) {
 		ch <- data
 		data = []msg.Record{}
 	}
-	ch <- nil
 	return
 }

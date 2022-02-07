@@ -12,7 +12,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-const TIMEOUT = 3 * time.Second
+const TIMEOUT = 30000 * time.Second
 
 func TestNew(t *testing.T) {
 	config := connectors.ConnectorConfig{}
@@ -23,7 +23,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestReadWrite(t *testing.T) {
-	recordCount := 100
+	recordCount := 1
 	config := connectors.ConnectorConfig{}
 	connector := New(config)
 	p := test.GetExtParams()
@@ -70,8 +70,8 @@ func TestReadWrite(t *testing.T) {
 	}(wg, connector, p, w)
 
 	// start input connector
+	wg.Add(1)
 	go func(wg *sync.WaitGroup, c connectors.Input, p meta.ExtParams, w wire.Wire) {
-		wg.Add(1)
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)

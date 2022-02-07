@@ -17,11 +17,12 @@ func Record(w wire.Wire, cancel context.CancelFunc) *wire.Casette {
 		} else if m.Type == msg.Success {
 			if m.Sender == msg.InputConnector {
 				inputSuccess = true
+				w.CloseData()
 			} else if m.Sender == msg.OutputConnector {
 				outputSuccess = true
 			}
 			if inputSuccess && outputSuccess {
-				w.Close()
+				w.CloseFeedback()
 			}
 		}
 	}
