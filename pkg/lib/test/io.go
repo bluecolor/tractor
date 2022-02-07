@@ -7,13 +7,13 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-func Record(w wire.Wire, cancel context.CancelFunc) *wire.Casette {
+func Record(w *wire.Wire, cancel context.CancelFunc) *wire.Casette {
 	var inputSuccess, outputSuccess bool
 
-	cb := func(m *msg.Message, cancel context.CancelFunc) {
+	cb := func(m *msg.Message) error {
 		if m.Type == msg.Error {
 			cancel()
-			w.Close()
+			return m.Content.(error)
 		} else if m.Type == msg.Success {
 			if m.Sender == msg.InputConnector {
 				inputSuccess = true
@@ -25,6 +25,7 @@ func Record(w wire.Wire, cancel context.CancelFunc) *wire.Casette {
 				w.CloseFeedback()
 			}
 		}
+		return nil
 	}
 	c := wire.NewCasette()
 	c.RecordWithCancellable(w, cancel, cb)

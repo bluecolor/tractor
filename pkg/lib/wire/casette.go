@@ -35,19 +35,25 @@ func (c *Casette) Record(w *Wire) {
 		c.process(m)
 	}
 }
-func (c *Casette) RecordWithCallback(w Wire, callback func(*msg.Message)) {
+func (c *Casette) RecordWithCallback(w *Wire, callback func(*msg.Message)) {
 	for m := range w.GetFeedback() {
 		c.process(m)
 		callback(m)
 	}
 }
-func (c *Casette) RecordWithCancellable(w Wire, cancel context.CancelFunc, callback func(*msg.Message, context.CancelFunc)) {
-	for m := range w.GetFeedback() {
-		c.process(m)
-		callback(m, cancel)
-		if m.Type == msg.Error {
-			cancel()
-			w.Close()
+func (c *Casette) RecordWithCancellable(w *Wire, cancel context.CancelFunc, callback func(*msg.Message) error) {
+	for {
+		select {
+		case m, ok := <-w.GetFeedback():
+			if !ok {
+				return
+			}
+			c.process(m)
+			if err := callback(m); err != nil {
+				return
+			}
+		case <-w.Context().Done():
+			return
 		}
 	}
 }

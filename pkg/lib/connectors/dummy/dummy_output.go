@@ -9,7 +9,7 @@ func getOutputChannel(p meta.ExtParams) chan<- interface{} {
 	return p.GetOutputDataset().Config.GetChannel(OutputChannelKey)
 }
 
-func (c *DummyConnector) Write(p meta.ExtParams, w wire.Wire) error {
+func (c *DummyConnector) Write(p meta.ExtParams, w *wire.Wire) error {
 	var outputChannel chan<- interface{} = getOutputChannel(p)
 	for {
 		select {

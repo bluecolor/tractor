@@ -10,12 +10,12 @@ const BufferSize = 1000 // todo from .env
 
 type BufferedWire struct {
 	mu sync.Mutex
-	Wire
+	*Wire
 	buffer []msg.Record
 	size   int
 }
 
-func NewBuffered(w Wire, size ...int) BufferedWire {
+func NewBuffered(w *Wire, size ...int) BufferedWire {
 	var sz int = BufferSize
 	if len(size) > 0 {
 		sz = size[0]

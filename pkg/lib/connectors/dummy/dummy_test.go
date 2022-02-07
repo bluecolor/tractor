@@ -23,7 +23,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestReadWrite(t *testing.T) {
-	recordCount := 1
+	recordCount := 10
 	config := connectors.ConnectorConfig{}
 	connector := New(config)
 	p := test.GetExtParams()
@@ -62,7 +62,7 @@ func TestReadWrite(t *testing.T) {
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p meta.ExtParams, w wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p meta.ExtParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
@@ -71,7 +71,7 @@ func TestReadWrite(t *testing.T) {
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p meta.ExtParams, w wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, p meta.ExtParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)

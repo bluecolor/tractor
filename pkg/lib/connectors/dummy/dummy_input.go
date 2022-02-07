@@ -9,7 +9,7 @@ func getInputChannel(p meta.ExtParams) <-chan interface{} {
 	return p.GetInputDataset().Config.GetChannel(InputChannelKey)
 }
 
-func (c *DummyConnector) Read(p meta.ExtParams, w wire.Wire) (err error) {
+func (c *DummyConnector) Read(p meta.ExtParams, w *wire.Wire) (err error) {
 	var channel <-chan interface{} = getInputChannel(p)
 
 	for {

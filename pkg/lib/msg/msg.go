@@ -59,6 +59,18 @@ func (m MessageType) String() string {
 		return fmt.Sprintf("%d", int(m))
 	}
 }
+func (s Sender) String() string {
+	switch s {
+	case Anonymous:
+		return "Anonymous"
+	case InputConnector:
+		return "InputConnector"
+	case OutputConnector:
+		return "OutputConnector"
+	default:
+		return fmt.Sprintf("%d", int(s))
+	}
+}
 
 type Message struct {
 	Type    MessageType

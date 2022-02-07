@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -31,6 +32,7 @@ func (m *MySQLConnector) write(p meta.ExtParams, i int, data []msg.Record) error
 		}
 	}
 	log.Debug().Msgf("executing query: %s", query)
+	fmt.Printf("sssssssssssss %v", values)
 	stmt, err := m.db.Prepare(query)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to prepare batch insert query")
@@ -46,35 +48,37 @@ func (m *MySQLConnector) write(p meta.ExtParams, i int, data []msg.Record) error
 
 // todo add batch size, buffer
 // todo add timeout
-func (m *MySQLConnector) StartWriteWorker(p meta.ExtParams, w wire.Wire, i int) error {
+func (m *MySQLConnector) StartWriteWorker(p meta.ExtParams, w *wire.Wire, i int) error {
 	for {
 		select {
 		case msg, ok := <-w.GetDataMessage():
 			if !ok {
-				w.SendOutputSuccess()
 				return nil
 			}
 			data := msg.Data()
 			if !ok {
 				return nil
 			}
+			log.Debug().Msgf("????? call to write")
 			if err := m.write(p, i, data); err != nil {
-				w.SendOutputError(err)
 				return err
 			}
 			w.SendOutputProgress(len(data))
 		case <-w.Context().Done():
+			log.Error().Msg("output context done")
 			return w.Context().Err()
 		}
 	}
 }
-func (m *MySQLConnector) Write(p meta.ExtParams, w wire.Wire) (err error) {
+func (m *MySQLConnector) Write(p meta.ExtParams, w *wire.Wire) (err error) {
 	var parallel int = p.GetOutputParallel()
 	if parallel > 1 {
 		log.Warn().Msgf("parallel write is not supported for MySQL connector. Using %d", 1)
+		parallel = 1
 	}
 	if parallel < 1 {
 		log.Warn().Msgf("invalid parallel write setting %d. Using %d", parallel, 1)
+		parallel = 1
 	}
 	if err = m.PrepareTable(p); err != nil {
 		w.SendOutputError(err)
@@ -83,15 +87,28 @@ func (m *MySQLConnector) Write(p meta.ExtParams, w wire.Wire) (err error) {
 	mwg := esync.NewManagedWaitGroup(w, types.OutputConnector)
 	for i := 0; i < parallel; i++ {
 		mwg.Add(1)
-		go func(mwg *esync.ManagedWaitGroup, i int, wire wire.Wire) {
-			defer mwg.Done()
-			err := m.StartWriteWorker(p, w, i)
-			if err != nil {
-				w.SendOutputError(err)
+		go func(mwg *esync.ManagedWaitGroup, i int, wire *wire.Wire) {
+			defer mwg.Done(types.OutputConnector)
+			if err := m.StartWriteWorker(p, w, i); err != nil {
+				log.Debug().Msg("setting error")
+				mwg.SetError(err)
+
+				if errors.Is(err, w.Context().Err()) {
+					log.Debug().Msg("sending cancelled")
+					w.SendOutputCancelled(err)
+				} else {
+					log.Debug().Msg("sending err")
+				}
+
+				log.Debug().Msg("done ww")
 			}
 		}(mwg, i, w)
 	}
 	mwg.Wait()
+	if mwg.Error() != nil {
+		w.SendOutputError(mwg.Error())
+	}
+	log.Debug().Msg("write workers finished")
 	return
 }
 func (m *MySQLConnector) BuildCreateQuery(d meta.Dataset) (query string, err error) {

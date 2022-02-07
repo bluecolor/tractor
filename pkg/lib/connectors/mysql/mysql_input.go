@@ -26,7 +26,7 @@ func (m *MySQLConnector) BuildReadQuery(p meta.ExtParams, i int) (query string, 
 	log.Debug().Msgf("query: %s", query)
 	return
 }
-func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w wire.Wire, i int) (err error) {
+func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w *wire.Wire, i int) (err error) {
 	bw := wire.NewBuffered(w, p.GetInputBufferSize())
 	query, err := m.BuildReadQuery(p, i)
 	if err != nil {
@@ -60,7 +60,7 @@ func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w wire.Wire, i int) (
 	bw.Flush()
 	return
 }
-func (m *MySQLConnector) Read(p meta.ExtParams, w wire.Wire) (err error) {
+func (m *MySQLConnector) Read(p meta.ExtParams, w *wire.Wire) (err error) {
 	var parallel int = p.GetInputParallel()
 	if parallel > 1 {
 		log.Warn().Msgf("parallel read is not supported for MySQL connector. Using %d", 1)
@@ -74,12 +74,14 @@ func (m *MySQLConnector) Read(p meta.ExtParams, w wire.Wire) (err error) {
 	for i := 0; i < parallel; i++ {
 		mwg.Add(1)
 		go func(mwg *esync.ManagedWaitGroup, i int) {
-			defer mwg.Done()
+			defer mwg.Done(types.InputConnector)
 			if err := m.StartReadWorker(p, w, i); err != nil {
+				mwg.SetError(err)
 				w.SendInputError(err)
 			}
 		}(mwg, i)
 	}
 	mwg.Wait()
+	log.Debug().Msgf("read workers finished")
 	return
 }

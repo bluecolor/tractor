@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -69,7 +70,8 @@ func TestBuildReadQuery(t *testing.T) {
 	}
 }
 func TestReadWrite(t *testing.T) {
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	db, mock, err := sqlmock.New()
+	mock.MatchExpectationsInOrder(false)
 	if err != nil {
 		log.Fatal().Err(err).Msg("error creating mock db")
 	}
@@ -81,6 +83,7 @@ func TestReadWrite(t *testing.T) {
 		{1, "name 1"},
 		{2, "name 2"},
 	}
+	expectedrc := len(data)
 
 	inputDataset := meta.Dataset{
 		Name: "test_in",
@@ -137,28 +140,36 @@ func TestReadWrite(t *testing.T) {
 
 	mock.ExpectExec("DROP TABLE IF EXISTS test_out").WillReturnResult(sqlmock.NewResult(0, 0))
 
-	dq, _ := connector.BuildCreateQuery(outputDataset)
-	mock.ExpectExec(dq).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("CREATE TABLE IF NOT EXISTS test_out").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectQuery(query).WillReturnRows(rows)
 
 	op := meta.ExtParams{}.WithOutputDataset(outputDataset).WithFieldMappings(fm)
 
-	query, err = connector.BuildBatchInsertQuery(*op.GetOutputDataset(), 2)
+	query, err = connector.BuildBatchInsertQuery(*op.GetOutputDataset(), expectedrc)
+	log.Debug().Msgf("=======query: %s", query)
 	if err != nil {
 		t.Error(err)
 	}
-	expected := "INSERT INTO test_out (id,full_name) VALUES (?,?),(?,?)"
+	values := ""
+	for i := 0; i < expectedrc; i++ {
+		values += "(?,?),"
+	}
+	values = values[:len(values)-1]
+	expected := "INSERT INTO test_out (id,full_name) VALUES " + values
 	if query != expected {
 		t.Errorf("query is not correct: expected %s, got %s", expected, query)
 	}
-	mock.ExpectPrepare(query).
-		ExpectExec().
-		WithArgs(utils.TwoToOneDim(data)...).
-		WillReturnResult(sqlmock.NewResult(0, 2))
+	// mock.ExpectBegin()
+	mock.ExpectPrepare("INSERT INTO test_out (id,full_name) VALUES (?,?),(?,?)")
+	// 	ExpectExec().
+	// 	WithArgs(utils.TwoToOneDim(data)...).
+	// 	WillReturnResult(sqlmock.NewResult(2, 2))
+	// mock.ExpectCommit()
+
+	fmt.Printf("data %v\n", utils.TwoToOneDim(data))
 
 	w, _, cancel := wire.NewWithDefaultTimeout()
 	wg := &sync.WaitGroup{}
-	expectedrc := len(data)
 
 	// collect test results
 	wg.Add(1)
@@ -168,20 +179,23 @@ func TestReadWrite(t *testing.T) {
 		memo := casette.GetMemo()
 		if memo.HasError() {
 			for _, e := range memo.Errors {
-				t.Error(e)
+				t.Error(e.Content.(error))
 			}
+			return
 		}
 		if memo.ReadCount != expectedrc {
 			t.Errorf("(read) expected %d records, got %d", expectedrc, memo.ReadCount)
+			return
 		}
 		if memo.WriteCount != expectedrc {
 			t.Errorf("(write) expected %d records, got %d", expectedrc, memo.WriteCount)
+			return
 		}
 	}(wg, cancel, t)
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p meta.ExtParams, w wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p meta.ExtParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
@@ -189,8 +203,8 @@ func TestReadWrite(t *testing.T) {
 	}(wg, connector, op, w)
 
 	// start input connector
-	go func(wg *sync.WaitGroup, c connectors.Input, p meta.ExtParams, w wire.Wire) {
-		wg.Add(1)
+	wg.Add(1)
+	go func(wg *sync.WaitGroup, c connectors.Input, p meta.ExtParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)
