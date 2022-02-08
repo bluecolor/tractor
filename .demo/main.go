@@ -1,121 +1,122 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
-	"fmt"
-	"log"
-	"strings"
+	"database/sql"
+	"sync"
 
-	_ "go.beyondstorage.io/services/fs/v4"
-	"go.beyondstorage.io/v5/pairs"
-	"go.beyondstorage.io/v5/services"
+	"github.com/DATA-DOG/go-sqlmock"
 )
 
-// func main() {
-// 	var buf bytes.Buffer
-// 	container := "fs:///home/ceyhun/projects/tractor/.demo"
-// 	store, err := services.NewStoragerFromString(container)
-// 	filename := "dd.csv"
-// 	// filename = filepath.Join(container, filename)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	cur := int64(0)
-// 	fn := func(bs []byte) {
-// 		println(string(bs))
-// 		cur += int64(len(bs))
-// 		// log.Printf("read %d bytes already", cur)
-// 	}
-
-// 	// If IoCallback is specified, the storage will call it in every I/O operation.
-// 	// User could use this feature to implement progress bar.
-// 	n, err := store.Read(filename, &buf, pairs.WithIoCallback(fn))
-// 	if err != nil {
-// 		log.Fatalf("read %v: %v", filename, err)
-// 	}
-
-// 	log.Printf("read size: %d", n)
-// 	// log.Printf("read content: %s", buf.Bytes())
-// }
-
 func main() {
-	var buf bytes.Buffer
-	container := "fs:///home/ceyhun/projects/tractor/.demo"
-	store, err := services.NewStoragerFromString(container)
-	filename := "dd.csv"
-	// filename = filepath.Join(container, filename)
-	if err != nil {
-		log.Fatal(err)
+	db, mock, _ := sqlmock.New()
+
+	mock.MatchExpectationsInOrder(false)
+	data := []interface{}{
+		1,
+		"John Doe",
+		2,
+		"Jane Doe",
 	}
-	size := int64(100)
-	offset := int64(0)
-	var rest []byte = nil
-	var scanner *bufio.Scanner
-	for {
-		n, err := store.Read(filename, &buf, pairs.WithOffset(offset), pairs.WithSize(size))
+	rows := sqlmock.NewRows([]string{"id", "name"})
+	rows.AddRow(data[0], data[1])
+	rows.AddRow(data[2], data[3])
 
-		if err != nil {
-			log.Fatalf("read %v: %v", filename, err)
-		} else if n == 0 {
-			println("read done at offset:", offset)
-			break
-		}
-		if rest != nil {
-			buf = *bytes.NewBuffer(append(rest, buf.Bytes()...))
-			rest = nil
-		}
+	mock.ExpectExec("DROP TABLE IF EXISTS test_out").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("TRUNCATE TABLE").WillReturnResult(sqlmock.NewResult(0, 0))
 
-		bs := buf.String()
-		lines := strings.Split(bs, "\n")
-		if !strings.HasSuffix(bs, "\n") {
-			if len(lines) > 1 {
-				lines = strings.Split(bs, "\n")
-				rest = []byte(lines[len(lines)-1])
-				lines = lines[:len(lines)-1]
-			} else {
-				rest = []byte(bs)
-				lines = []string{}
+	mock.ExpectExec("CREATE TABLE IF NOT EXISTS test_out").WillReturnResult(sqlmock.NewResult(0, 0))
+
+	mock.ExpectQuery("select").WillReturnRows(rows).WithArgs()
+
+	// mock.ExpectPrepare("INSERT INTO").
+	// 	ExpectExec().
+	// 	WithArgs(
+	// 		data[0],
+	// 		data[1],
+	// 		data[2],
+	// 		data[3],
+	// 	).
+	// 	WillReturnResult(sqlmock.NewResult(0, 2))
+
+	mock.ExpectBegin()
+	mock.
+		ExpectExec("INSERT INTO").
+		WithArgs(
+			data[0],
+			data[1],
+			data[2],
+			data[3],
+		).
+		WillReturnResult(sqlmock.NewResult(0, 2))
+	mock.ExpectCommit()
+
+	funcs := []func(db *sql.DB) error{
+		runSelect,
+		runCreate,
+		runInsert,
+		runDrop,
+		runTruncate,
+	}
+
+	// println("Testing")
+	// for _, f := range funcs {
+	// 	if err := f(db); err != nil {
+	// 		panic(err)
+	// 	}
+	// }
+	println("Testing with go routines")
+	wg := &sync.WaitGroup{}
+	for _, f := range funcs {
+		wg.Add(1)
+		go func(f func(db *sql.DB) error, wg *sync.WaitGroup) {
+			defer wg.Done()
+			if err := f(db); err != nil {
+				panic(err)
 			}
-		}
-		scanner = bufio.NewScanner(strings.NewReader(strings.Join(lines, "\n")))
-
-		for scanner.Scan() {
-			fmt.Println(scanner.Text())
-		}
-
-		// lines := strings.Split(buf.String(), "\n")
-
-		// if len(lines) > 0 && len(lines[len(lines)-1]) != 0 {
-		// 	rest = []byte(lines[len(lines)-1])
-		// 	if len(lines) > 1 {
-		// 		lines = lines[:len(lines)-2]
-		// 	}
-		// }
-		// for _, line := range lines {
-		// 	if len(line) > 0 {
-		// 		println(string(line))
-		// 		return
-		// 	}
-		// }
-
-		// if len(lines) > 0 && len(lines[len(lines)-1]) != 0 {
-		// 	rest = []byte(lines[len(lines)-1])
-		// }
-		offset += n
-		buf.Reset()
-		// println(buf.String())
-		// buf.Reset()
+		}(f, wg)
 	}
-	fmt.Println("read done %d", offset)
+	wg.Wait()
 }
 
-// func main() {
-// 	lines := "hello\nworld\n"
-// 	tokens := strings.Split(lines, "\n")
-// 	println(len(tokens[2]))
-// 	if tokens[2] == "" {
-// 		println("empty")
-// 	}
-// }
+func runSelect(db *sql.DB) error {
+	_, err := db.Query("select * from test_out")
+	return err
+}
+
+func runCreate(db *sql.DB) error {
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS test_out (a varchar(255)")
+	return err
+}
+
+func runInsert(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec("INSERT INTO test_out (a, b, c, d) VALUES (?, ?, ?, ?)", 1, "John Doe", 2, "Jane Doe")
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+
+	// _, err := db.Exec("INSERT INTO test_out (id,full_name) VALUES (?,?),(?,?)",
+	// 	1, "John Doe", 2, "Jane Doe",
+	// )
+
+	// stmt, err := db.Prepare("INSERT INTO test_out (id,full_name) VALUES (?,?),(?,?)")
+	// if err != nil {
+	// 	return err
+	// }
+	// _, err = stmt.Exec(1, "John Doe", 2, "Jane Doe")
+	// return err
+}
+
+func runDrop(db *sql.DB) error {
+	_, err := db.Exec("DROP TABLE IF EXISTS test_out")
+	return err
+}
+
+func runTruncate(db *sql.DB) error {
+	_, err := db.Exec("TRUNCATE TABLE test_out")
+	return err
+}

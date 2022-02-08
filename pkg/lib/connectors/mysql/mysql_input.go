@@ -74,7 +74,7 @@ func (m *MySQLConnector) Read(p meta.ExtParams, w *wire.Wire) (err error) {
 	for i := 0; i < parallel; i++ {
 		mwg.Add(1)
 		go func(mwg *esync.ManagedWaitGroup, i int) {
-			defer mwg.Done(types.InputConnector)
+			defer mwg.Done()
 			if err := m.StartReadWorker(p, w, i); err != nil {
 				mwg.SetError(err)
 				w.SendInputError(err)
@@ -82,6 +82,5 @@ func (m *MySQLConnector) Read(p meta.ExtParams, w *wire.Wire) (err error) {
 		}(mwg, i)
 	}
 	mwg.Wait()
-	log.Debug().Msgf("read workers finished")
 	return
 }

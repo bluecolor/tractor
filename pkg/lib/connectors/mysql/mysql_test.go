@@ -3,7 +3,7 @@ package mysql
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -69,19 +69,18 @@ func TestBuildReadQuery(t *testing.T) {
 		t.Errorf("query is not correct: expected %s, got %s", expected, query)
 	}
 }
-func TestReadWrite(t *testing.T) {
+
+func TestIO(t *testing.T) {
 	db, mock, err := sqlmock.New()
+
 	mock.MatchExpectationsInOrder(false)
 	if err != nil {
 		log.Fatal().Err(err).Msg("error creating mock db")
 	}
 
-	connector := &MySQLConnector{
-		db: db,
-	}
 	data := [][]interface{}{
-		{1, "name 1"},
-		{2, "name 2"},
+		{1, "John Doe"},
+		{2, "Jane Doe"},
 	}
 	expectedrc := len(data)
 
@@ -101,26 +100,6 @@ func TestReadWrite(t *testing.T) {
 			"parallel": 1,
 		},
 	}
-	fm := []meta.FieldMapping{
-		{
-			SourceField: meta.Field{Name: "id"},
-			TargetField: meta.Field{Name: "id"},
-		},
-		{
-			SourceField: meta.Field{Name: "name"},
-			TargetField: meta.Field{Name: "full_name", Type: "string"},
-		},
-	}
-	ip := meta.ExtParams{}.WithInputDataset(inputDataset).WithFieldMappings(fm)
-	query, err := connector.BuildReadQuery(ip, 0)
-	if err != nil {
-		t.Error(err)
-	}
-
-	rows := sqlmock.NewRows([]string{"id", "name"})
-	for _, row := range data {
-		rows.AddRow(row[0], row[1])
-	}
 	outputDataset := meta.Dataset{
 		Name: "test_out",
 		Fields: []meta.Field{
@@ -137,41 +116,54 @@ func TestReadWrite(t *testing.T) {
 			"parallel": 1,
 		},
 	}
+	fm := []meta.FieldMapping{
+		{
+			SourceField: meta.Field{Name: "id"},
+			TargetField: meta.Field{Name: "id"},
+		},
+		{
+			SourceField: meta.Field{Name: "name"},
+			TargetField: meta.Field{Name: "full_name", Type: "string"},
+		},
+	}
+	ip := meta.ExtParams{}.WithInputDataset(inputDataset).WithFieldMappings(fm)
+	op := meta.ExtParams{}.WithOutputDataset(outputDataset).WithFieldMappings(fm)
+
+	connector := &MySQLConnector{
+		db: db,
+	}
+	query, err := connector.BuildReadQuery(ip, 0)
+	if err != nil {
+		t.Error(err)
+	}
+
+	rows := sqlmock.NewRows([]string{"id", "name"})
+	for _, row := range data {
+		rows.AddRow(row[0], row[1])
+	}
 
 	mock.ExpectExec("DROP TABLE IF EXISTS test_out").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("TRUNCATE TABLE").WillReturnResult(sqlmock.NewResult(0, 0))
 
 	mock.ExpectExec("CREATE TABLE IF NOT EXISTS test_out").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectQuery(query).WillReturnRows(rows)
 
-	op := meta.ExtParams{}.WithOutputDataset(outputDataset).WithFieldMappings(fm)
-
 	query, err = connector.BuildBatchInsertQuery(*op.GetOutputDataset(), expectedrc)
-	log.Debug().Msgf("=======query: %s", query)
 	if err != nil {
 		t.Error(err)
 	}
-	values := ""
-	for i := 0; i < expectedrc; i++ {
-		values += "(?,?),"
-	}
-	values = values[:len(values)-1]
-	expected := "INSERT INTO test_out (id,full_name) VALUES " + values
+	values := strings.Repeat("(?,?),", expectedrc)
+	expected := "INSERT INTO test_out (id,full_name) VALUES " + values[:len(values)-1]
 	if query != expected {
 		t.Errorf("query is not correct: expected %s, got %s", expected, query)
 	}
-	// mock.ExpectBegin()
-	mock.ExpectPrepare("INSERT INTO test_out (id,full_name) VALUES (?,?),(?,?)")
-	// 	ExpectExec().
-	// 	WithArgs(utils.TwoToOneDim(data)...).
-	// 	WillReturnResult(sqlmock.NewResult(2, 2))
-	// mock.ExpectCommit()
-
-	fmt.Printf("data %v\n", utils.TwoToOneDim(data))
+	mock.ExpectExec("^INSERT INTO test_out").
+		WithArgs(utils.TwoToOneDim(data)...).
+		WillReturnResult(sqlmock.NewResult(0, 2))
 
 	w, _, cancel := wire.NewWithDefaultTimeout()
 	wg := &sync.WaitGroup{}
 
-	// collect test results
 	wg.Add(1)
 	go func(wg *sync.WaitGroup, c context.CancelFunc, t *testing.T) {
 		defer wg.Done()

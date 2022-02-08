@@ -1,7 +1,7 @@
 package mysql
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"strings"
 
@@ -14,10 +14,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (m *MySQLConnector) write(p meta.ExtParams, i int, data []msg.Record) error {
+func (c *MySQLConnector) write(p meta.ExtParams, i int, data []msg.Record) error {
 	ok := true
 	dataset := *p.GetOutputDataset()
-	query, err := m.BuildBatchInsertQuery(dataset, len(data))
+	query, err := c.BuildBatchInsertQuery(dataset, len(data))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to build batch insert query")
 		return err
@@ -31,24 +31,14 @@ func (m *MySQLConnector) write(p meta.ExtParams, i int, data []msg.Record) error
 			}
 		}
 	}
-	log.Debug().Msgf("executing query: %s", query)
-	fmt.Printf("sssssssssssss %v", values)
-	stmt, err := m.db.Prepare(query)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to prepare batch insert query")
-		return err
-	}
-	_, err = stmt.Exec(values...)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to execute batch insert query")
-		return err
-	}
-	return nil
+	_, err = c.db.Exec(query, values...)
+	return err
 }
 
 // todo add batch size, buffer
 // todo add timeout
-func (m *MySQLConnector) StartWriteWorker(p meta.ExtParams, w *wire.Wire, i int) error {
+func (m *MySQLConnector) StartWriteWorker(ctx context.Context, p meta.ExtParams, w *wire.Wire, i int) error {
+
 	for {
 		select {
 		case msg, ok := <-w.GetDataMessage():
@@ -56,20 +46,19 @@ func (m *MySQLConnector) StartWriteWorker(p meta.ExtParams, w *wire.Wire, i int)
 				return nil
 			}
 			data := msg.Data()
-			if !ok {
-				return nil
-			}
-			log.Debug().Msgf("????? call to write")
 			if err := m.write(p, i, data); err != nil {
 				return err
 			}
 			w.SendOutputProgress(len(data))
 		case <-w.Context().Done():
-			log.Error().Msg("output context done")
 			return w.Context().Err()
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
 }
+
+// todo transactions
 func (m *MySQLConnector) Write(p meta.ExtParams, w *wire.Wire) (err error) {
 	var parallel int = p.GetOutputParallel()
 	if parallel > 1 {
@@ -88,28 +77,13 @@ func (m *MySQLConnector) Write(p meta.ExtParams, w *wire.Wire) (err error) {
 	for i := 0; i < parallel; i++ {
 		mwg.Add(1)
 		go func(mwg *esync.ManagedWaitGroup, i int, wire *wire.Wire) {
-			defer mwg.Done(types.OutputConnector)
-			if err := m.StartWriteWorker(p, w, i); err != nil {
-				log.Debug().Msg("setting error")
-				mwg.SetError(err)
-
-				if errors.Is(err, w.Context().Err()) {
-					log.Debug().Msg("sending cancelled")
-					w.SendOutputCancelled(err)
-				} else {
-					log.Debug().Msg("sending err")
-				}
-
-				log.Debug().Msg("done ww")
+			defer mwg.Done()
+			if err := m.StartWriteWorker(mwg.Context(), p, w, i); err != nil {
+				mwg.HandleError(err)
 			}
 		}(mwg, i, w)
 	}
-	mwg.Wait()
-	if mwg.Error() != nil {
-		w.SendOutputError(mwg.Error())
-	}
-	log.Debug().Msg("write workers finished")
-	return
+	return mwg.Wait()
 }
 func (m *MySQLConnector) BuildCreateQuery(d meta.Dataset) (query string, err error) {
 	columns := ""
@@ -178,9 +152,9 @@ func (m *MySQLConnector) PrepareTable(p meta.ExtParams) (err error) {
 		if err = m.DropTable(dataset); err != nil {
 			return
 		}
-		if err = m.CreateTable(dataset); err != nil {
-			return
-		}
+		// if err = m.CreateTable(dataset); err != nil {
+		// 	return
+		// }
 	case meta.ExtractionModeInsert:
 		if err = m.TruncateTable(dataset); err != nil {
 			return
