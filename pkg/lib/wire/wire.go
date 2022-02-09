@@ -1,9 +1,6 @@
 package wire
 
 import (
-	"context"
-	"time"
-
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 )
 
@@ -12,20 +9,11 @@ type Wire struct {
 	feedback chan *msg.Feedback
 }
 
-func New(ctx context.Context) *Wire {
+func New() *Wire {
 	return &Wire{
 		data:     make(chan msg.Data, 1000),
 		feedback: make(chan *msg.Feedback, 100),
 	}
-}
-func NewWithTimeout(timeout time.Duration) (*Wire, context.CancelFunc, context.Context) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	return New(ctx), cancel, ctx
-}
-func NewWithDefaultTimeout() (*Wire, context.CancelFunc, context.Context) {
-	timeout := time.Second * 50000 //todo default timeout
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	return New(ctx), cancel, ctx
 }
 
 func (w *Wire) Close() {
@@ -120,4 +108,13 @@ func (w *Wire) SendInputCancelled(args ...interface{}) {
 }
 func (w *Wire) SendOutputCancelled(args ...interface{}) {
 	w.SendCancelled(msg.OutputConnector, args...)
+}
+func (w *Wire) SendDone(sender msg.Sender, args ...interface{}) {
+	w.feedback <- msg.NewDone(sender, args)
+}
+func (w *Wire) SendInputDone(args ...interface{}) {
+	w.SendDone(msg.InputConnector, args...)
+}
+func (w *Wire) SendOutputDone(args ...interface{}) {
+	w.SendDone(msg.OutputConnector, args...)
 }

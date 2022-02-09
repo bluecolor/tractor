@@ -116,7 +116,7 @@ func testCsvIO(connector *FileConnector, t *testing.T) {
 			TargetField: fields[2],
 		},
 	})
-	w, _, _ := wire.NewWithDefaultTimeout()
+	w := wire.New()
 
 	go func(w *wire.Wire, p meta.ExtParams) {
 		if err := connector.Write(p, w); err != nil {

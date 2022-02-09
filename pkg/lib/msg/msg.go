@@ -26,6 +26,7 @@ const (
 	Warning
 	Debug
 	Cancelled
+	Done
 )
 
 func SenderFromConnectorType(ct types.ConnectorType) Sender {
@@ -53,6 +54,10 @@ func (ft FeedbackType) String() string {
 		return "Warning"
 	case Debug:
 		return "Debug"
+	case Cancelled:
+		return "Cancelled"
+	case Done:
+		return "Done"
 	default:
 		return fmt.Sprintf("%d", int(ft))
 	}
@@ -137,9 +142,25 @@ func (f *Feedback) IsOutputError() bool {
 func (f *Feedback) IsError() bool {
 	return f.Type == Error
 }
-
+func (f *Feedback) IsInputDone() bool {
+	return f.Sender == InputConnector && f.Type == Done
+}
+func (f *Feedback) IsOutputDone() bool {
+	return f.Sender == OutputConnector && f.Type == Done
+}
 func (f *Feedback) Error() error {
 	return f.Content.(error)
+}
+func NewDone(sender Sender, args ...interface{}) *Feedback {
+	var content interface{}
+	if len(args) > 0 {
+		content = args[0]
+	}
+	return &Feedback{
+		Type:    Done,
+		Sender:  sender,
+		Content: content,
+	}
 }
 func NewError(sender Sender, err error) *Feedback {
 	return &Feedback{

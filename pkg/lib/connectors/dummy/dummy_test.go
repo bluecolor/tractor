@@ -1,7 +1,6 @@
 package dummy
 
 import (
-	"context"
 	"sync"
 	"testing"
 	"time"
@@ -27,14 +26,14 @@ func TestReadWrite(t *testing.T) {
 	config := connectors.ConnectorConfig{}
 	connector := New(config)
 	p := test.GetExtParams()
-	w, cancel, _ := wire.NewWithTimeout(TIMEOUT)
+	w := wire.New()
 	wg := &sync.WaitGroup{}
 
 	// collect test results
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c context.CancelFunc, t *testing.T) {
+	go func(wg *sync.WaitGroup, t *testing.T) {
 		defer wg.Done()
-		casette := test.Record(w, c)
+		casette := test.Record(w)
 		memo := casette.GetMemo()
 		if memo.HasError() {
 			for _, e := range memo.Errors {
@@ -47,7 +46,7 @@ func TestReadWrite(t *testing.T) {
 		if memo.WriteCount != recordCount {
 			t.Errorf("(write) expected %d records, got %d", recordCount, memo.WriteCount)
 		}
-	}(wg, cancel, t)
+	}(wg, t)
 
 	// generate test data
 	wg.Add(1)

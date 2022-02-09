@@ -63,6 +63,7 @@ func (g *WaitGroup) Done() {
 }
 func (g *WaitGroup) Finish() error {
 	sender := msg.SenderFromConnectorType(g.ct)
+	defer g.w.SendDone(sender)
 	if g.cancelled {
 		g.w.SendCancelled(sender)
 	} else if g.err != nil {

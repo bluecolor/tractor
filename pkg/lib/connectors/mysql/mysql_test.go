@@ -1,7 +1,6 @@
 package mysql
 
 import (
-	"context"
 	"database/sql"
 	"strings"
 	"sync"
@@ -161,13 +160,13 @@ func TestIO(t *testing.T) {
 		WithArgs(utils.TwoToOneDim(data)...).
 		WillReturnResult(sqlmock.NewResult(0, 2))
 
-	w, cancel, _ := wire.NewWithDefaultTimeout()
+	w := wire.New()
 	wg := &sync.WaitGroup{}
 
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c context.CancelFunc, t *testing.T) {
+	go func(wg *sync.WaitGroup, t *testing.T) {
 		defer wg.Done()
-		casette := test.Record(w, c)
+		casette := test.Record(w)
 		memo := casette.GetMemo()
 		if memo.HasError() {
 			for _, e := range memo.Errors {
@@ -183,7 +182,7 @@ func TestIO(t *testing.T) {
 			t.Errorf("(write) expected %d records, got %d", expectedrc, memo.WriteCount)
 			return
 		}
-	}(wg, cancel, t)
+	}(wg, t)
 
 	// start output connector
 	wg.Add(1)

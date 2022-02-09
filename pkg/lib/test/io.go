@@ -1,18 +1,15 @@
 package test
 
 import (
-	"context"
-
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-func Record(w *wire.Wire, cancel context.CancelFunc) *wire.Casette {
+func Record(w *wire.Wire) *wire.Casette {
 	var inputSuccess, outputSuccess bool
 
 	cb := func(m *msg.Feedback) error {
 		if m.Type == msg.Error {
-			cancel()
 			return m.Content.(error)
 		} else if m.Type == msg.Success {
 			if m.Sender == msg.InputConnector {
