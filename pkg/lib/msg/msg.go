@@ -142,6 +142,12 @@ func (f *Feedback) IsOutputError() bool {
 func (f *Feedback) IsError() bool {
 	return f.Type == Error
 }
+func (f *Feedback) IsSuccess() bool {
+	return f.Type == Success
+}
+func (f *Feedback) IsCancelled() bool {
+	return f.Type == Cancelled
+}
 func (f *Feedback) IsInputDone() bool {
 	return f.Sender == InputConnector && f.Type == Done
 }
