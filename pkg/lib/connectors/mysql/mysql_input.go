@@ -3,17 +3,18 @@ package mysql
 import (
 	"fmt"
 	"strings"
-	"sync"
 
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
+	"github.com/bluecolor/tractor/pkg/lib/esync"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/rs/zerolog/log"
 )
 
 func (m *MySQLConnector) BuildReadQuery(p meta.ExtParams, i int) (query string, err error) {
 	fields := p.GetFMInputFields()
-	if fields == nil || len(fields) == 0 {
+	if len(fields) == 0 {
 		return "", fmt.Errorf("no fields specified")
 	}
 	columns := ""
@@ -25,7 +26,13 @@ func (m *MySQLConnector) BuildReadQuery(p meta.ExtParams, i int) (query string, 
 	log.Debug().Msgf("query: %s", query)
 	return
 }
-func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w wire.Wire, i int) (err error) {
+func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w *wire.Wire, i int) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+	bw := wire.NewBuffered(w, p.GetInputBufferSize())
 	query, err := m.BuildReadQuery(p, i)
 	if err != nil {
 		return err
@@ -36,8 +43,6 @@ func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w wire.Wire, i int) (
 	}
 	defer rows.Close()
 
-	bufferSize := p.GetInputBufferSize()
-	buffer := []feeds.Record{}
 	fields := p.GetFMInputFields()
 	for rows.Next() {
 		columns := make([]interface{}, len(fields))
@@ -48,28 +53,19 @@ func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w wire.Wire, i int) (
 		if err := rows.Scan(columnPointers...); err != nil {
 			return err
 		}
-		record := feeds.Record{}
+		record := msg.Record{}
 		for i, f := range fields {
 			if f.Name == "" {
 				f.Name = fmt.Sprintf("col%d", i)
 			}
 			record[f.Name] = columns[i]
 		}
-		if len(buffer) >= bufferSize {
-			w.SendData(buffer)
-			w.SendFeed(feeds.NewReadProgress(len(buffer)))
-			buffer = []feeds.Record{}
-		} else {
-			buffer = append(buffer, record)
-		}
+		bw.Send(record)
 	}
-	if len(buffer) > 0 {
-		w.SendData(buffer)
-		w.SendFeed(feeds.NewReadProgress(len(buffer)))
-	}
+	bw.Flush()
 	return
 }
-func (m *MySQLConnector) Read(p meta.ExtParams, w wire.Wire) (err error) {
+func (m *MySQLConnector) Read(p meta.ExtParams, w *wire.Wire) (err error) {
 	var parallel int = p.GetInputParallel()
 	if parallel > 1 {
 		log.Warn().Msgf("parallel read is not supported for MySQL connector. Using %d", 1)
@@ -79,18 +75,16 @@ func (m *MySQLConnector) Read(p meta.ExtParams, w wire.Wire) (err error) {
 		log.Warn().Msgf("invalid parallel read setting %d. Using %d", parallel, 1)
 		parallel = 1
 	}
-	wg := &sync.WaitGroup{}
+	wg := esync.NewWaitGroup(w, types.InputConnector)
 	for i := 0; i < parallel; i++ {
 		wg.Add(1)
-		go func(wg *sync.WaitGroup, i int) {
+		go func(wg *esync.WaitGroup, i int) {
 			defer wg.Done()
 			if err := m.StartReadWorker(p, w, i); err != nil {
-				w.SendFeed(feeds.NewError(feeds.SenderInputConnector, err))
+				wg.HandleError(err)
 			}
 		}(wg, i)
 	}
 	wg.Wait()
-	w.SendInputSuccessFeed()
-	w.ReadDone()
 	return
 }

@@ -1,26 +1,28 @@
 package mysql
 
 import (
+	"context"
 	"fmt"
 	"strings"
-	"sync"
 
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
+	"github.com/bluecolor/tractor/pkg/lib/esync"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
 
-func (m *MySQLConnector) write(p meta.ExtParams, i int, data feeds.Data) error {
+func (c *MySQLConnector) write(p meta.ExtParams, i int, data msg.Data) error {
 	ok := true
 	dataset := *p.GetOutputDataset()
-	query, err := m.BuildBatchInsertQuery(dataset, len(data))
+	query, err := c.BuildBatchInsertQuery(dataset, data.Count())
 	if err != nil {
 		log.Error().Err(err).Msg("failed to build batch insert query")
 		return err
 	}
-	values := make([]interface{}, len(data)*len(dataset.Fields))
+	values := make([]interface{}, data.Count()*len(dataset.Fields))
 	for i, r := range data {
 		for j, f := range dataset.Fields {
 			values[i*len(dataset.Fields)+j], ok = r[p.GetSourceFieldNameByTargetFieldName(f.Name)]
@@ -29,64 +31,55 @@ func (m *MySQLConnector) write(p meta.ExtParams, i int, data feeds.Data) error {
 			}
 		}
 	}
-	log.Debug().Msgf("executing query: %s", query)
-	stmt, err := m.db.Prepare(query)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to prepare batch insert query")
-		return err
-	}
-	_, err = stmt.Exec(values...)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to execute batch insert query")
-		return err
-	}
-	return nil
+	_, err = c.db.Exec(query, values...)
+	return err
 }
 
 // todo add batch size, buffer
 // todo add timeout
-func (m *MySQLConnector) StartWriteWorker(p meta.ExtParams, w wire.Wire, i int) error {
+func (m *MySQLConnector) StartWriteWorker(ctx context.Context, p meta.ExtParams, w *wire.Wire, i int) error {
 	for {
-		data, ok := <-w.ReadData()
-		if !ok {
-			break
+		select {
+		case data, ok := <-w.GetData():
+			if !ok {
+				return nil
+			}
+			if err := m.write(p, i, data); err != nil {
+				return err
+			}
+			w.SendOutputProgress(data.Count())
+		case <-ctx.Done():
+			return ctx.Err()
 		}
-		if err := m.write(p, i, data); err != nil {
-			w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
-			return err
-		}
-		w.SendFeed(feeds.NewWriteProgress(len(data)))
 	}
-	w.WriteWorkerDone()
-	return nil
 }
-func (m *MySQLConnector) Write(p meta.ExtParams, w wire.Wire) (err error) {
+
+// todo transactions
+func (m *MySQLConnector) Write(p meta.ExtParams, w *wire.Wire) (err error) {
 	var parallel int = p.GetOutputParallel()
 	if parallel > 1 {
 		log.Warn().Msgf("parallel write is not supported for MySQL connector. Using %d", 1)
+		parallel = 1
 	}
 	if parallel < 1 {
 		log.Warn().Msgf("invalid parallel write setting %d. Using %d", parallel, 1)
+		parallel = 1
 	}
 	if err = m.PrepareTable(p); err != nil {
-		w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
+		w.SendOutputError(err)
 		return
 	}
-	wg := &sync.WaitGroup{}
+	mwg := esync.NewWaitGroup(w, types.OutputConnector)
 	for i := 0; i < parallel; i++ {
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, i int, wire wire.Wire) {
-			defer wg.Done()
-			err := m.StartWriteWorker(p, w, i)
-			if err != nil {
-				w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
+		mwg.Add(1)
+		go func(mwg *esync.WaitGroup, i int, wire *wire.Wire) {
+			defer mwg.Done()
+			if err := m.StartWriteWorker(mwg.Context(), p, w, i); err != nil {
+				mwg.HandleError(err)
 			}
-		}(wg, i, w)
+		}(mwg, i, w)
 	}
-	wg.Wait()
-	w.SendFeed(feeds.NewSuccess(feeds.SenderOutputConnector))
-	w.WriteDone()
-	return
+	return mwg.Wait()
 }
 func (m *MySQLConnector) BuildCreateQuery(d meta.Dataset) (query string, err error) {
 	columns := ""

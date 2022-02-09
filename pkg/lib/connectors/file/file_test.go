@@ -1,14 +1,13 @@
 package file
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
-	"github.com/bluecolor/tractor/pkg/lib/test"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
@@ -72,50 +71,8 @@ func prepareFiles(connector *FileConnector) (err error) {
 	prepareCsvTestFiles(connector)
 	return
 }
-func testCsvRead(connector *FileConnector, t *testing.T) {
-	fields := []meta.Field{
-		{
-			Name: "id",
-			Type: "string",
-		},
-		{
-			Name: "name",
-			Type: "string",
-		},
-		{
-			Name: "age",
-			Type: "int",
-		},
-	}
-	p := meta.ExtParams{}
-	p.WithInputDataset(meta.Dataset{
-		Name:   "test",
-		Fields: fields,
-		Config: meta.Config{
-			"files": getFileNames(csvTestFiles),
-		},
-	}).WithFieldMappings([]meta.FieldMapping{
-		{
-			SourceField: fields[0],
-			TargetField: fields[0],
-		},
-		{
-			SourceField: fields[1],
-			TargetField: fields[1],
-		},
-		{
-			SourceField: fields[2],
-			TargetField: fields[2],
-		},
-	})
-	w := wire.New()
-	params := map[string]interface{}{
-		"ext_params":   p,
-		"record_count": getRecordCount(csvTestFiles, true),
-	}
-	test.TestRead(connector, w, params, t)
-}
-func testCsvWrite(connector *FileConnector, t *testing.T) {
+
+func testCsvIO(connector *FileConnector, t *testing.T) {
 	outfile := "test_out.csv"
 	connector.Storage.Delete(outfile)
 	fields := []meta.Field{
@@ -161,35 +118,57 @@ func testCsvWrite(connector *FileConnector, t *testing.T) {
 	})
 	w := wire.New()
 
-	go func(w wire.Wire, p meta.ExtParams) {
+	go func(w *wire.Wire, p meta.ExtParams) {
 		if err := connector.Write(p, w); err != nil {
 			t.Error(err)
 		}
 	}(w, p)
 
-	go func(w wire.Wire, p meta.ExtParams) {
+	go func(w *wire.Wire, p meta.ExtParams) {
 		if err := connector.Read(p, w); err != nil {
 			t.Error(err)
 		}
 	}(w, p)
 
 	expectedRecordCount := getRecordCount(csvTestFiles, true)
-	recordCount := 0
+	readCount := 0
+	writeCount := 0
+	var inputSuccess, outputSuccess bool = false, false
 
 	for {
 		select {
-		case feed, ok := <-w.WriteProgressFeeds():
+		case feed, ok := <-w.GetFeedback():
 			if ok {
-				progress := feed.Content.(feeds.ProgressMessage)
-				recordCount += progress.Count()
-			} else {
-				if recordCount != expectedRecordCount {
-					t.Errorf("expected %d records, got %d", expectedRecordCount, recordCount)
+				readCount += feed.InputProgress()
+				writeCount += feed.OutputProgress()
+				if feed.IsError() {
+					t.Error(feed.Error())
+					return
+				} else if feed.IsInputSuccess() {
+					inputSuccess = true
+					w.CloseData()
+				} else if feed.IsOutputSuccess() {
+					outputSuccess = true
 				}
+				if inputSuccess && outputSuccess {
+					if readCount != expectedRecordCount {
+						t.Errorf("(input) expected %d records, got %d", expectedRecordCount, readCount)
+					}
+					if writeCount != expectedRecordCount {
+						t.Errorf("(output) expected %d records, got %d", expectedRecordCount, writeCount)
+					}
+					return
+				}
+			} else {
 				return
 			}
 		case <-time.After(TIMEOUT):
-			t.Error("write timeout")
+			log.Debug().Msg("read count " + strconv.Itoa(readCount))
+			log.Debug().Msg("write count " + strconv.Itoa(writeCount))
+			log.Debug().Msg("input success " + strconv.FormatBool(inputSuccess))
+			log.Debug().Msg("output success " + strconv.FormatBool(outputSuccess))
+			t.Error("timeout")
+			return
 		}
 	}
 
@@ -211,8 +190,7 @@ func TestNewFileConnector(t *testing.T) {
 		}
 	}
 }
-
-func TestCsvRead(t *testing.T) {
+func TestCsvIO(t *testing.T) {
 	configs := []connectors.ConnectorConfig{
 		{
 			"storageType": "fs",
@@ -231,33 +209,7 @@ func TestCsvRead(t *testing.T) {
 			t.Error(err)
 		}
 		prepareFiles(connector)
-		testCsvRead(connector, t)
-		if err := connector.Close(); err != nil {
-			t.Error(err)
-		}
-	}
-}
-
-func TestCsvWrite(t *testing.T) {
-	configs := []connectors.ConnectorConfig{
-		{
-			"storageType": "fs",
-			"format":      "csv",
-			"storageConfig": map[string]interface{}{
-				"url": "fs:///tmp/",
-			},
-		},
-	}
-	for _, config := range configs {
-		connector, err := New(config)
-		if err != nil {
-			t.Error(err)
-		}
-		if err := connector.Connect(); err != nil {
-			t.Error(err)
-		}
-		prepareFiles(connector)
-		testCsvWrite(connector, t)
+		testCsvIO(connector, t)
 		if err := connector.Close(); err != nil {
 			t.Error(err)
 		}

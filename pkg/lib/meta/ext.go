@@ -1,18 +1,27 @@
 package meta
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 const (
+	TimeoutKey        = "timeout"
 	InputDatasetKey   = "input_dataset"
 	OutputDatasetKey  = "output_dataset"
 	ParallelKey       = "parallel"
 	ExtractionModeKey = "extraction_mode"
 	FieldMappingsKey  = "field_mappings"
 	BufferSizeKey     = "buffer_size"
+	DefaultTimeOut    = time.Second * 60 * 10 // todo from env 10 minutes
 )
 
 type ExtParams map[string]interface{}
 
+func (p ExtParams) WithTimeout(timeout time.Duration) ExtParams {
+	p[TimeoutKey] = timeout
+	return p
+}
 func (p ExtParams) WithInputDataset(dataset Dataset) ExtParams {
 	p[InputDatasetKey] = dataset
 	return p
@@ -28,6 +37,14 @@ func (p ExtParams) WithExtractionModeString(mode string) ExtParams {
 func (p ExtParams) WithFieldMappings(mappings []FieldMapping) ExtParams {
 	p[FieldMappingsKey] = mappings
 	return p
+}
+func (p ExtParams) GetTimeout() time.Duration {
+	if timeout, ok := p[TimeoutKey]; ok {
+		if t, ok := timeout.(time.Duration); ok {
+			return t
+		}
+	}
+	return DefaultTimeOut
 }
 func (p ExtParams) GetExtractionMode() ExtractionMode {
 	if mode, ok := p[ExtractionModeKey]; ok {

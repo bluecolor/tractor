@@ -3,10 +3,11 @@ package csvformat
 import (
 	"fmt"
 	"strings"
-	"sync"
 
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
+	"github.com/bluecolor/tractor/pkg/lib/esync"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
@@ -37,7 +38,7 @@ func generateFileNames(filename string, parallel int) []string {
 	return fileNames
 }
 
-func (f *CsvFormat) write(filename string, data feeds.Data, p meta.ExtParams, wi int) (err error) {
+func (f *CsvFormat) write(filename string, data []msg.Record, p meta.ExtParams, wi int) (err error) {
 	od := p.GetOutputDataset()
 	buffer := make([][]string, len(data))
 	for i, r := range data {
@@ -67,45 +68,38 @@ func (f *CsvFormat) write(filename string, data feeds.Data, p meta.ExtParams, wi
 
 // todo add batch size, buffer
 // todo add timeout
-func (f *CsvFormat) StartWriteWorker(filename string, p meta.ExtParams, w wire.Wire, wi int) (err error) {
+func (f *CsvFormat) StartWriteWorker(filename string, p meta.ExtParams, w *wire.Wire, wi int) (err error) {
 	f.storage.Create(filename)
 	header := generateHeader(p) + "\n"
 	f.storage.Write(filename, strings.NewReader(header), int64(len(header)))
-
 	for {
-		data, ok := <-w.ReadData()
+		data, ok := <-w.GetData()
 		if !ok {
-			break
+			return nil
 		}
 		if err := f.write(filename, data, p, wi); err != nil {
-			w.SendWriteErrorFeed(err)
 			return err
 		}
-		w.SendWriteProgress(len(data))
+		w.SendOutputProgress(data.Count())
 	}
-	w.WriteWorkerDone()
-	return
 }
-func (f *CsvFormat) Write(p meta.ExtParams, w wire.Wire) (err error) {
+func (f *CsvFormat) Write(p meta.ExtParams, w *wire.Wire) (err error) {
 	var parallel int = p.GetOutputParallel()
 	if parallel < 1 {
 		log.Warn().Msgf("invalid parallel write setting %d. Using %d", parallel, 1)
 	}
 	files := generateFileNames(getOutputFileName(p), parallel)
 
-	wg := &sync.WaitGroup{}
+	mwg := esync.NewWaitGroup(w, types.OutputConnector)
 	for i, file := range files {
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, file string, w wire.Wire, wi int) {
+		mwg.Add(1)
+		go func(wg *esync.WaitGroup, file string, w *wire.Wire, wi int) {
 			defer wg.Done()
-			err := f.StartWriteWorker(file, p, w, wi)
-			if err != nil {
-				w.SendFeed(feeds.NewError(feeds.SenderOutputConnector, err))
+			if err := f.StartWriteWorker(file, p, w, wi); err != nil {
+				w.SendOutputError(err)
 			}
-		}(wg, file, w, i)
+		}(mwg, file, w, i)
 	}
-	wg.Wait()
-	w.SendFeed(feeds.NewSuccess(feeds.SenderOutputConnector))
-	w.WriteDone()
+	mwg.Wait()
 	return
 }

@@ -1,15 +1,15 @@
 package meta
 
 import (
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
+	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/rs/zerolog/log"
 )
 
-func ToOutputData(inputData feeds.Data, p ExtParams) (feeds.Data, error) {
+func ToOutputData(input []msg.Record, p ExtParams) ([]msg.Record, error) {
 	dataset := p.GetOutputDataset()
-	outputData := make(feeds.Data, len(inputData))
-	for i, r := range inputData {
-		record := make(feeds.Record, len(dataset.Fields))
+	output := make([]msg.Record, len(input))
+	for i, r := range input {
+		record := make(msg.Record, len(dataset.Fields))
 		for _, f := range dataset.Fields {
 			sourceFieldName := p.GetSourceFieldNameByTargetFieldName(f.Name)
 			v, ok := r[sourceFieldName]
@@ -18,7 +18,7 @@ func ToOutputData(inputData feeds.Data, p ExtParams) (feeds.Data, error) {
 				log.Debug().Msgf("source field matching to target %s not found in record %d", f.Name, i)
 			}
 		}
-		outputData[i] = record
+		output[i] = record
 	}
-	return outputData, nil
+	return output, nil
 }

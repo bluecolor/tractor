@@ -6,6 +6,6 @@ import (
 )
 
 type FileFormat interface {
-	Read(e meta.ExtParams, w wire.Wire) (err error)
-	Write(e meta.ExtParams, w wire.Wire) (err error)
+	Read(e meta.ExtParams, w *wire.Wire) (err error)
+	Write(e meta.ExtParams, w *wire.Wire) (err error)
 }

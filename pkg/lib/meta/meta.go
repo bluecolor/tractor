@@ -1,7 +1,5 @@
 package meta
 
-import "github.com/bluecolor/tractor/pkg/lib/feeds"
-
 type ExtractionMode int
 
 const (
@@ -76,9 +74,9 @@ func (c Config) GetBool(key string, def bool) bool {
 	}
 	return def
 }
-func (c Config) GetChannel(key string) chan feeds.Data {
+func (c Config) GetChannel(key string) chan interface{} {
 	if v, ok := c[key]; ok {
-		if ch, ok := v.(chan feeds.Data); ok {
+		if ch, ok := v.(chan interface{}); ok {
 			return ch
 		}
 	}
@@ -108,4 +106,12 @@ type FieldMapping struct {
 	SourceField Field  `json:"sourceField"`
 	TargetField Field  `json:"targetField"`
 	Config      Config `json:"config"`
+}
+
+type Connection struct {
+	Name           string `json:"name"`
+	ConnectionType string `json:"connectionType"`
+	Config         Config `json:"config"`
+	AsSource       bool   `json:"asSource"`
+	AsTarget       bool   `json:"asTarget"`
 }

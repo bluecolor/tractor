@@ -10,12 +10,12 @@ type Connector interface {
 	Close() error
 }
 
-type BaseConnector struct{}
+type Base struct{}
 
-func (c BaseConnector) Connect() error {
+func (c Base) Connect() error {
 	return nil
 }
-func (c BaseConnector) Close() error {
+func (c Base) Close() error {
 	return nil
 }
 
@@ -24,11 +24,11 @@ type MetaFinder interface {
 	FindDatasets(pattern string) ([]meta.Dataset, error)
 }
 
-type InputConnector interface {
+type Input interface {
 	Connector
-	Read(p meta.ExtParams, w wire.Wire) error
+	Read(p meta.ExtParams, w *wire.Wire) error
 }
-type OutputConnector interface {
+type Output interface {
 	Connector
-	Write(e meta.ExtParams, w wire.Wire) error
+	Write(e meta.ExtParams, w *wire.Wire) error
 }

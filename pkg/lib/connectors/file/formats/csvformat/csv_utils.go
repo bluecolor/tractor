@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bluecolor/tractor/pkg/lib/feeds"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/utils"
 )
 
@@ -35,12 +35,11 @@ func toLinesWithRest(bs string) ([]string, []byte) {
 	}
 	return lines, rest
 }
-
-func toRecord(row []string, fields []meta.Field) (feeds.Record, error) {
+func toRecord(row []string, fields []meta.Field) (msg.Record, error) {
 	if len(row) != len(fields) {
 		return nil, errors.New("wrong number of fields in record")
 	}
-	record := feeds.Record{}
+	record := msg.Record{}
 	for i, f := range fields {
 		if f.Name == "" {
 			f.Name = fmt.Sprintf("col%d", i)
