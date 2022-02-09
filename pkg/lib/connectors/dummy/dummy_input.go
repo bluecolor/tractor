@@ -11,21 +11,12 @@ func getInputChannel(p meta.ExtParams) <-chan interface{} {
 
 func (c *DummyConnector) Read(p meta.ExtParams, w *wire.Wire) (err error) {
 	var channel <-chan interface{} = getInputChannel(p)
-
 	for {
-		select {
-		case <-w.Context().Done():
-			err = w.Context().Err()
-			if err != nil {
-				w.SendInputCancelled(err)
-			}
-			return
-		case data, ok := <-channel:
-			if !ok {
-				w.SendInputSuccess()
-				return
-			}
-			w.SendData(data)
+		data, ok := <-channel
+		if !ok {
+			w.SendInputSuccess()
+			return nil
 		}
+		w.SendData(data)
 	}
 }

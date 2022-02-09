@@ -27,6 +27,11 @@ func (m *MySQLConnector) BuildReadQuery(p meta.ExtParams, i int) (query string, 
 	return
 }
 func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w *wire.Wire, i int) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
 	bw := wire.NewBuffered(w, p.GetInputBufferSize())
 	query, err := m.BuildReadQuery(p, i)
 	if err != nil {
@@ -70,17 +75,16 @@ func (m *MySQLConnector) Read(p meta.ExtParams, w *wire.Wire) (err error) {
 		log.Warn().Msgf("invalid parallel read setting %d. Using %d", parallel, 1)
 		parallel = 1
 	}
-	mwg := esync.NewManagedWaitGroup(w, types.InputConnector)
+	wg := esync.NewWaitGroup(w, types.InputConnector)
 	for i := 0; i < parallel; i++ {
-		mwg.Add(1)
-		go func(mwg *esync.ManagedWaitGroup, i int) {
-			defer mwg.Done()
+		wg.Add(1)
+		go func(wg *esync.WaitGroup, i int) {
+			defer wg.Done()
 			if err := m.StartReadWorker(p, w, i); err != nil {
-				mwg.SetError(err)
-				w.SendInputError(err)
+				wg.HandleError(err)
 			}
-		}(mwg, i)
+		}(wg, i)
 	}
-	mwg.Wait()
+	wg.Wait()
 	return
 }

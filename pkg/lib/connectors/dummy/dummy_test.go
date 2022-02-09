@@ -27,7 +27,7 @@ func TestReadWrite(t *testing.T) {
 	config := connectors.ConnectorConfig{}
 	connector := New(config)
 	p := test.GetExtParams()
-	w, _, cancel := wire.NewWithTimeout(TIMEOUT)
+	w, cancel, _ := wire.NewWithTimeout(TIMEOUT)
 	wg := &sync.WaitGroup{}
 
 	// collect test results

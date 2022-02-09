@@ -161,7 +161,7 @@ func TestIO(t *testing.T) {
 		WithArgs(utils.TwoToOneDim(data)...).
 		WillReturnResult(sqlmock.NewResult(0, 2))
 
-	w, _, cancel := wire.NewWithDefaultTimeout()
+	w, cancel, _ := wire.NewWithDefaultTimeout()
 	wg := &sync.WaitGroup{}
 
 	wg.Add(1)

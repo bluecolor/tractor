@@ -68,42 +68,32 @@ func (f *CsvFormat) write(filename string, data []msg.Record, p meta.ExtParams, 
 
 // todo add batch size, buffer
 // todo add timeout
-func (f *CsvFormat) StartWriteWorker(filename string, p meta.ExtParams, w wire.Wire, wi int) (err error) {
+func (f *CsvFormat) StartWriteWorker(filename string, p meta.ExtParams, w *wire.Wire, wi int) (err error) {
 	f.storage.Create(filename)
 	header := generateHeader(p) + "\n"
 	f.storage.Write(filename, strings.NewReader(header), int64(len(header)))
 	for {
-		select {
-		case msg, ok := <-w.GetDataMessage():
-			if !ok {
-				w.SendOutputSuccess()
-				return nil
-			}
-			data := msg.Data()
-			if !ok {
-				return nil
-			}
-			if err := f.write(filename, data, p, wi); err != nil {
-				w.SendOutputError(err)
-				return err
-			}
-			w.SendOutputProgress(len(data))
-		case <-w.Context().Done():
-			return w.Context().Err()
+		data, ok := <-w.GetData()
+		if !ok {
+			return nil
 		}
+		if err := f.write(filename, data, p, wi); err != nil {
+			return err
+		}
+		w.SendOutputProgress(data.Count())
 	}
 }
-func (f *CsvFormat) Write(p meta.ExtParams, w wire.Wire) (err error) {
+func (f *CsvFormat) Write(p meta.ExtParams, w *wire.Wire) (err error) {
 	var parallel int = p.GetOutputParallel()
 	if parallel < 1 {
 		log.Warn().Msgf("invalid parallel write setting %d. Using %d", parallel, 1)
 	}
 	files := generateFileNames(getOutputFileName(p), parallel)
 
-	mwg := esync.NewManagedWaitGroup(w, types.OutputConnector)
+	mwg := esync.NewWaitGroup(w, types.OutputConnector)
 	for i, file := range files {
 		mwg.Add(1)
-		go func(wg *esync.ManagedWaitGroup, file string, w wire.Wire, wi int) {
+		go func(wg *esync.WaitGroup, file string, w *wire.Wire, wi int) {
 			defer wg.Done()
 			if err := f.StartWriteWorker(file, p, w, wi); err != nil {
 				w.SendOutputError(err)

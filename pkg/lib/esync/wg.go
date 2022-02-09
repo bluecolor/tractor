@@ -32,47 +32,53 @@ func NewWaitGroup(w *wire.Wire, ct types.ConnectorType) *WaitGroup {
 		cancel: cancel,
 	}
 }
-func (wg *WaitGroup) Context() context.Context {
-	return wg.ctx
+func (g *WaitGroup) Context() context.Context {
+	return g.ctx
 }
-func (wg *WaitGroup) Error() error {
-	return wg.err
+func (g *WaitGroup) Error() error {
+	return g.err
 }
-func (wg *WaitGroup) Cancelled() bool {
-	return wg.cancelled
+func (g *WaitGroup) Cancelled() bool {
+	return g.cancelled
 }
-func (wg *WaitGroup) HandleError(err error) {
-	wg.mu.Lock()
-	defer wg.mu.Unlock()
-
-	if errors.Is(err, wg.w.Context().Err()) {
-		wg.cancelled = true
-	} else if !errors.Is(err, wg.ctx.Err()) {
-		wg.err = err
+func (g *WaitGroup) HandleError(err error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.err == nil {
+		g.err = err
+	}
+	if err.Error() == "send on closed channel" {
+		g.cancelled = true
 	}
 }
-func (wg *WaitGroup) Add(n int) {
-	wg.mu.Lock()
-	defer wg.mu.Unlock()
-	wg.wg.Add(n)
+func (g *WaitGroup) Add(n int) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.wg.Add(n)
 }
-func (wg *WaitGroup) Done() {
-	wg.mu.Lock()
-	defer wg.mu.Unlock()
-	wg.wg.Done()
+func (g *WaitGroup) Done() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.wg.Done()
 }
-func (wg *WaitGroup) Finish() error {
-	sender := msg.SenderFromConnectorType(wg.ct)
-	if wg.cancelled {
-		wg.w.SendCancelled(sender)
-	} else if wg.err != nil {
-		wg.w.SendError(sender, wg.err)
+func (g *WaitGroup) Finish() error {
+	sender := msg.SenderFromConnectorType(g.ct)
+	if g.cancelled {
+		g.w.SendCancelled(sender)
+	} else if g.err != nil {
+		g.w.SendError(sender, g.err)
 	} else {
-		wg.w.SendSuccess(sender)
+		g.w.SendSuccess(sender)
 	}
-	return wg.err
+	return g.err
 }
 func (wg *WaitGroup) Wait() error {
 	wg.wg.Wait()
 	return wg.Finish()
+}
+func (wg *WaitGroup) Cancel() {
+	wg.mu.Lock()
+	defer wg.mu.Unlock()
+	wg.cancel()
+	wg.cancelled = errors.Is(wg.err, wg.ctx.Err())
 }

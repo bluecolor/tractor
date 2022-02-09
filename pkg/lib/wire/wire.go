@@ -2,68 +2,41 @@ package wire
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 )
 
 type Wire struct {
-	mu               sync.Mutex
-	ctx              context.Context
-	data             chan *msg.Message
-	feedback         chan *msg.Message
-	isDataClosed     bool
-	isFeedbackClosed bool
+	data     chan msg.Data
+	feedback chan *msg.Feedback
 }
 
 func New(ctx context.Context) *Wire {
 	return &Wire{
-		mu:       sync.Mutex{},
-		ctx:      ctx,
-		data:     make(chan *msg.Message, 1000),
-		feedback: make(chan *msg.Message, 1000),
+		data:     make(chan msg.Data, 1000),
+		feedback: make(chan *msg.Feedback, 100),
 	}
 }
-func NewWithTimeout(timeout time.Duration) (*Wire, context.Context, context.CancelFunc) {
+func NewWithTimeout(timeout time.Duration) (*Wire, context.CancelFunc, context.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	return New(ctx), ctx, cancel
+	return New(ctx), cancel, ctx
 }
-func NewWithDefaultTimeout() (*Wire, context.Context, context.CancelFunc) {
+func NewWithDefaultTimeout() (*Wire, context.CancelFunc, context.Context) {
 	timeout := time.Second * 50000 //todo default timeout
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	return New(ctx), ctx, cancel
+	return New(ctx), cancel, ctx
 }
 
-func (w *Wire) IsDataClosed() bool {
-	return w.isDataClosed
-}
-func (w *Wire) IsFeedbackClosed() bool {
-	return w.isFeedbackClosed
-}
-
-func (w *Wire) Context() context.Context {
-	return w.ctx
-}
 func (w *Wire) Close() {
 	w.CloseData()
 	w.CloseFeedback()
 }
 func (w *Wire) CloseFeedback() {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	if !w.isFeedbackClosed {
-		close(w.feedback)
-		w.isFeedbackClosed = true
-	}
+	close(w.feedback)
 }
 func (w *Wire) CloseData() {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	if !w.isDataClosed {
-		close(w.data)
-		w.isDataClosed = true
-	}
+	close(w.data)
 }
 func (w *Wire) SendData(data interface{}, args ...interface{}) {
 	var sendProgress bool = true
@@ -76,13 +49,13 @@ func (w *Wire) SendData(data interface{}, args ...interface{}) {
 		w.SendInputProgress(message.Count())
 	}
 }
-func (w *Wire) SendFeedback(feedback *msg.Message) {
-	w.feedback <- feedback
-}
-func (w *Wire) GetDataMessage() <-chan *msg.Message {
+func (w *Wire) GetData() <-chan msg.Data {
 	return w.data
 }
-func (w *Wire) GetFeedback() <-chan *msg.Message {
+func (w *Wire) SendFeedback(feedback *msg.Feedback) {
+	w.feedback <- feedback
+}
+func (w *Wire) GetFeedback() <-chan *msg.Feedback {
 	return w.feedback
 }
 func (w *Wire) SendSuccess(sender msg.Sender, args ...interface{}) {
@@ -121,8 +94,8 @@ func (w *Wire) SendInputWarning(content interface{}) {
 func (w *Wire) SendInputDebug(content interface{}) {
 	w.SendDebug(msg.InputConnector, content)
 }
-func (w *Wire) SendOutputProgress(count int) {
-	w.SendProgress(msg.OutputConnector, count)
+func (w *Wire) SendOutputProgress(progress int) {
+	w.SendProgress(msg.OutputConnector, progress)
 }
 func (w *Wire) SendOutputSuccess(args ...interface{}) {
 	w.SendSuccess(msg.OutputConnector, args...)

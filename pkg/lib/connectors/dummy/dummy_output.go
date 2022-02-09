@@ -12,25 +12,12 @@ func getOutputChannel(p meta.ExtParams) chan<- interface{} {
 func (c *DummyConnector) Write(p meta.ExtParams, w *wire.Wire) error {
 	var outputChannel chan<- interface{} = getOutputChannel(p)
 	for {
-		select {
-		case <-w.Context().Done():
-			if err := w.Context().Err(); err != nil {
-				w.SendOutputCancelled(err)
-				return err
-			}
+		data, ok := <-w.GetData()
+		if !ok {
+			w.SendOutputSuccess()
 			return nil
-		case msg, ok := <-w.GetDataMessage():
-			if !ok {
-				w.SendOutputSuccess()
-				return nil
-			}
-			od, err := meta.ToOutputData(msg.Data(), p)
-			if err != nil {
-				w.SendOutputError(err)
-				return err
-			}
-			outputChannel <- od
-			w.SendOutputProgress(msg.Count())
 		}
+		outputChannel <- data
+		w.SendOutputProgress(len(data))
 	}
 }

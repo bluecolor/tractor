@@ -7,9 +7,10 @@ import (
 )
 
 type (
-	MessageType int
-	Sender      int
-	Record      map[string]interface{}
+	FeedbackType int
+	Sender       int
+	Record       map[string]interface{}
+	Data         []Record
 )
 
 const (
@@ -18,8 +19,7 @@ const (
 	OutputConnector
 )
 const (
-	Data MessageType = iota
-	Progress
+	Progress FeedbackType = iota
 	Success
 	Error
 	Info
@@ -39,10 +39,8 @@ func SenderFromConnectorType(ct types.ConnectorType) Sender {
 	}
 }
 
-func (m MessageType) String() string {
-	switch m {
-	case Data:
-		return "data"
+func (ft FeedbackType) String() string {
+	switch ft {
 	case Progress:
 		return "Progress"
 	case Success:
@@ -56,7 +54,7 @@ func (m MessageType) String() string {
 	case Debug:
 		return "Debug"
 	default:
-		return fmt.Sprintf("%d", int(m))
+		return fmt.Sprintf("%d", int(ft))
 	}
 }
 func (s Sender) String() string {
@@ -72,140 +70,165 @@ func (s Sender) String() string {
 	}
 }
 
-type Message struct {
-	Type    MessageType
-	Sender  Sender
-	Content interface{}
-}
-
-func (m *Message) String() string {
-	return fmt.Sprintf("%v: %v", m.Sender, m.Type)
-}
-func (m *Message) Data() []Record {
-	return m.Content.([]Record)
-}
-func (m *Message) Count() int {
-	switch m.Type {
-	case Progress:
-		return m.Content.(int)
-	case Data:
-		return len(m.Data())
-	default:
-		return 0
-	}
-}
-func (m *Message) Error() error {
-	return m.Content.(error)
-}
-
-func NewData(data interface{}, args ...interface{}) *Message {
+func NewData(data interface{}, args ...interface{}) Data {
 	var content []Record
-	var sender Sender = InputConnector
 	switch val := data.(type) {
 	case []Record:
 		content = val
 	case Record:
 		content = []Record{val}
+	case Data:
+		content = val
 	default:
 		return nil
 	}
-	if len(args) > 0 {
-		sender = args[0].(Sender)
-	}
-	return &Message{
-		Sender:  sender,
-		Type:    Data,
-		Content: content,
+	return content
+}
+
+func (d Data) Count() int {
+	return len(d)
+}
+
+type Feedback struct {
+	Type    FeedbackType
+	Sender  Sender
+	Content interface{}
+}
+
+func (f *Feedback) String() string {
+	return fmt.Sprintf("%v: %v", f.Sender, f.Type)
+}
+func (f *Feedback) Data() []Record {
+	return f.Content.([]Record)
+}
+
+func (f *Feedback) Progress() int {
+	switch f.Type {
+	case Progress:
+		return f.Content.(int)
+	default:
+		return 0
 	}
 }
-func NewError(sender Sender, err error) *Message {
-	return &Message{
+func (f *Feedback) InputProgress() int {
+	if f.Sender == InputConnector {
+		return f.Progress()
+	}
+	return 0
+}
+func (f *Feedback) OutputProgress() int {
+	if f.Sender == OutputConnector {
+		return f.Progress()
+	}
+	return 0
+}
+func (f *Feedback) IsInputSuccess() bool {
+	return f.Sender == InputConnector && f.Type == Success
+}
+func (f *Feedback) IsOutputSuccess() bool {
+	return f.Sender == OutputConnector && f.Type == Success
+}
+func (f *Feedback) IsInputError() bool {
+	return f.Sender == InputConnector && f.Type == Error
+}
+func (f *Feedback) IsOutputError() bool {
+	return f.Sender == OutputConnector && f.Type == Error
+}
+func (f *Feedback) IsError() bool {
+	return f.Type == Error
+}
+
+func (f *Feedback) Error() error {
+	return f.Content.(error)
+}
+func NewError(sender Sender, err error) *Feedback {
+	return &Feedback{
 		Type:    Error,
 		Sender:  sender,
 		Content: err,
 	}
 }
-func NewSuccess(sender Sender, args ...interface{}) *Message {
+func NewSuccess(sender Sender, args ...interface{}) *Feedback {
 	var content interface{}
 	if len(args) > 0 {
 		content = args[0]
 	}
-	return &Message{
+	return &Feedback{
 		Type:    Success,
 		Sender:  sender,
 		Content: content,
 	}
 }
-func NewInfo(sender Sender, content interface{}) *Message {
-	return &Message{
+func NewInfo(sender Sender, content interface{}) *Feedback {
+	return &Feedback{
 		Type:    Info,
 		Sender:  sender,
 		Content: content,
 	}
 }
-func NewWarning(sender Sender, content interface{}) *Message {
-	return &Message{
+func NewWarning(sender Sender, content interface{}) *Feedback {
+	return &Feedback{
 		Type:    Warning,
 		Sender:  sender,
 		Content: content,
 	}
 }
-func NewDebug(sender Sender, content interface{}) *Message {
-	return &Message{
+func NewDebug(sender Sender, content interface{}) *Feedback {
+	return &Feedback{
 		Type:    Debug,
 		Sender:  sender,
 		Content: content,
 	}
 }
-func NewOutputProgress(count int) *Message {
-	return &Message{
+func NewOutputProgress(count int) *Feedback {
+	return &Feedback{
 		Sender:  OutputConnector,
 		Type:    Progress,
 		Content: count,
 	}
 }
-func NewInputProgress(count int) *Message {
-	return &Message{
+func NewInputProgress(count int) *Feedback {
+	return &Feedback{
 		Sender:  InputConnector,
 		Type:    Progress,
 		Content: count,
 	}
 }
-func NewProgress(sender Sender, count int) *Message {
-	return &Message{
+func NewProgress(sender Sender, count int) *Feedback {
+	return &Feedback{
 		Sender:  sender,
 		Type:    Progress,
 		Content: count,
 	}
 }
-func NewCancelled(sender Sender, args ...interface{}) *Message {
+func NewCancelled(sender Sender, args ...interface{}) *Feedback {
 	var content interface{}
 	if len(args) > 0 {
 		content = args[0]
 	}
-	return &Message{
+	return &Feedback{
 		Type:    Cancelled,
 		Sender:  sender,
 		Content: content,
 	}
 }
-func NewInputCancelled(args ...interface{}) *Message {
+func NewInputCancelled(args ...interface{}) *Feedback {
 	var content interface{}
 	if len(args) > 0 {
 		content = args[0]
 	}
-	return &Message{
+	return &Feedback{
 		Type:    Cancelled,
 		Sender:  InputConnector,
 		Content: content,
 	}
 }
-func NewOutputCancelled(args ...interface{}) *Message {
+func NewOutputCancelled(args ...interface{}) *Feedback {
 	var content interface{}
 	if len(args) > 0 {
 		content = args[0]
 	}
-	return &Message{
+	return &Feedback{
 		Type:    Cancelled,
 		Sender:  OutputConnector,
 		Content: content,

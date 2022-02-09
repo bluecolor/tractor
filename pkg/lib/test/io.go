@@ -10,7 +10,7 @@ import (
 func Record(w *wire.Wire, cancel context.CancelFunc) *wire.Casette {
 	var inputSuccess, outputSuccess bool
 
-	cb := func(m *msg.Message) error {
+	cb := func(m *msg.Feedback) error {
 		if m.Type == msg.Error {
 			cancel()
 			return m.Content.(error)
@@ -28,6 +28,6 @@ func Record(w *wire.Wire, cancel context.CancelFunc) *wire.Casette {
 		return nil
 	}
 	c := wire.NewCasette()
-	c.RecordWithCancellable(w, cancel, cb)
+	c.RecordWithCallback(w, cb)
 	return c
 }

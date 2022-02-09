@@ -24,7 +24,7 @@ func getInputFiles(p meta.ExtParams) []string {
 func getHeader(p meta.ExtParams) bool {
 	return p.GetInputDataset().Config.GetBool(HeaderKey, true)
 }
-func (f *CsvFormat) Work(filename string, p meta.ExtParams, w wire.Wire, wi int) (err error) {
+func (f *CsvFormat) Work(filename string, p meta.ExtParams, w *wire.Wire, wi int) (err error) {
 	var buf bytes.Buffer
 	size, offset := int64(1000), int64(0) // todo size from .env
 	rest := []byte{}
@@ -72,7 +72,7 @@ func (f *CsvFormat) Work(filename string, p meta.ExtParams, w wire.Wire, wi int)
 	bw.Flush()
 	return nil
 }
-func (f *CsvFormat) StartReadWorker(files []string, p meta.ExtParams, w wire.Wire, wi int) (err error) {
+func (f *CsvFormat) StartReadWorker(files []string, p meta.ExtParams, w *wire.Wire, wi int) (err error) {
 	for _, file := range files {
 		if err = f.Work(file, p, w, wi); err != nil {
 			return
@@ -80,15 +80,15 @@ func (f *CsvFormat) StartReadWorker(files []string, p meta.ExtParams, w wire.Wir
 	}
 	return
 }
-func (f *CsvFormat) Read(p meta.ExtParams, w wire.Wire) (err error) {
+func (f *CsvFormat) Read(p meta.ExtParams, w *wire.Wire) (err error) {
 	chunks, err := getFileChunks(getInputFiles(p), p.GetInputParallel())
 	if err != nil {
 		return err
 	}
-	mwg := esync.NewManagedWaitGroup(w, types.InputConnector)
+	mwg := esync.NewWaitGroup(w, types.InputConnector)
 	for i, chunk := range chunks {
 		mwg.Add(1)
-		go func(wg *esync.ManagedWaitGroup, chunk []string, w wire.Wire, i int) {
+		go func(wg *esync.WaitGroup, chunk []string, w *wire.Wire, i int) {
 			defer wg.Done()
 			if err := f.StartReadWorker(chunk, p, w, i); err != nil {
 				w.SendInputError(err)

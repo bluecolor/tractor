@@ -14,15 +14,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (c *MySQLConnector) write(p meta.ExtParams, i int, data []msg.Record) error {
+func (c *MySQLConnector) write(p meta.ExtParams, i int, data msg.Data) error {
 	ok := true
 	dataset := *p.GetOutputDataset()
-	query, err := c.BuildBatchInsertQuery(dataset, len(data))
+	query, err := c.BuildBatchInsertQuery(dataset, data.Count())
 	if err != nil {
 		log.Error().Err(err).Msg("failed to build batch insert query")
 		return err
 	}
-	values := make([]interface{}, len(data)*len(dataset.Fields))
+	values := make([]interface{}, data.Count()*len(dataset.Fields))
 	for i, r := range data {
 		for j, f := range dataset.Fields {
 			values[i*len(dataset.Fields)+j], ok = r[p.GetSourceFieldNameByTargetFieldName(f.Name)]
@@ -38,20 +38,16 @@ func (c *MySQLConnector) write(p meta.ExtParams, i int, data []msg.Record) error
 // todo add batch size, buffer
 // todo add timeout
 func (m *MySQLConnector) StartWriteWorker(ctx context.Context, p meta.ExtParams, w *wire.Wire, i int) error {
-
 	for {
 		select {
-		case msg, ok := <-w.GetDataMessage():
+		case data, ok := <-w.GetData():
 			if !ok {
 				return nil
 			}
-			data := msg.Data()
 			if err := m.write(p, i, data); err != nil {
 				return err
 			}
-			w.SendOutputProgress(len(data))
-		case <-w.Context().Done():
-			return w.Context().Err()
+			w.SendOutputProgress(data.Count())
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -73,10 +69,10 @@ func (m *MySQLConnector) Write(p meta.ExtParams, w *wire.Wire) (err error) {
 		w.SendOutputError(err)
 		return
 	}
-	mwg := esync.NewManagedWaitGroup(w, types.OutputConnector)
+	mwg := esync.NewWaitGroup(w, types.OutputConnector)
 	for i := 0; i < parallel; i++ {
 		mwg.Add(1)
-		go func(mwg *esync.ManagedWaitGroup, i int, wire *wire.Wire) {
+		go func(mwg *esync.WaitGroup, i int, wire *wire.Wire) {
 			defer mwg.Done()
 			if err := m.StartWriteWorker(mwg.Context(), p, w, i); err != nil {
 				mwg.HandleError(err)
@@ -152,9 +148,9 @@ func (m *MySQLConnector) PrepareTable(p meta.ExtParams) (err error) {
 		if err = m.DropTable(dataset); err != nil {
 			return
 		}
-		// if err = m.CreateTable(dataset); err != nil {
-		// 	return
-		// }
+		if err = m.CreateTable(dataset); err != nil {
+			return
+		}
 	case meta.ExtractionModeInsert:
 		if err = m.TruncateTable(dataset); err != nil {
 			return

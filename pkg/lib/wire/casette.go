@@ -1,20 +1,18 @@
 package wire
 
 import (
-	"context"
-
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 )
 
-type Casette []*msg.Message
+type Casette []*msg.Feedback
 
 func NewCasette() *Casette {
 	return &Casette{}
 }
 
 type Memo struct {
-	Errors        []*msg.Message
-	Successes     []*msg.Message
+	Errors        []*msg.Feedback
+	Successes     []*msg.Feedback
 	ReadCount     int
 	WriteCount    int
 	FeedbackCount int
@@ -27,7 +25,7 @@ func (m *Memo) HasError() bool {
 	return len(m.Errors) > 0
 }
 
-func (c *Casette) process(m *msg.Message) {
+func (c *Casette) process(m *msg.Feedback) {
 	*c = append(*c, m)
 }
 func (c *Casette) Record(w *Wire) {
@@ -35,27 +33,14 @@ func (c *Casette) Record(w *Wire) {
 		c.process(m)
 	}
 }
-func (c *Casette) RecordWithCallback(w *Wire, callback func(*msg.Message)) {
+func (c *Casette) RecordWithCallback(w *Wire, callback func(*msg.Feedback) error) error {
 	for m := range w.GetFeedback() {
 		c.process(m)
-		callback(m)
-	}
-}
-func (c *Casette) RecordWithCancellable(w *Wire, cancel context.CancelFunc, callback func(*msg.Message) error) {
-	for {
-		select {
-		case m, ok := <-w.GetFeedback():
-			if !ok {
-				return
-			}
-			c.process(m)
-			if err := callback(m); err != nil {
-				return
-			}
-		case <-w.Context().Done():
-			return
+		if err := callback(m); err != nil {
+			return err
 		}
 	}
+	return nil
 }
 func (c *Casette) GetReadCount() (count int) {
 	for _, m := range *c {
@@ -73,7 +58,7 @@ func (c *Casette) GetWriteCount() (count int) {
 	}
 	return
 }
-func (c *Casette) GetFeedbacks() []*msg.Message {
+func (c *Casette) GetFeedbacks() []*msg.Feedback {
 	return *c
 }
 func (c *Casette) IsSuccess() bool {
@@ -121,8 +106,8 @@ func (c *Casette) Errors() []error {
 }
 func (c *Casette) GetMemo() *Memo {
 	var memo *Memo = &Memo{
-		Errors:    []*msg.Message{},
-		Successes: []*msg.Message{},
+		Errors:    []*msg.Feedback{},
+		Successes: []*msg.Feedback{},
 	}
 	if len(*c) == 0 {
 		return memo
@@ -136,9 +121,9 @@ func (c *Casette) GetMemo() *Memo {
 			memo.Successes = append(memo.Successes, m)
 		case msg.Progress:
 			if m.Sender == msg.InputConnector {
-				memo.ReadCount += m.Count()
+				memo.ReadCount += m.Progress()
 			} else if m.Sender == msg.OutputConnector {
-				memo.WriteCount += m.Count()
+				memo.WriteCount += m.Progress()
 			}
 		}
 	}
