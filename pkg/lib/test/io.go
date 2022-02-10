@@ -10,6 +10,7 @@ func Record(w *wire.Wire) *wire.Casette {
 	c := wire.NewCasette()
 
 	cb := func(m *msg.Feedback) error {
+		println("feedback:", m.Type.String())
 		if m.Type == msg.Error {
 			return m.Content.(error)
 		} else if m.Type == msg.Success {

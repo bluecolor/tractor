@@ -26,6 +26,10 @@ func (p ExtParams) WithInputDataset(dataset Dataset) ExtParams {
 	p[InputDatasetKey] = dataset
 	return p
 }
+func (p ExtParams) WithInputParallel(parallel int) ExtParams {
+	p[InputDatasetKey].(Dataset).Config[ParallelKey] = parallel
+	return p
+}
 func (p ExtParams) WithOutputDataset(dataset Dataset) ExtParams {
 	p[OutputDatasetKey] = dataset
 	return p
