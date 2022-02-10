@@ -40,7 +40,7 @@ func (c *MySQLConnector) write(p meta.ExtParams, i int, data msg.Data) error {
 func (m *MySQLConnector) StartWriteWorker(ctx context.Context, p meta.ExtParams, w *wire.Wire, i int) error {
 	for {
 		select {
-		case data, ok := <-w.GetData():
+		case data, ok := <-w.ReceiveData():
 			if !ok {
 				return nil
 			}

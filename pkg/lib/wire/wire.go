@@ -37,13 +37,13 @@ func (w *Wire) SendData(data interface{}, args ...interface{}) {
 		w.SendInputProgress(message.Count())
 	}
 }
-func (w *Wire) GetData() <-chan msg.Data {
+func (w *Wire) ReceiveData() <-chan msg.Data {
 	return w.data
 }
 func (w *Wire) SendFeedback(feedback *msg.Feedback) {
 	w.feedback <- feedback
 }
-func (w *Wire) GetFeedback() <-chan *msg.Feedback {
+func (w *Wire) ReceiveFeedback() <-chan *msg.Feedback {
 	return w.feedback
 }
 func (w *Wire) SendSuccess(sender msg.Sender, args ...interface{}) {

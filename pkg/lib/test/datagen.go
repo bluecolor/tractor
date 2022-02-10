@@ -138,3 +138,30 @@ func GenerateTestData(recordCount int, ch chan<- interface{}) (err error) {
 	}
 	return
 }
+
+func getOneRecord() (record msg.Record, err error) {
+	fake := testrecord{}
+	gofakeit.Struct(&fake)
+
+	r, err := json.Marshal(fake)
+	if err != nil {
+		return nil, err
+	}
+	record = msg.Record{}
+	if err = json.Unmarshal(r, &record); err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
+func GenerateTestDataWithDuration(rc int, ch chan<- interface{}, dur time.Duration) (err error) {
+	for i := 0; i < rc; i++ {
+		time.Sleep(dur / time.Duration(rc))
+		record, err := getOneRecord()
+		if err != nil {
+			return err
+		}
+		ch <- record
+	}
+	return
+}
