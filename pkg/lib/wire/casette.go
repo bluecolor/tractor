@@ -11,30 +11,78 @@ func NewCasette() *Casette {
 }
 
 type Memo struct {
-	Errors        []*msg.Feedback
-	Successes     []*msg.Feedback
-	ReadCount     int
-	WriteCount    int
-	FeedbackCount int
+	errors           []*msg.Feedback
+	successes        []*msg.Feedback
+	hasInputError    bool
+	hasInputSuccess  bool
+	hasOutputError   bool
+	hasOutputSuccess bool
+	readCount        int
+	writeCount       int
+	feedbackCount    int
 }
 
+func (m *Memo) HasInputError() bool {
+	for _, m := range m.errors {
+		if m.Sender == msg.InputConnector {
+			return true
+		}
+	}
+	return false
+}
+func (m *Memo) HasOutputError() bool {
+	for _, m := range m.errors {
+		if m.Sender == msg.OutputConnector {
+			return true
+		}
+	}
+	return false
+}
+func (m *Memo) HasInputSuccess() bool {
+	for _, m := range m.successes {
+		if m.Sender == msg.InputConnector {
+			return true
+		}
+	}
+	return false
+}
+func (m *Memo) HasOutputSuccess() bool {
+	for _, m := range m.successes {
+		if m.Sender == msg.OutputConnector {
+			return true
+		}
+	}
+	return false
+}
 func (m *Memo) IsEmpty() bool {
-	return m.FeedbackCount == 0
+	return m.feedbackCount == 0
 }
 func (m *Memo) HasError() bool {
-	return len(m.Errors) > 0
+	return len(m.errors) > 0
+}
+func (m *Memo) ReadCount() int {
+	return m.readCount
+}
+func (m *Memo) WriteCount() int {
+	return m.writeCount
+}
+func (m *Memo) Errors() []*msg.Feedback {
+	return m.errors
+}
+func (m *Memo) Successes() []*msg.Feedback {
+	return m.successes
 }
 
 func (c *Casette) process(m *msg.Feedback) {
 	*c = append(*c, m)
 }
 func (c *Casette) Record(w *Wire) {
-	for m := range w.GetFeedback() {
+	for m := range w.ReceiveFeedback() {
 		c.process(m)
 	}
 }
 func (c *Casette) RecordWithCallback(w *Wire, callback func(*msg.Feedback) error) error {
-	for m := range w.GetFeedback() {
+	for m := range w.ReceiveFeedback() {
 		c.process(m)
 		if err := callback(m); err != nil {
 			return err
@@ -61,7 +109,7 @@ func (c *Casette) GetWriteCount() (count int) {
 func (c *Casette) GetFeedbacks() []*msg.Feedback {
 	return *c
 }
-func (c *Casette) IsSuccess() bool {
+func (c *Casette) HasSuccess() bool {
 	var readSuccess, writeSuccess bool
 	for _, m := range *c {
 		if m.Sender == msg.InputConnector && m.Type == msg.Success {
@@ -76,10 +124,10 @@ func (c *Casette) IsSuccess() bool {
 	}
 	return false
 }
-func (c *Casette) IsError() bool {
-	return !c.IsSuccess()
+func (c *Casette) HasError() bool {
+	return !c.HasSuccess()
 }
-func (c *Casette) IsReadSuccess() bool {
+func (c *Casette) HasInputSuccess() bool {
 	for _, m := range *c {
 		if m.Sender == msg.InputConnector && m.Type == msg.Success {
 			return true
@@ -87,7 +135,7 @@ func (c *Casette) IsReadSuccess() bool {
 	}
 	return false
 }
-func (c *Casette) IsWriteSuccess() bool {
+func (c *Casette) HasOutputSuccess() bool {
 	for _, m := range *c {
 		if m.Sender == msg.OutputConnector && m.Type == msg.Success {
 			return true
@@ -104,26 +152,38 @@ func (c *Casette) Errors() []error {
 	}
 	return errors
 }
-func (c *Casette) GetMemo() *Memo {
+func (c *Casette) Memo() *Memo {
 	var memo *Memo = &Memo{
-		Errors:    []*msg.Feedback{},
-		Successes: []*msg.Feedback{},
+		errors:    []*msg.Feedback{},
+		successes: []*msg.Feedback{},
 	}
 	if len(*c) == 0 {
 		return memo
 	}
 	for _, m := range *c {
-		memo.FeedbackCount++
+		memo.feedbackCount++
 		switch m.Type {
 		case msg.Error, msg.Cancelled:
-			memo.Errors = append(memo.Errors, m)
+			memo.errors = append(memo.errors, m)
+			switch m.Sender {
+			case msg.InputConnector:
+				memo.hasInputError = true
+			case msg.OutputConnector:
+				memo.hasOutputError = true
+			}
 		case msg.Success:
-			memo.Successes = append(memo.Successes, m)
+			memo.successes = append(memo.successes, m)
+			switch m.Sender {
+			case msg.InputConnector:
+				memo.hasInputSuccess = true
+			case msg.OutputConnector:
+				memo.hasOutputSuccess = true
+			}
 		case msg.Progress:
 			if m.Sender == msg.InputConnector {
-				memo.ReadCount += m.Progress()
+				memo.readCount += m.Progress()
 			} else if m.Sender == msg.OutputConnector {
-				memo.WriteCount += m.Progress()
+				memo.writeCount += m.Progress()
 			}
 		}
 	}

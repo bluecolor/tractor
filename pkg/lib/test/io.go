@@ -1,6 +1,8 @@
 package test
 
 import (
+	"errors"
+
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
@@ -10,12 +12,16 @@ func Record(w *wire.Wire) *wire.Casette {
 	c := wire.NewCasette()
 
 	cb := func(m *msg.Feedback) error {
-		println("feedback:", m.Type.String())
+		println("feedback:", m.Type.String(), m.Sender.String())
+		if m.Type == msg.Cancelled {
+			return errors.New("cancelled")
+		}
 		if m.Type == msg.Error {
 			return m.Content.(error)
 		} else if m.Type == msg.Success {
 			if m.IsInputSuccess() {
 				inputSuccess = true
+				println("closing data ....")
 				w.CloseData()
 			} else if m.IsOutputSuccess() {
 				outputSuccess = true

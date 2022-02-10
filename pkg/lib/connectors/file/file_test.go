@@ -137,7 +137,7 @@ func testCsvIO(connector *FileConnector, t *testing.T) {
 
 	for {
 		select {
-		case feed, ok := <-w.GetFeedback():
+		case feed, ok := <-w.ReceiveFeedback():
 			if ok {
 				readCount += feed.InputProgress()
 				writeCount += feed.OutputProgress()

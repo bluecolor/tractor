@@ -167,19 +167,19 @@ func TestIO(t *testing.T) {
 	go func(wg *sync.WaitGroup, t *testing.T) {
 		defer wg.Done()
 		casette := test.Record(w)
-		memo := casette.GetMemo()
+		memo := casette.Memo()
 		if memo.HasError() {
-			for _, e := range memo.Errors {
+			for _, e := range memo.Errors() {
 				t.Error(e.Content.(error))
 			}
 			return
 		}
-		if memo.ReadCount != expectedrc {
-			t.Errorf("(read) expected %d records, got %d", expectedrc, memo.ReadCount)
+		if memo.ReadCount() != expectedrc {
+			t.Errorf("(read) expected %d records, got %d", expectedrc, memo.ReadCount())
 			return
 		}
-		if memo.WriteCount != expectedrc {
-			t.Errorf("(write) expected %d records, got %d", expectedrc, memo.WriteCount)
+		if memo.WriteCount() != expectedrc {
+			t.Errorf("(write) expected %d records, got %d", expectedrc, memo.WriteCount())
 			return
 		}
 	}(wg, t)

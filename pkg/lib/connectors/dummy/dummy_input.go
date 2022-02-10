@@ -12,6 +12,12 @@ func getInputChannel(p meta.ExtParams) <-chan interface{} {
 }
 
 func (c *DummyConnector) StartReadWorker(channel <-chan interface{}, w *wire.Wire) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+
 	for {
 		data, ok := <-channel
 		if !ok {

@@ -73,7 +73,7 @@ func (f *CsvFormat) StartWriteWorker(filename string, p meta.ExtParams, w *wire.
 	header := generateHeader(p) + "\n"
 	f.storage.Write(filename, strings.NewReader(header), int64(len(header)))
 	for {
-		data, ok := <-w.GetData()
+		data, ok := <-w.ReceiveData()
 		if !ok {
 			return nil
 		}

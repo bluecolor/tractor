@@ -71,6 +71,9 @@ func (g *WaitGroup) Finish() error {
 	} else {
 		g.w.SendSuccess(sender)
 	}
+	if g.cancelled {
+		return nil
+	}
 	return g.err
 }
 func (wg *WaitGroup) Wait() error {
