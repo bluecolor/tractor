@@ -22,6 +22,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestIO(t *testing.T) {
+	t.Parallel()
 	recordCount := 10
 	config := connectors.ConnectorConfig{}
 	connector := New(config)
@@ -81,6 +82,7 @@ func TestIO(t *testing.T) {
 }
 
 func TestParallelIO(t *testing.T) {
+	t.Parallel()
 	recordCount := 100
 	config := connectors.ConnectorConfig{}
 	connector := New(config)
@@ -140,6 +142,7 @@ func TestParallelIO(t *testing.T) {
 }
 
 func TestIOError(t *testing.T) {
+	t.Parallel()
 	recordCount := 100
 	config := connectors.ConnectorConfig{}
 	connector := New(config)
@@ -169,7 +172,7 @@ func TestIOError(t *testing.T) {
 		ch := p.GetInputDataset().Config.GetChannel("channel")
 		defer close(ch)
 		defer wg.Done()
-		if err := test.GenerateTestDataWithDuration(recordCount, ch, 10*time.Second); err != nil {
+		if err := test.GenerateTestDataWithDuration(recordCount, ch, 4*time.Second); err != nil {
 			t.Error(err)
 		}
 	}(wg, p)
