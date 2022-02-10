@@ -17,6 +17,7 @@ const (
 	Anonymous Sender = iota
 	InputConnector
 	OutputConnector
+	Supervisor
 )
 const (
 	Progress FeedbackType = iota
@@ -70,6 +71,8 @@ func (s Sender) String() string {
 		return "InputConnector"
 	case OutputConnector:
 		return "OutputConnector"
+	case Supervisor:
+		return "Supervisor"
 	default:
 		return fmt.Sprintf("%d", int(s))
 	}
@@ -156,6 +159,20 @@ func (f *Feedback) IsOutputDone() bool {
 }
 func (f *Feedback) Error() error {
 	return f.Content.(error)
+}
+func (f *Feedback) ErrorWithSource() (types.ErrorSource, error) {
+	return f.ErrorSource(), f.Content.(error)
+}
+func (f *Feedback) ErrorSource() types.ErrorSource {
+	switch f.Sender {
+	case InputConnector:
+		return types.InputError
+	case OutputConnector:
+		return types.OutputError
+	case Supervisor:
+		return types.SupervisorError
+	}
+	return types.UnknownErrorSource
 }
 func NewDone(sender Sender, args ...interface{}) *Feedback {
 	var content interface{}
