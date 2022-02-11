@@ -13,13 +13,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func getOutputFileName(p params.ExtParams) string {
+func getOutputFileName(p params.SessionParams) string {
 	return p.GetOutputDataset().Config.GetString(FileNameKey, p.GetOutputDataset().Name+".csv")
 }
-func getOutputCsvDelimiter(p params.ExtParams) string {
+func getOutputCsvDelimiter(p params.SessionParams) string {
 	return p.GetOutputDataset().Config.GetString(DelimiterKey, ",")
 }
-func generateHeader(p params.ExtParams) string {
+func generateHeader(p params.SessionParams) string {
 	var header []string
 	for _, field := range p.GetOutputDatasetFields() {
 		header = append(header, field.Name)
@@ -38,7 +38,7 @@ func generateFileNames(filename string, parallel int) []string {
 	return fileNames
 }
 
-func (f *CsvFormat) write(filename string, data []msg.Record, p params.ExtParams, wi int) (err error) {
+func (f *CsvFormat) write(filename string, data []msg.Record, p params.SessionParams, wi int) (err error) {
 	od := p.GetOutputDataset()
 	buffer := make([][]string, len(data))
 	for i, r := range data {
@@ -68,7 +68,7 @@ func (f *CsvFormat) write(filename string, data []msg.Record, p params.ExtParams
 
 // todo add batch size, buffer
 // todo add timeout
-func (f *CsvFormat) StartWriteWorker(filename string, p params.ExtParams, w *wire.Wire, wi int) (err error) {
+func (f *CsvFormat) StartWriteWorker(filename string, p params.SessionParams, w *wire.Wire, wi int) (err error) {
 	f.storage.Create(filename)
 	header := generateHeader(p) + "\n"
 	f.storage.Write(filename, strings.NewReader(header), int64(len(header)))
@@ -83,7 +83,7 @@ func (f *CsvFormat) StartWriteWorker(filename string, p params.ExtParams, w *wir
 		w.SendOutputProgress(data.Count())
 	}
 }
-func (f *CsvFormat) Write(p params.ExtParams, w *wire.Wire) (err error) {
+func (f *CsvFormat) Write(p params.SessionParams, w *wire.Wire) (err error) {
 	var parallel int = p.GetOutputParallel()
 	if parallel < 1 {
 		log.Warn().Msgf("invalid parallel write setting %d. Using %d", parallel, 1)

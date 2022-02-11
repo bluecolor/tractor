@@ -17,17 +17,17 @@ const (
 	DefaultTimeOut    = time.Second * 60 * 10 // todo from env 10 minutes
 )
 
-type ExtParams map[string]interface{}
+type SessionParams map[string]interface{}
 
-func (p ExtParams) WithTimeout(timeout time.Duration) ExtParams {
+func (p SessionParams) WithTimeout(timeout time.Duration) SessionParams {
 	p[TimeoutKey] = timeout
 	return p
 }
-func (p ExtParams) WithSessionID(id int) ExtParams {
+func (p SessionParams) WithSessionID(id uint) SessionParams {
 	p[SessionIDKey] = id
 	return p
 }
-func (p ExtParams) GetSessionID() int {
+func (p SessionParams) GetSessionID() int {
 	if id, ok := p[SessionIDKey]; ok {
 		if i, ok := id.(int); ok {
 			return i
@@ -35,31 +35,31 @@ func (p ExtParams) GetSessionID() int {
 	}
 	return 0
 }
-func (p ExtParams) WithInputDataset(dataset *Dataset) ExtParams {
+func (p SessionParams) WithInputDataset(dataset *Dataset) SessionParams {
 	p[InputDatasetKey] = dataset
 	return p
 }
-func (p ExtParams) WithInputParallel(parallel int) ExtParams {
+func (p SessionParams) WithInputParallel(parallel int) SessionParams {
 	p[InputDatasetKey].(*Dataset).Config[ParallelKey] = parallel
 	return p
 }
-func (p ExtParams) WithOutputParallel(parallel int) ExtParams {
+func (p SessionParams) WithOutputParallel(parallel int) SessionParams {
 	p[OutputDatasetKey].(*Dataset).Config[ParallelKey] = parallel
 	return p
 }
-func (p ExtParams) WithOutputDataset(dataset *Dataset) ExtParams {
+func (p SessionParams) WithOutputDataset(dataset *Dataset) SessionParams {
 	p[OutputDatasetKey] = dataset
 	return p
 }
-func (p ExtParams) WithExtractionModeString(mode string) ExtParams {
+func (p SessionParams) WithExtractionModeString(mode string) SessionParams {
 	p[ExtractionModeKey] = ExtractionModeFromString(mode)
 	return p
 }
-func (p ExtParams) WithFieldMappings(mappings []FieldMapping) ExtParams {
+func (p SessionParams) WithFieldMappings(mappings []FieldMapping) SessionParams {
 	p[FieldMappingsKey] = mappings
 	return p
 }
-func (p ExtParams) GetTimeout() time.Duration {
+func (p SessionParams) GetTimeout() time.Duration {
 	if timeout, ok := p[TimeoutKey]; ok {
 		if t, ok := timeout.(time.Duration); ok {
 			return t
@@ -67,7 +67,7 @@ func (p ExtParams) GetTimeout() time.Duration {
 	}
 	return DefaultTimeOut
 }
-func (p ExtParams) GetExtractionMode() ExtractionMode {
+func (p SessionParams) GetExtractionMode() ExtractionMode {
 	if mode, ok := p[ExtractionModeKey]; ok {
 		if m, ok := mode.(ExtractionMode); ok {
 			return m
@@ -75,7 +75,7 @@ func (p ExtParams) GetExtractionMode() ExtractionMode {
 	}
 	return ExtractionModeCreate
 }
-func (p ExtParams) GetInputDataset() *Dataset {
+func (p SessionParams) GetInputDataset() *Dataset {
 	if dataset, ok := p[InputDatasetKey]; ok {
 		if d, ok := dataset.(*Dataset); ok {
 			return d
@@ -83,7 +83,7 @@ func (p ExtParams) GetInputDataset() *Dataset {
 	}
 	return nil
 }
-func (p ExtParams) GetOutputDataset() *Dataset {
+func (p SessionParams) GetOutputDataset() *Dataset {
 	if dataset, ok := p[OutputDatasetKey]; ok {
 		if d, ok := dataset.(*Dataset); ok {
 			return d
@@ -91,7 +91,7 @@ func (p ExtParams) GetOutputDataset() *Dataset {
 	}
 	return nil
 }
-func (p ExtParams) GetInputParallel() int {
+func (p SessionParams) GetInputParallel() int {
 	if dataset, ok := p[InputDatasetKey]; ok {
 		if d, ok := dataset.(Dataset); ok {
 			return d.Config.GetInt(ParallelKey, 1)
@@ -99,7 +99,7 @@ func (p ExtParams) GetInputParallel() int {
 	}
 	return 1
 }
-func (p ExtParams) GetOutputParallel() int {
+func (p SessionParams) GetOutputParallel() int {
 	if dataset, ok := p[OutputDatasetKey]; ok {
 		if d, ok := dataset.(Dataset); ok {
 			return d.Config.GetInt(ParallelKey, 1)
@@ -107,7 +107,7 @@ func (p ExtParams) GetOutputParallel() int {
 	}
 	return 1
 }
-func (p ExtParams) GetInputBufferSize() int {
+func (p SessionParams) GetInputBufferSize() int {
 	if dataset, ok := p[InputDatasetKey]; ok {
 		if d, ok := dataset.(Dataset); ok {
 			return d.Config.GetInt(BufferSizeKey, 1000) // todo default from env
@@ -115,7 +115,7 @@ func (p ExtParams) GetInputBufferSize() int {
 	}
 	return 1000
 }
-func (p ExtParams) GetOutputBufferSize() int {
+func (p SessionParams) GetOutputBufferSize() int {
 	if dataset, ok := p[OutputDatasetKey]; ok {
 		if d, ok := dataset.(Dataset); ok {
 			return d.Config.GetInt(BufferSizeKey, 1000) // todo default from env
@@ -123,7 +123,7 @@ func (p ExtParams) GetOutputBufferSize() int {
 	}
 	return 1000
 }
-func (p ExtParams) GetInputBufferSizeOrThis(this int) int {
+func (p SessionParams) GetInputBufferSizeOrThis(this int) int {
 	if dataset, ok := p[InputDatasetKey]; ok {
 		if d, ok := dataset.(Dataset); ok {
 			return d.Config.GetInt(BufferSizeKey, this)
@@ -131,7 +131,7 @@ func (p ExtParams) GetInputBufferSizeOrThis(this int) int {
 	}
 	return this
 }
-func (p ExtParams) GetOutputBufferSizeOrThis(this int) int {
+func (p SessionParams) GetOutputBufferSizeOrThis(this int) int {
 	if dataset, ok := p[OutputDatasetKey]; ok {
 		if d, ok := dataset.(Dataset); ok {
 			return d.Config.GetInt(BufferSizeKey, this)
@@ -139,7 +139,7 @@ func (p ExtParams) GetOutputBufferSizeOrThis(this int) int {
 	}
 	return this
 }
-func (p ExtParams) GetFieldMappings() []FieldMapping {
+func (p SessionParams) GetFieldMappings() []FieldMapping {
 	if mappings, ok := p[FieldMappingsKey]; ok {
 		if m, ok := mappings.([]FieldMapping); ok {
 			return m
@@ -147,27 +147,27 @@ func (p ExtParams) GetFieldMappings() []FieldMapping {
 	}
 	return nil
 }
-func (p ExtParams) GetFMInputFields() []*Field {
+func (p SessionParams) GetFMInputFields() []*Field {
 	var fields []*Field
 	for _, fm := range p.GetFieldMappings() {
 		fields = append(fields, fm.SourceField)
 	}
 	return fields
 }
-func (p ExtParams) GetFMOutputFields() []*Field {
+func (p SessionParams) GetFMOutputFields() []*Field {
 	var fields []*Field
 	for _, fm := range p.GetFieldMappings() {
 		fields = append(fields, fm.TargetField)
 	}
 	return fields
 }
-func (p ExtParams) GetInputDatasetFields() []*Field {
+func (p SessionParams) GetInputDatasetFields() []*Field {
 	if dataset := p.GetInputDataset(); dataset != nil {
 		return dataset.Fields
 	}
 	return nil
 }
-func (p ExtParams) GetOutputDatasetFields() []*Field {
+func (p SessionParams) GetOutputDatasetFields() []*Field {
 	if dataset := p.GetOutputDataset(); dataset != nil {
 		return dataset.Fields
 	}
@@ -175,8 +175,8 @@ func (p ExtParams) GetOutputDatasetFields() []*Field {
 }
 
 // todo check nil
-func (e ExtParams) GetSourceFieldNameByTargetFieldName(targetFieldName string) string {
-	mappings := e.GetFieldMappings()
+func (p SessionParams) GetSourceFieldNameByTargetFieldName(targetFieldName string) string {
+	mappings := p.GetFieldMappings()
 	for _, fm := range mappings {
 		if fm.TargetField.Name == targetFieldName {
 			return fm.SourceField.Name
@@ -186,8 +186,8 @@ func (e ExtParams) GetSourceFieldNameByTargetFieldName(targetFieldName string) s
 }
 
 // todo check nil
-func (e ExtParams) GetSourceFieldByTarget(f Field) (*Field, error) {
-	for _, fm := range e.GetFieldMappings() {
+func (p SessionParams) GetSourceFieldByTarget(f Field) (*Field, error) {
+	for _, fm := range p.GetFieldMappings() {
 		if fm.TargetField.Name == f.Name {
 			return fm.SourceField, nil
 		}

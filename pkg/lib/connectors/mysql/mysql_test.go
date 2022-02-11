@@ -54,7 +54,7 @@ func TestBuildReadQuery(t *testing.T) {
 		},
 	}
 
-	p := params.ExtParams{}.
+	p := params.SessionParams{}.
 		WithInputDataset(&dataset).
 		WithFieldMappings(fm)
 
@@ -125,8 +125,8 @@ func TestIO(t *testing.T) {
 			TargetField: &params.Field{Name: "full_name", Type: "string"},
 		},
 	}
-	ip := params.ExtParams{}.WithInputDataset(&inputDataset).WithFieldMappings(fm)
-	op := params.ExtParams{}.WithOutputDataset(&outputDataset).WithFieldMappings(fm)
+	ip := params.SessionParams{}.WithInputDataset(&inputDataset).WithFieldMappings(fm)
+	op := params.SessionParams{}.WithOutputDataset(&outputDataset).WithFieldMappings(fm)
 
 	connector := &MySQLConnector{
 		db: db,
@@ -186,7 +186,7 @@ func TestIO(t *testing.T) {
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p params.ExtParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p params.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
@@ -195,7 +195,7 @@ func TestIO(t *testing.T) {
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p params.ExtParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, p params.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)

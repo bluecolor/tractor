@@ -26,9 +26,9 @@ type MetaFinder interface {
 
 type Input interface {
 	Connector
-	Read(p params.ExtParams, w *wire.Wire) error
+	Read(p params.SessionParams, w *wire.Wire) error
 }
 type Output interface {
 	Connector
-	Write(e params.ExtParams, w *wire.Wire) error
+	Write(e params.SessionParams, w *wire.Wire) error
 }

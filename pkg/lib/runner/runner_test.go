@@ -31,11 +31,11 @@ func TestRunner(t *testing.T) {
 		t.Error(err)
 	}
 
-	p := test.GetExtParams().WithInputParallel(2).WithOutputParallel(2)
+	p := test.GetSession().WithInputParallel(2).WithOutputParallel(2)
 
 	// generate test data
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, p params.ExtParams) {
+	go func(wg *sync.WaitGroup, p params.SessionParams) {
 		ch := p.GetInputDataset().Config.GetChannel("channel")
 		defer close(ch)
 		defer wg.Done()

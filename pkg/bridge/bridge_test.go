@@ -7,11 +7,11 @@ import (
 	"github.com/bluecolor/tractor/pkg/models"
 )
 
-func TestNewExtParams(t *testing.T) {
+func TestNewSession(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		Model    models.Extraction
-		Expected params.ExtParams
+		Expected params.SessionParams
 	}{
 		{
 			Model: models.Extraction{
@@ -24,7 +24,7 @@ func TestNewExtParams(t *testing.T) {
 					},
 				},
 			},
-			Expected: params.ExtParams{
+			Expected: params.SessionParams{
 				params.InputDatasetKey: &params.Dataset{
 					Name:   "source",
 					Fields: []*params.Field{{Name: "source_field"}},
@@ -44,8 +44,8 @@ func TestNewExtParams(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run("", func(t *testing.T) {
-			e := NewExtraction(test.Model)
-			p, err := e.ExtParams()
+			e := NewExtraction(&test.Model)
+			p, err := e.Session()
 			if err != nil {
 				t.Error(err)
 			}

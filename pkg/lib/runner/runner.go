@@ -138,11 +138,11 @@ func (r *Runner) ProcessFeedback(f *msg.Feedback) {
 func (r *Runner) Result() *Result {
 	return r.result
 }
-func (r *Runner) Run(p params.ExtParams) (err error) {
+func (r *Runner) Run(p params.SessionParams) (err error) {
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
 	// supervisor
-	go func(wg *sync.WaitGroup, p params.ExtParams) {
+	go func(wg *sync.WaitGroup, p params.SessionParams) {
 		defer wg.Done()
 		err = r.Supervise(p.GetTimeout()).Eval().Errors().Wrap()
 	}(wg, p)
@@ -159,7 +159,7 @@ func (r *Runner) Run(p params.ExtParams) (err error) {
 	wg.Wait()
 	return
 }
-func (r *Runner) RunInput(p params.ExtParams) error {
+func (r *Runner) RunInput(p params.SessionParams) error {
 	defer func() {
 		if err := r.inputConnector.Close(); err != nil {
 			r.wire.SendInputError(err)
@@ -171,7 +171,7 @@ func (r *Runner) RunInput(p params.ExtParams) error {
 	}
 	return r.inputConnector.Read(p, r.wire)
 }
-func (r *Runner) RunOutput(p params.ExtParams) error {
+func (r *Runner) RunOutput(p params.SessionParams) error {
 
 	if err := r.outputConnector.Connect(); err != nil {
 		r.wire.SendOutputError(err)

@@ -9,7 +9,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-func getOutputChannel(p params.ExtParams) chan<- interface{} {
+func getOutputChannel(p params.SessionParams) chan<- interface{} {
 	return p.GetOutputDataset().Config.GetChannel(OutputChannelKey)
 }
 
@@ -33,7 +33,7 @@ func (c *DummyConnector) StartWriteWorker(ctx context.Context, channel chan<- in
 	}
 }
 
-func (c *DummyConnector) Write(p params.ExtParams, w *wire.Wire) error {
+func (c *DummyConnector) Write(p params.SessionParams, w *wire.Wire) error {
 	var channel chan<- interface{} = getOutputChannel(p)
 	var parallel int = p.GetOutputParallel()
 	wg := esync.NewWaitGroup(w, types.OutputConnector)

@@ -9,13 +9,13 @@ import (
 )
 
 const (
-	TypeEmailSend     = "email:send"
-	TypeExtractionRun = "extraction:run"
+	TypeEmailSend  = "email:send"
+	TypeSessionRun = "session:run"
 )
 
-func NewExtractionRunTask(e models.Extraction) (*asynq.Task, error) {
+func NewESessionRunTask(s *models.Session) (*asynq.Task, error) {
 	ext := bridge.NewExtraction(e)
-	params, err := ext.ExtParams()
+	params, err := ext.Session()
 	if err != nil {
 		return nil, err
 	}

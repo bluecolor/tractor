@@ -6,6 +6,6 @@ import (
 )
 
 type FileFormat interface {
-	Read(e params.ExtParams, w *wire.Wire) (err error)
-	Write(e params.ExtParams, w *wire.Wire) (err error)
+	Read(e params.SessionParams, w *wire.Wire) (err error)
+	Write(e params.SessionParams, w *wire.Wire) (err error)
 }
