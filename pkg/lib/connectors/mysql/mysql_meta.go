@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"regexp"
 
-	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/params"
 )
 
 type columnConfig struct {
@@ -35,16 +35,16 @@ func (c *column) getConfig() map[string]interface{} {
 	}
 	return config
 }
-func (c *column) getField() meta.Field {
-	return meta.Field{
+func (c *column) getField() params.Field {
+	return params.Field{
 		Name:   c.Field,
 		Type:   c.Type,
 		Config: c.getConfig(),
 	}
 }
 
-func (m *MySQLConnector) FindDatasets(pattern string) ([]meta.Dataset, error) {
-	datasets := []meta.Dataset{}
+func (m *MySQLConnector) FindDatasets(pattern string) ([]params.Dataset, error) {
+	datasets := []params.Dataset{}
 	rows, err := m.db.Query("SHOW TABLES")
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (m *MySQLConnector) FindDatasets(pattern string) ([]meta.Dataset, error) {
 		if err != nil {
 			return nil, err
 		}
-		datasets = append(datasets, meta.Dataset{
+		datasets = append(datasets, params.Dataset{
 			Name:   tableName,
 			Fields: fields,
 		})
@@ -71,12 +71,12 @@ func (m *MySQLConnector) FindDatasets(pattern string) ([]meta.Dataset, error) {
 
 	return datasets, nil
 }
-func (m *MySQLConnector) fetchFields(table string) ([]meta.Field, error) {
+func (m *MySQLConnector) fetchFields(table string) ([]params.Field, error) {
 	result, err := m.db.Query("SHOW COLUMNS FROM " + table)
 	if err != nil {
 		return nil, err
 	}
-	fields := []meta.Field{}
+	fields := []params.Field{}
 	for result.Next() {
 		var c column = column{}
 		if err := result.Scan(&c.Field, &c.Type, &c.Null, &c.Key, &c.Default, &c.Extra); err != nil {

@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/test"
 )
 
 func TestNewRunner(t *testing.T) {
-	c := meta.Connection{
+	c := params.Connection{
 		ConnectionType: "dummy",
 	}
 	if _, err := New(c, c); err != nil {
@@ -22,7 +22,7 @@ func TestRunner(t *testing.T) {
 	t.Parallel()
 	wg := &sync.WaitGroup{}
 	recordCount := 6
-	connection := meta.Connection{
+	connection := params.Connection{
 		ConnectionType: "dummy",
 	}
 	runner, err := New(connection, connection)
@@ -34,7 +34,7 @@ func TestRunner(t *testing.T) {
 
 	// generate test data
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, p meta.ExtParams) {
+	go func(wg *sync.WaitGroup, p params.ExtParams) {
 		ch := p.GetInputDataset().Config.GetChannel("channel")
 		defer close(ch)
 		defer wg.Done()

@@ -9,7 +9,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
-	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/test"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
@@ -27,9 +27,9 @@ func NewMock() (*sql.DB, sqlmock.Sqlmock) {
 	return db, mock
 }
 func TestBuildReadQuery(t *testing.T) {
-	dataset := meta.Dataset{
+	dataset := params.Dataset{
 		Name: "test",
-		Fields: []meta.Field{
+		Fields: []params.Field{
 			{
 				Name: "id",
 				Type: "int",
@@ -43,19 +43,19 @@ func TestBuildReadQuery(t *testing.T) {
 			"parallel": 1,
 		},
 	}
-	fm := []meta.FieldMapping{
+	fm := []params.FieldMapping{
 		{
-			SourceField: meta.Field{Name: "id"},
-			TargetField: meta.Field{Name: "id"},
+			SourceField: params.Field{Name: "id"},
+			TargetField: params.Field{Name: "id"},
 		},
 		{
-			SourceField: meta.Field{Name: "name"},
-			TargetField: meta.Field{Name: "name"},
+			SourceField: params.Field{Name: "name"},
+			TargetField: params.Field{Name: "name"},
 		},
 	}
 
-	p := meta.ExtParams{}.
-		WithInputDataset(dataset).
+	p := params.ExtParams{}.
+		WithInputDataset(&dataset).
 		WithFieldMappings(fm)
 
 	m := MySQLConnector{}
@@ -83,9 +83,9 @@ func TestIO(t *testing.T) {
 	}
 	expectedrc := len(data)
 
-	inputDataset := meta.Dataset{
+	inputDataset := params.Dataset{
 		Name: "test_in",
-		Fields: []meta.Field{
+		Fields: []params.Field{
 			{
 				Name: "id",
 				Type: "int",
@@ -99,9 +99,9 @@ func TestIO(t *testing.T) {
 			"parallel": 1,
 		},
 	}
-	outputDataset := meta.Dataset{
+	outputDataset := params.Dataset{
 		Name: "test_out",
-		Fields: []meta.Field{
+		Fields: []params.Field{
 			{
 				Name: "id",
 				Type: "int",
@@ -115,18 +115,18 @@ func TestIO(t *testing.T) {
 			"parallel": 1,
 		},
 	}
-	fm := []meta.FieldMapping{
+	fm := []params.FieldMapping{
 		{
-			SourceField: meta.Field{Name: "id"},
-			TargetField: meta.Field{Name: "id"},
+			SourceField: params.Field{Name: "id"},
+			TargetField: params.Field{Name: "id"},
 		},
 		{
-			SourceField: meta.Field{Name: "name"},
-			TargetField: meta.Field{Name: "full_name", Type: "string"},
+			SourceField: params.Field{Name: "name"},
+			TargetField: params.Field{Name: "full_name", Type: "string"},
 		},
 	}
-	ip := meta.ExtParams{}.WithInputDataset(inputDataset).WithFieldMappings(fm)
-	op := meta.ExtParams{}.WithOutputDataset(outputDataset).WithFieldMappings(fm)
+	ip := params.ExtParams{}.WithInputDataset(&inputDataset).WithFieldMappings(fm)
+	op := params.ExtParams{}.WithOutputDataset(&outputDataset).WithFieldMappings(fm)
 
 	connector := &MySQLConnector{
 		db: db,
@@ -186,7 +186,7 @@ func TestIO(t *testing.T) {
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p meta.ExtParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p params.ExtParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
@@ -195,7 +195,7 @@ func TestIO(t *testing.T) {
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p meta.ExtParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, p params.ExtParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)

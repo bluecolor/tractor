@@ -2,12 +2,12 @@ package dummy
 
 import (
 	"github.com/bluecolor/tractor/pkg/lib/esync"
-	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-func getInputChannel(p meta.ExtParams) <-chan interface{} {
+func getInputChannel(p params.ExtParams) <-chan interface{} {
 	return p.GetInputDataset().Config.GetChannel(InputChannelKey)
 }
 
@@ -27,7 +27,7 @@ func (c *DummyConnector) StartReadWorker(channel <-chan interface{}, w *wire.Wir
 	}
 }
 
-func (c *DummyConnector) Read(p meta.ExtParams, w *wire.Wire) error {
+func (c *DummyConnector) Read(p params.ExtParams, w *wire.Wire) error {
 	var parallel int = p.GetInputParallel()
 	var channel <-chan interface{} = getInputChannel(p)
 	wg := esync.NewWaitGroup(w, types.InputConnector)

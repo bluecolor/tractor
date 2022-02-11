@@ -6,25 +6,25 @@ import (
 	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/esync"
-	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"go.beyondstorage.io/v5/pairs"
 )
 
-func getInputCsvDelimiter(p meta.ExtParams) string {
+func getInputCsvDelimiter(p params.ExtParams) string {
 	return p.GetInputDataset().Config.GetString(DelimiterKey, ",")
 }
-func getLazyQuotes(p meta.ExtParams) bool {
+func getLazyQuotes(p params.ExtParams) bool {
 	return p.GetInputDataset().Config.GetBool(QuotesKey, true)
 }
-func getInputFiles(p meta.ExtParams) []string {
+func getInputFiles(p params.ExtParams) []string {
 	return p.GetInputDataset().Config.GetStringArray(FilesKey, []string{})
 }
-func getHeader(p meta.ExtParams) bool {
+func getHeader(p params.ExtParams) bool {
 	return p.GetInputDataset().Config.GetBool(HeaderKey, true)
 }
-func (f *CsvFormat) Work(filename string, p meta.ExtParams, w *wire.Wire, wi int) (err error) {
+func (f *CsvFormat) Work(filename string, p params.ExtParams, w *wire.Wire, wi int) (err error) {
 	var buf bytes.Buffer
 	size, offset := int64(1000), int64(0) // todo size from .env
 	rest := []byte{}
@@ -72,7 +72,7 @@ func (f *CsvFormat) Work(filename string, p meta.ExtParams, w *wire.Wire, wi int
 	bw.Flush()
 	return nil
 }
-func (f *CsvFormat) StartReadWorker(files []string, p meta.ExtParams, w *wire.Wire, wi int) (err error) {
+func (f *CsvFormat) StartReadWorker(files []string, p params.ExtParams, w *wire.Wire, wi int) (err error) {
 	for _, file := range files {
 		if err = f.Work(file, p, w, wi); err != nil {
 			return
@@ -80,7 +80,7 @@ func (f *CsvFormat) StartReadWorker(files []string, p meta.ExtParams, w *wire.Wi
 	}
 	return
 }
-func (f *CsvFormat) Read(p meta.ExtParams, w *wire.Wire) (err error) {
+func (f *CsvFormat) Read(p params.ExtParams, w *wire.Wire) (err error) {
 	chunks, err := getFileChunks(getInputFiles(p), p.GetInputParallel())
 	if err != nil {
 		return err

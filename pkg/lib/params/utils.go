@@ -1,4 +1,4 @@
-package meta
+package params
 
 import (
 	"github.com/bluecolor/tractor/pkg/lib/msg"
