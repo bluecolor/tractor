@@ -5,21 +5,21 @@ import (
 	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/esync"
-	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
 
-func getOutputFileName(p meta.ExtParams) string {
+func getOutputFileName(p params.ExtParams) string {
 	return p.GetOutputDataset().Config.GetString(FileNameKey, p.GetOutputDataset().Name+".csv")
 }
-func getOutputCsvDelimiter(p meta.ExtParams) string {
+func getOutputCsvDelimiter(p params.ExtParams) string {
 	return p.GetOutputDataset().Config.GetString(DelimiterKey, ",")
 }
-func generateHeader(p meta.ExtParams) string {
+func generateHeader(p params.ExtParams) string {
 	var header []string
 	for _, field := range p.GetOutputDatasetFields() {
 		header = append(header, field.Name)
@@ -38,7 +38,7 @@ func generateFileNames(filename string, parallel int) []string {
 	return fileNames
 }
 
-func (f *CsvFormat) write(filename string, data []msg.Record, p meta.ExtParams, wi int) (err error) {
+func (f *CsvFormat) write(filename string, data []msg.Record, p params.ExtParams, wi int) (err error) {
 	od := p.GetOutputDataset()
 	buffer := make([][]string, len(data))
 	for i, r := range data {
@@ -68,7 +68,7 @@ func (f *CsvFormat) write(filename string, data []msg.Record, p meta.ExtParams, 
 
 // todo add batch size, buffer
 // todo add timeout
-func (f *CsvFormat) StartWriteWorker(filename string, p meta.ExtParams, w *wire.Wire, wi int) (err error) {
+func (f *CsvFormat) StartWriteWorker(filename string, p params.ExtParams, w *wire.Wire, wi int) (err error) {
 	f.storage.Create(filename)
 	header := generateHeader(p) + "\n"
 	f.storage.Write(filename, strings.NewReader(header), int64(len(header)))
@@ -83,7 +83,7 @@ func (f *CsvFormat) StartWriteWorker(filename string, p meta.ExtParams, w *wire.
 		w.SendOutputProgress(data.Count())
 	}
 }
-func (f *CsvFormat) Write(p meta.ExtParams, w *wire.Wire) (err error) {
+func (f *CsvFormat) Write(p params.ExtParams, w *wire.Wire) (err error) {
 	var parallel int = p.GetOutputParallel()
 	if parallel < 1 {
 		log.Warn().Msgf("invalid parallel write setting %d. Using %d", parallel, 1)

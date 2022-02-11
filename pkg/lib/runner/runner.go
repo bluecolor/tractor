@@ -7,8 +7,8 @@ import (
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
 	_ "github.com/bluecolor/tractor/pkg/lib/connectors/all"
-	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
@@ -31,8 +31,8 @@ type Result struct {
 
 type Runner struct {
 	mu               sync.Mutex
-	inputConnection  meta.Connection
-	outputConnection meta.Connection
+	inputConnection  params.Connection
+	outputConnection params.Connection
 	wire             *wire.Wire
 	inputConnector   connectors.Input
 	outputConnector  connectors.Output
@@ -79,7 +79,7 @@ func (r *Result) AddError(err error, es ...types.ErrorSource) {
 	r.errors.Add(err)
 }
 
-func New(inputConnection meta.Connection, outputConnection meta.Connection) (*Runner, error) {
+func New(inputConnection params.Connection, outputConnection params.Connection) (*Runner, error) {
 	ic, err := connectors.GetConnector(
 		outputConnection.ConnectionType,
 		connectors.ConnectorConfig(inputConnection.Config),
@@ -135,11 +135,11 @@ func (r *Runner) ProcessFeedback(f *msg.Feedback) {
 func (r *Runner) Result() *Result {
 	return r.result
 }
-func (r *Runner) Run(p meta.ExtParams) (err error) {
+func (r *Runner) Run(p params.ExtParams) (err error) {
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
 	// supervisor
-	go func(wg *sync.WaitGroup, p meta.ExtParams) {
+	go func(wg *sync.WaitGroup, p params.ExtParams) {
 		defer wg.Done()
 		err = r.Supervise(p.GetTimeout()).Eval().Errors().Wrap()
 	}(wg, p)
@@ -156,7 +156,7 @@ func (r *Runner) Run(p meta.ExtParams) (err error) {
 	wg.Wait()
 	return
 }
-func (r *Runner) RunInput(p meta.ExtParams) error {
+func (r *Runner) RunInput(p params.ExtParams) error {
 	defer func() {
 		if err := r.inputConnector.Close(); err != nil {
 			r.wire.SendInputError(err)
@@ -168,7 +168,7 @@ func (r *Runner) RunInput(p meta.ExtParams) error {
 	}
 	return r.inputConnector.Read(p, r.wire)
 }
-func (r *Runner) RunOutput(p meta.ExtParams) error {
+func (r *Runner) RunOutput(p params.ExtParams) error {
 
 	if err := r.outputConnector.Connect(); err != nil {
 		r.wire.SendOutputError(err)
@@ -194,7 +194,6 @@ func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
 				result = r.Result()
 				return
 			}
-			fmt.Printf("feedback: %v\n", f)
 			r.ProcessFeedback(f)
 			r.TryCloseData()
 			r.TryCloseFeedback()

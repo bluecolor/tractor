@@ -1,4 +1,4 @@
-package meta
+package params
 
 type ExtractionMode int
 
@@ -84,9 +84,9 @@ func (c Config) GetChannel(key string) chan interface{} {
 }
 
 type Dataset struct {
-	Name   string  `json:"name"`
-	Config Config  `json:"config"`
-	Fields []Field `json:"fields"`
+	Name   string   `json:"name"`
+	Config Config   `json:"config"`
+	Fields []*Field `json:"fields"`
 }
 type Field struct {
 	Name       string `json:"name"`
@@ -103,8 +103,8 @@ func (f *Field) GetExpressionOrName() string {
 }
 
 type FieldMapping struct {
-	SourceField Field  `json:"sourceField"`
-	TargetField Field  `json:"targetField"`
+	SourceField *Field `json:"sourceField"`
+	TargetField *Field `json:"targetField"`
 	Config      Config `json:"config"`
 }
 

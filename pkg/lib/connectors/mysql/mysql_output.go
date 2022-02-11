@@ -6,15 +6,15 @@ import (
 	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/esync"
-	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
 
-func (c *MySQLConnector) write(p meta.ExtParams, i int, data msg.Data) error {
+func (c *MySQLConnector) write(p params.ExtParams, i int, data msg.Data) error {
 	ok := true
 	dataset := *p.GetOutputDataset()
 	query, err := c.BuildBatchInsertQuery(dataset, data.Count())
@@ -37,7 +37,7 @@ func (c *MySQLConnector) write(p meta.ExtParams, i int, data msg.Data) error {
 
 // todo add batch size, buffer
 // todo add timeout
-func (m *MySQLConnector) StartWriteWorker(ctx context.Context, p meta.ExtParams, w *wire.Wire, i int) error {
+func (m *MySQLConnector) StartWriteWorker(ctx context.Context, p params.ExtParams, w *wire.Wire, i int) error {
 	for {
 		select {
 		case data, ok := <-w.ReceiveData():
@@ -55,7 +55,7 @@ func (m *MySQLConnector) StartWriteWorker(ctx context.Context, p meta.ExtParams,
 }
 
 // todo transactions
-func (m *MySQLConnector) Write(p meta.ExtParams, w *wire.Wire) (err error) {
+func (m *MySQLConnector) Write(p params.ExtParams, w *wire.Wire) (err error) {
 	var parallel int = p.GetOutputParallel()
 	if parallel > 1 {
 		log.Warn().Msgf("parallel write is not supported for MySQL connector. Using %d", 1)
@@ -81,7 +81,7 @@ func (m *MySQLConnector) Write(p meta.ExtParams, w *wire.Wire) (err error) {
 	}
 	return mwg.Wait()
 }
-func (m *MySQLConnector) BuildCreateQuery(d meta.Dataset) (query string, err error) {
+func (m *MySQLConnector) BuildCreateQuery(d params.Dataset) (query string, err error) {
 	columns := ""
 	for _, f := range d.Fields {
 		columns += f.Name + " " + f.Type + ",\n"
@@ -91,15 +91,15 @@ func (m *MySQLConnector) BuildCreateQuery(d meta.Dataset) (query string, err err
 	query = utils.Dedent(query)
 	return
 }
-func (m *MySQLConnector) BuildTruncateQuery(d meta.Dataset) (query string) {
+func (m *MySQLConnector) BuildTruncateQuery(d params.Dataset) (query string) {
 	query = "TRUNCATE TABLE " + d.Name + ";"
 	return
 }
-func (m *MySQLConnector) BuildDropQuery(d meta.Dataset) (query string) {
+func (m *MySQLConnector) BuildDropQuery(d params.Dataset) (query string) {
 	query = "DROP TABLE IF EXISTS " + d.Name
 	return
 }
-func (m *MySQLConnector) BuildBatchInsertQuery(d meta.Dataset, recordCount int) (query string, err error) {
+func (m *MySQLConnector) BuildBatchInsertQuery(d params.Dataset, recordCount int) (query string, err error) {
 	if d.Fields == nil || len(d.Fields) == 0 {
 		err = fmt.Errorf("no fields found for dataset %s", d.Name)
 		return
@@ -121,7 +121,7 @@ func (m *MySQLConnector) BuildBatchInsertQuery(d meta.Dataset, recordCount int) 
 	query = "INSERT INTO " + d.Name + " (" + columns + ") VALUES " + values
 	return
 }
-func (m *MySQLConnector) CreateTable(d meta.Dataset) (err error) {
+func (m *MySQLConnector) CreateTable(d params.Dataset) (err error) {
 	query, err := m.BuildCreateQuery(d)
 	log.Debug().Msgf("executing query: %s", query)
 	if err != nil {
@@ -130,28 +130,28 @@ func (m *MySQLConnector) CreateTable(d meta.Dataset) (err error) {
 	_, err = m.db.Exec(query)
 	return
 }
-func (m *MySQLConnector) DropTable(d meta.Dataset) (err error) {
+func (m *MySQLConnector) DropTable(d params.Dataset) (err error) {
 	query := m.BuildDropQuery(d)
 	log.Debug().Msgf("executing query: %s", query)
 	_, err = m.db.Exec(query)
 	return
 }
-func (m *MySQLConnector) TruncateTable(d meta.Dataset) (err error) {
+func (m *MySQLConnector) TruncateTable(d params.Dataset) (err error) {
 	query := m.BuildTruncateQuery(d)
 	_, err = m.db.Exec(query)
 	return
 }
-func (m *MySQLConnector) PrepareTable(p meta.ExtParams) (err error) {
+func (m *MySQLConnector) PrepareTable(p params.ExtParams) (err error) {
 	dataset := *p.GetOutputDataset()
 	switch p.GetExtractionMode() {
-	case meta.ExtractionModeCreate:
+	case params.ExtractionModeCreate:
 		if err = m.DropTable(dataset); err != nil {
 			return
 		}
 		if err = m.CreateTable(dataset); err != nil {
 			return
 		}
-	case meta.ExtractionModeInsert:
+	case params.ExtractionModeInsert:
 		if err = m.TruncateTable(dataset); err != nil {
 			return
 		}

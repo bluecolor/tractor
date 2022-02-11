@@ -5,14 +5,14 @@ import (
 	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/esync"
-	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/rs/zerolog/log"
 )
 
-func (m *MySQLConnector) BuildReadQuery(p meta.ExtParams, i int) (query string, err error) {
+func (m *MySQLConnector) BuildReadQuery(p params.ExtParams, i int) (query string, err error) {
 	fields := p.GetFMInputFields()
 	if len(fields) == 0 {
 		return "", fmt.Errorf("no fields specified")
@@ -26,7 +26,7 @@ func (m *MySQLConnector) BuildReadQuery(p meta.ExtParams, i int) (query string, 
 	log.Debug().Msgf("query: %s", query)
 	return
 }
-func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w *wire.Wire, i int) (err error) {
+func (m *MySQLConnector) StartReadWorker(p params.ExtParams, w *wire.Wire, i int) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
@@ -65,7 +65,7 @@ func (m *MySQLConnector) StartReadWorker(p meta.ExtParams, w *wire.Wire, i int) 
 	bw.Flush()
 	return
 }
-func (m *MySQLConnector) Read(p meta.ExtParams, w *wire.Wire) (err error) {
+func (m *MySQLConnector) Read(p params.ExtParams, w *wire.Wire) (err error) {
 	var parallel int = p.GetInputParallel()
 	if parallel > 1 {
 		log.Warn().Msgf("parallel read is not supported for MySQL connector. Using %d", 1)

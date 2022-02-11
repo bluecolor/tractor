@@ -1,7 +1,7 @@
 package connectors
 
 import (
-	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
@@ -21,14 +21,14 @@ func (c Base) Close() error {
 
 type MetaFinder interface {
 	Connector
-	FindDatasets(pattern string) ([]meta.Dataset, error)
+	FindDatasets(pattern string) ([]params.Dataset, error)
 }
 
 type Input interface {
 	Connector
-	Read(p meta.ExtParams, w *wire.Wire) error
+	Read(p params.ExtParams, w *wire.Wire) error
 }
 type Output interface {
 	Connector
-	Write(e meta.ExtParams, w *wire.Wire) error
+	Write(e params.ExtParams, w *wire.Wire) error
 }

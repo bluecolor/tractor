@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/brianvoe/gofakeit/v6"
 )
 
@@ -31,12 +31,12 @@ type testrecord struct {
 	CreatedFormat time.Time      `fake:"{year}-{month}-{day}" format:"2006-01-02" json:"created_format"`
 }
 
-func GetExtParams() meta.ExtParams {
+func GetExtParams() params.ExtParams {
 	inChannel := make(chan interface{}, 1000)
 	outChannel := make(chan interface{}, 1000)
-	inputDataset := meta.Dataset{
+	inputDataset := params.Dataset{
 		Name: "test_input",
-		Fields: []meta.Field{
+		Fields: []*params.Field{
 			{Name: "str", Type: "string"},
 			{Name: "int", Type: "int"},
 			{Name: "pointer", Type: "int"},
@@ -55,9 +55,9 @@ func GetExtParams() meta.ExtParams {
 			"channel": inChannel,
 		},
 	}
-	outputDataset := meta.Dataset{
+	outputDataset := params.Dataset{
 		Name: "test_output",
-		Fields: []meta.Field{
+		Fields: []*params.Field{
 			{Name: "str", Type: "string"},
 			{Name: "int", Type: "int"},
 			{Name: "pointer", Type: "int"},
@@ -76,48 +76,48 @@ func GetExtParams() meta.ExtParams {
 			"channel": outChannel,
 		},
 	}
-	fm := []meta.FieldMapping{
+	fm := []params.FieldMapping{
 		{
-			SourceField: meta.Field{Name: "name"},
-			TargetField: meta.Field{Name: "name"},
+			SourceField: &params.Field{Name: "name"},
+			TargetField: &params.Field{Name: "name"},
 		},
 		{
-			SourceField: meta.Field{Name: "randstr"},
-			TargetField: meta.Field{Name: "randstr"},
+			SourceField: &params.Field{Name: "randstr"},
+			TargetField: &params.Field{Name: "randstr"},
 		},
 		{
-			SourceField: meta.Field{Name: "number"},
-			TargetField: meta.Field{Name: "number"},
+			SourceField: &params.Field{Name: "number"},
+			TargetField: &params.Field{Name: "number"},
 		},
 		{
-			SourceField: meta.Field{Name: "regex"},
-			TargetField: meta.Field{Name: "regex"},
+			SourceField: &params.Field{Name: "regex"},
+			TargetField: &params.Field{Name: "regex"},
 		},
 		{
-			SourceField: meta.Field{Name: "map"},
-			TargetField: meta.Field{Name: "map"},
+			SourceField: &params.Field{Name: "map"},
+			TargetField: &params.Field{Name: "map"},
 		},
 		{
-			SourceField: meta.Field{Name: "array"},
-			TargetField: meta.Field{Name: "array"},
+			SourceField: &params.Field{Name: "array"},
+			TargetField: &params.Field{Name: "array"},
 		},
 		{
-			SourceField: meta.Field{Name: "bar"},
-			TargetField: meta.Field{Name: "bar"},
+			SourceField: &params.Field{Name: "bar"},
+			TargetField: &params.Field{Name: "bar"},
 		},
 		{
-			SourceField: meta.Field{Name: "created"},
-			TargetField: meta.Field{Name: "created"},
+			SourceField: &params.Field{Name: "created"},
+			TargetField: &params.Field{Name: "created"},
 		},
 		{
-			SourceField: meta.Field{Name: "created_format"},
-			TargetField: meta.Field{Name: "created_format"},
+			SourceField: &params.Field{Name: "created_format"},
+			TargetField: &params.Field{Name: "created_format"},
 		},
 	}
-	return meta.ExtParams{}.
-		WithInputDataset(inputDataset).
+	return params.ExtParams{}.
+		WithInputDataset(&inputDataset).
 		WithFieldMappings(fm).
-		WithOutputDataset(outputDataset)
+		WithOutputDataset(&outputDataset)
 }
 func GenerateTestData(recordCount int, ch chan<- interface{}) (err error) {
 	data := []msg.Record{}

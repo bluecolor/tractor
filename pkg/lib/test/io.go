@@ -12,7 +12,6 @@ func Record(w *wire.Wire) *wire.Casette {
 	c := wire.NewCasette()
 
 	cb := func(m *msg.Feedback) error {
-		println("feedback:", m.Type.String(), m.Sender.String())
 		if m.Type == msg.Cancelled {
 			return errors.New("cancelled")
 		}

@@ -1,4 +1,4 @@
-package meta
+package params
 
 import (
 	"fmt"
@@ -22,19 +22,19 @@ func (p ExtParams) WithTimeout(timeout time.Duration) ExtParams {
 	p[TimeoutKey] = timeout
 	return p
 }
-func (p ExtParams) WithInputDataset(dataset Dataset) ExtParams {
+func (p ExtParams) WithInputDataset(dataset *Dataset) ExtParams {
 	p[InputDatasetKey] = dataset
 	return p
 }
 func (p ExtParams) WithInputParallel(parallel int) ExtParams {
-	p[InputDatasetKey].(Dataset).Config[ParallelKey] = parallel
+	p[InputDatasetKey].(*Dataset).Config[ParallelKey] = parallel
 	return p
 }
 func (p ExtParams) WithOutputParallel(parallel int) ExtParams {
-	p[OutputDatasetKey].(Dataset).Config[ParallelKey] = parallel
+	p[OutputDatasetKey].(*Dataset).Config[ParallelKey] = parallel
 	return p
 }
-func (p ExtParams) WithOutputDataset(dataset Dataset) ExtParams {
+func (p ExtParams) WithOutputDataset(dataset *Dataset) ExtParams {
 	p[OutputDatasetKey] = dataset
 	return p
 }
@@ -64,16 +64,16 @@ func (p ExtParams) GetExtractionMode() ExtractionMode {
 }
 func (p ExtParams) GetInputDataset() *Dataset {
 	if dataset, ok := p[InputDatasetKey]; ok {
-		if d, ok := dataset.(Dataset); ok {
-			return &d
+		if d, ok := dataset.(*Dataset); ok {
+			return d
 		}
 	}
 	return nil
 }
 func (p ExtParams) GetOutputDataset() *Dataset {
 	if dataset, ok := p[OutputDatasetKey]; ok {
-		if d, ok := dataset.(Dataset); ok {
-			return &d
+		if d, ok := dataset.(*Dataset); ok {
+			return d
 		}
 	}
 	return nil
@@ -134,27 +134,27 @@ func (p ExtParams) GetFieldMappings() []FieldMapping {
 	}
 	return nil
 }
-func (p ExtParams) GetFMInputFields() []Field {
-	var fields []Field
+func (p ExtParams) GetFMInputFields() []*Field {
+	var fields []*Field
 	for _, fm := range p.GetFieldMappings() {
 		fields = append(fields, fm.SourceField)
 	}
 	return fields
 }
-func (p ExtParams) GetFMOutputFields() []Field {
-	var fields []Field
+func (p ExtParams) GetFMOutputFields() []*Field {
+	var fields []*Field
 	for _, fm := range p.GetFieldMappings() {
 		fields = append(fields, fm.TargetField)
 	}
 	return fields
 }
-func (p ExtParams) GetInputDatasetFields() []Field {
+func (p ExtParams) GetInputDatasetFields() []*Field {
 	if dataset := p.GetInputDataset(); dataset != nil {
 		return dataset.Fields
 	}
 	return nil
 }
-func (p ExtParams) GetOutputDatasetFields() []Field {
+func (p ExtParams) GetOutputDatasetFields() []*Field {
 	if dataset := p.GetOutputDataset(); dataset != nil {
 		return dataset.Fields
 	}
@@ -176,7 +176,7 @@ func (e ExtParams) GetSourceFieldNameByTargetFieldName(targetFieldName string) s
 func (e ExtParams) GetSourceFieldByTarget(f Field) (*Field, error) {
 	for _, fm := range e.GetFieldMappings() {
 		if fm.TargetField.Name == f.Name {
-			return &fm.SourceField, nil
+			return fm.SourceField, nil
 		}
 	}
 	return nil, fmt.Errorf("field %s not found", f.Name)

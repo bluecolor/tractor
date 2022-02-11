@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
-	"github.com/bluecolor/tractor/pkg/lib/meta"
+	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
@@ -75,7 +75,7 @@ func prepareFiles(connector *FileConnector) (err error) {
 func testCsvIO(connector *FileConnector, t *testing.T) {
 	outfile := "test_out.csv"
 	connector.Storage.Delete(outfile)
-	fields := []meta.Field{
+	fields := []*params.Field{
 		{
 			Name: "id",
 			Type: "string",
@@ -89,20 +89,20 @@ func testCsvIO(connector *FileConnector, t *testing.T) {
 			Type: "int",
 		},
 	}
-	p := meta.ExtParams{}
-	p.WithInputDataset(meta.Dataset{
+	p := params.ExtParams{}
+	p.WithInputDataset(&params.Dataset{
 		Name:   "test",
 		Fields: fields,
-		Config: meta.Config{
+		Config: params.Config{
 			"files": getFileNames(csvTestFiles),
 		},
-	}).WithOutputDataset(meta.Dataset{
+	}).WithOutputDataset(&params.Dataset{
 		Name:   "test",
 		Fields: fields,
-		Config: meta.Config{
+		Config: params.Config{
 			"file_name": outfile,
 		},
-	}).WithFieldMappings([]meta.FieldMapping{
+	}).WithFieldMappings([]params.FieldMapping{
 		{
 			SourceField: fields[0],
 			TargetField: fields[0],
@@ -118,13 +118,13 @@ func testCsvIO(connector *FileConnector, t *testing.T) {
 	})
 	w := wire.New()
 
-	go func(w *wire.Wire, p meta.ExtParams) {
+	go func(w *wire.Wire, p params.ExtParams) {
 		if err := connector.Write(p, w); err != nil {
 			t.Error(err)
 		}
 	}(w, p)
 
-	go func(w *wire.Wire, p meta.ExtParams) {
+	go func(w *wire.Wire, p params.ExtParams) {
 		if err := connector.Read(p, w); err != nil {
 			t.Error(err)
 		}

@@ -46,3 +46,11 @@ type FieldMapping struct {
 	ExtractionID uint           `json:"extractionID"`
 	Config       datatypes.JSON `gorm:"type:text" json:"config"`
 }
+
+func (e *Extraction) GetSourceTargetFields() (s []*Field, t []*Field) {
+	for _, fm := range e.FieldMappings {
+		s = append(s, fm.SourceField)
+		t = append(t, fm.TargetField)
+	}
+	return
+}
