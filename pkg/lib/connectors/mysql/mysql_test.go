@@ -29,7 +29,7 @@ func NewMock() (*sql.DB, sqlmock.Sqlmock) {
 func TestBuildReadQuery(t *testing.T) {
 	dataset := params.Dataset{
 		Name: "test",
-		Fields: []params.Field{
+		Fields: []*params.Field{
 			{
 				Name: "id",
 				Type: "int",
@@ -45,12 +45,12 @@ func TestBuildReadQuery(t *testing.T) {
 	}
 	fm := []params.FieldMapping{
 		{
-			SourceField: params.Field{Name: "id"},
-			TargetField: params.Field{Name: "id"},
+			SourceField: &params.Field{Name: "id"},
+			TargetField: &params.Field{Name: "id"},
 		},
 		{
-			SourceField: params.Field{Name: "name"},
-			TargetField: params.Field{Name: "name"},
+			SourceField: &params.Field{Name: "name"},
+			TargetField: &params.Field{Name: "name"},
 		},
 	}
 
@@ -85,7 +85,7 @@ func TestIO(t *testing.T) {
 
 	inputDataset := params.Dataset{
 		Name: "test_in",
-		Fields: []params.Field{
+		Fields: []*params.Field{
 			{
 				Name: "id",
 				Type: "int",
@@ -101,7 +101,7 @@ func TestIO(t *testing.T) {
 	}
 	outputDataset := params.Dataset{
 		Name: "test_out",
-		Fields: []params.Field{
+		Fields: []*params.Field{
 			{
 				Name: "id",
 				Type: "int",
@@ -117,12 +117,12 @@ func TestIO(t *testing.T) {
 	}
 	fm := []params.FieldMapping{
 		{
-			SourceField: params.Field{Name: "id"},
-			TargetField: params.Field{Name: "id"},
+			SourceField: &params.Field{Name: "id"},
+			TargetField: &params.Field{Name: "id"},
 		},
 		{
-			SourceField: params.Field{Name: "name"},
-			TargetField: params.Field{Name: "full_name", Type: "string"},
+			SourceField: &params.Field{Name: "name"},
+			TargetField: &params.Field{Name: "full_name", Type: "string"},
 		},
 	}
 	ip := params.ExtParams{}.WithInputDataset(&inputDataset).WithFieldMappings(fm)

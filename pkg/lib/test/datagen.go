@@ -36,7 +36,7 @@ func GetExtParams() params.ExtParams {
 	outChannel := make(chan interface{}, 1000)
 	inputDataset := params.Dataset{
 		Name: "test_input",
-		Fields: []params.Field{
+		Fields: []*params.Field{
 			{Name: "str", Type: "string"},
 			{Name: "int", Type: "int"},
 			{Name: "pointer", Type: "int"},
@@ -57,7 +57,7 @@ func GetExtParams() params.ExtParams {
 	}
 	outputDataset := params.Dataset{
 		Name: "test_output",
-		Fields: []params.Field{
+		Fields: []*params.Field{
 			{Name: "str", Type: "string"},
 			{Name: "int", Type: "int"},
 			{Name: "pointer", Type: "int"},
@@ -78,40 +78,40 @@ func GetExtParams() params.ExtParams {
 	}
 	fm := []params.FieldMapping{
 		{
-			SourceField: params.Field{Name: "name"},
-			TargetField: params.Field{Name: "name"},
+			SourceField: &params.Field{Name: "name"},
+			TargetField: &params.Field{Name: "name"},
 		},
 		{
-			SourceField: params.Field{Name: "randstr"},
-			TargetField: params.Field{Name: "randstr"},
+			SourceField: &params.Field{Name: "randstr"},
+			TargetField: &params.Field{Name: "randstr"},
 		},
 		{
-			SourceField: params.Field{Name: "number"},
-			TargetField: params.Field{Name: "number"},
+			SourceField: &params.Field{Name: "number"},
+			TargetField: &params.Field{Name: "number"},
 		},
 		{
-			SourceField: params.Field{Name: "regex"},
-			TargetField: params.Field{Name: "regex"},
+			SourceField: &params.Field{Name: "regex"},
+			TargetField: &params.Field{Name: "regex"},
 		},
 		{
-			SourceField: params.Field{Name: "map"},
-			TargetField: params.Field{Name: "map"},
+			SourceField: &params.Field{Name: "map"},
+			TargetField: &params.Field{Name: "map"},
 		},
 		{
-			SourceField: params.Field{Name: "array"},
-			TargetField: params.Field{Name: "array"},
+			SourceField: &params.Field{Name: "array"},
+			TargetField: &params.Field{Name: "array"},
 		},
 		{
-			SourceField: params.Field{Name: "bar"},
-			TargetField: params.Field{Name: "bar"},
+			SourceField: &params.Field{Name: "bar"},
+			TargetField: &params.Field{Name: "bar"},
 		},
 		{
-			SourceField: params.Field{Name: "created"},
-			TargetField: params.Field{Name: "created"},
+			SourceField: &params.Field{Name: "created"},
+			TargetField: &params.Field{Name: "created"},
 		},
 		{
-			SourceField: params.Field{Name: "created_format"},
-			TargetField: params.Field{Name: "created_format"},
+			SourceField: &params.Field{Name: "created_format"},
+			TargetField: &params.Field{Name: "created_format"},
 		},
 	}
 	return params.ExtParams{}.

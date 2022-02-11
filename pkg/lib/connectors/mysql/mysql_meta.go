@@ -35,8 +35,8 @@ func (c *column) getConfig() map[string]interface{} {
 	}
 	return config
 }
-func (c *column) getField() params.Field {
-	return params.Field{
+func (c *column) getField() *params.Field {
+	return &params.Field{
 		Name:   c.Field,
 		Type:   c.Type,
 		Config: c.getConfig(),
@@ -71,12 +71,12 @@ func (m *MySQLConnector) FindDatasets(pattern string) ([]params.Dataset, error) 
 
 	return datasets, nil
 }
-func (m *MySQLConnector) fetchFields(table string) ([]params.Field, error) {
+func (m *MySQLConnector) fetchFields(table string) ([]*params.Field, error) {
 	result, err := m.db.Query("SHOW COLUMNS FROM " + table)
 	if err != nil {
 		return nil, err
 	}
-	fields := []params.Field{}
+	fields := []*params.Field{}
 	for result.Next() {
 		var c column = column{}
 		if err := result.Scan(&c.Field, &c.Type, &c.Null, &c.Key, &c.Default, &c.Extra); err != nil {

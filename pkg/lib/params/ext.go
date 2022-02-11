@@ -27,11 +27,11 @@ func (p ExtParams) WithInputDataset(dataset *Dataset) ExtParams {
 	return p
 }
 func (p ExtParams) WithInputParallel(parallel int) ExtParams {
-	p[InputDatasetKey].(Dataset).Config[ParallelKey] = parallel
+	p[InputDatasetKey].(*Dataset).Config[ParallelKey] = parallel
 	return p
 }
 func (p ExtParams) WithOutputParallel(parallel int) ExtParams {
-	p[OutputDatasetKey].(Dataset).Config[ParallelKey] = parallel
+	p[OutputDatasetKey].(*Dataset).Config[ParallelKey] = parallel
 	return p
 }
 func (p ExtParams) WithOutputDataset(dataset *Dataset) ExtParams {
@@ -64,16 +64,16 @@ func (p ExtParams) GetExtractionMode() ExtractionMode {
 }
 func (p ExtParams) GetInputDataset() *Dataset {
 	if dataset, ok := p[InputDatasetKey]; ok {
-		if d, ok := dataset.(Dataset); ok {
-			return &d
+		if d, ok := dataset.(*Dataset); ok {
+			return d
 		}
 	}
 	return nil
 }
 func (p ExtParams) GetOutputDataset() *Dataset {
 	if dataset, ok := p[OutputDatasetKey]; ok {
-		if d, ok := dataset.(Dataset); ok {
-			return &d
+		if d, ok := dataset.(*Dataset); ok {
+			return d
 		}
 	}
 	return nil

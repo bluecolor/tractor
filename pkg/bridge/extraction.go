@@ -19,11 +19,11 @@ func (e *Extraction) Model() models.Extraction {
 
 func (e *Extraction) ExtParams() (p params.ExtParams, err error) {
 	sourceFields, targetFields := e.model.GetSourceTargetFields()
-	inputDataset, err := NewDataset(e.model.SourceDataset).DatasetWithFields(sourceFields)
+	inputDataset, err := NewDataset(e.model.SourceDataset).WithFields(sourceFields)
 	if err != nil {
 		return p, err
 	}
-	outputDataset, err := NewDataset(e.model.SourceDataset).DatasetWithFields(targetFields)
+	outputDataset, err := NewDataset(e.model.TargetDataset).WithFields(targetFields)
 	if err != nil {
 		return p, err
 	}

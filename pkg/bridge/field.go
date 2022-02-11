@@ -44,7 +44,7 @@ func getFields(fields []*models.Field) (output []*params.Field, err error) {
 
 func getFieldMappings(m []models.FieldMapping) (output []params.FieldMapping, err error) {
 	output = make([]params.FieldMapping, len(m))
-	for _, fm := range m {
+	for i, fm := range m {
 		source, err := NewField(fm.SourceField).Field()
 		if err != nil {
 			return nil, err
@@ -57,11 +57,11 @@ func getFieldMappings(m []models.FieldMapping) (output []params.FieldMapping, er
 		if err != nil {
 			return nil, err
 		}
-		output = append(output, params.FieldMapping{
+		output[i] = params.FieldMapping{
 			SourceField: source,
 			TargetField: target,
 			Config:      config,
-		})
+		}
 	}
 	return output, nil
 }

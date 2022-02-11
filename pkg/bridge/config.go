@@ -8,6 +8,9 @@ import (
 )
 
 func GetConfig(c datatypes.JSON) (params.Config, error) {
+	if c == nil {
+		return params.Config{}, nil
+	}
 	var config params.Config
 	if err := json.Unmarshal(c, &config); err != nil {
 		return nil, err

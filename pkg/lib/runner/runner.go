@@ -194,7 +194,6 @@ func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
 				result = r.Result()
 				return
 			}
-			fmt.Printf("feedback: %v\n", f)
 			r.ProcessFeedback(f)
 			r.TryCloseData()
 			r.TryCloseFeedback()

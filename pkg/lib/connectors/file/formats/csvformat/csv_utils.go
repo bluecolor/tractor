@@ -35,7 +35,7 @@ func toLinesWithRest(bs string) ([]string, []byte) {
 	}
 	return lines, rest
 }
-func toRecord(row []string, fields []params.Field) (msg.Record, error) {
+func toRecord(row []string, fields []*params.Field) (msg.Record, error) {
 	if len(row) != len(fields) {
 		return nil, errors.New("wrong number of fields in record")
 	}

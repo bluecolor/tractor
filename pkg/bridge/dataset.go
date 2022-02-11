@@ -17,7 +17,7 @@ func NewDataset(model *models.Dataset) *Dataset {
 func (d *Dataset) Model() *models.Dataset {
 	return d.model
 }
-func (d *Dataset) DatasetWithFields(f []*models.Field) (*params.Dataset, error) {
+func (d *Dataset) WithFields(f []*models.Field) (*params.Dataset, error) {
 	config, err := GetConfig(d.model.Config)
 	if err != nil {
 		return nil, err

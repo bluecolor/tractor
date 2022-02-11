@@ -75,7 +75,7 @@ func prepareFiles(connector *FileConnector) (err error) {
 func testCsvIO(connector *FileConnector, t *testing.T) {
 	outfile := "test_out.csv"
 	connector.Storage.Delete(outfile)
-	fields := []params.Field{
+	fields := []*params.Field{
 		{
 			Name: "id",
 			Type: "string",
