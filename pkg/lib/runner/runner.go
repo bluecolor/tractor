@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
+	_ "github.com/bluecolor/tractor/pkg/lib/connectors/all"
 	"github.com/bluecolor/tractor/pkg/lib/meta"
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/lib/types"
@@ -29,6 +30,7 @@ type Result struct {
 }
 
 type Runner struct {
+	mu               sync.Mutex
 	inputConnection  meta.Connection
 	outputConnection meta.Connection
 	wire             *wire.Wire
@@ -103,6 +105,7 @@ func New(inputConnection meta.Connection, outputConnection meta.Connection) (*Ru
 	}
 
 	return &Runner{
+		mu:               sync.Mutex{},
 		inputConnection:  inputConnection,
 		outputConnection: outputConnection,
 		wire:             wire.New(),
@@ -145,7 +148,6 @@ func (r *Runner) Run(p meta.ExtParams) (err error) {
 		defer wg.Done()
 		r.RunOutput(p)
 	}(wg)
-	wg.Wait()
 	// input
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -155,36 +157,32 @@ func (r *Runner) Run(p meta.ExtParams) (err error) {
 	return
 }
 func (r *Runner) RunInput(p meta.ExtParams) error {
+	defer func() {
+		if err := r.inputConnector.Close(); err != nil {
+			r.wire.SendInputError(err)
+		}
+	}()
 	if err := r.inputConnector.Connect(); err != nil {
 		r.wire.SendInputError(err)
 		return err
 	}
-	defer func() {
-		if err := r.inputConnector.Close(); err != nil {
-			r.wire.SendInputError(err)
-		}
-	}()
-
 	return r.inputConnector.Read(p, r.wire)
 }
 func (r *Runner) RunOutput(p meta.ExtParams) error {
+
 	if err := r.outputConnector.Connect(); err != nil {
 		r.wire.SendOutputError(err)
 		return err
 	}
-	defer func() {
-		if err := r.inputConnector.Close(); err != nil {
-			r.wire.SendInputError(err)
-		}
-	}()
 
 	return r.outputConnector.Write(p, r.wire)
 }
-func (r *Runner) Supervise(timeout time.Duration) *Result {
+func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
 	defer func() {
 		if err := recover(); err != nil {
 			r.result.AddError(fmt.Errorf("%v", err), types.SupervisorError)
 		}
+		result = r.result
 	}()
 
 	for {
@@ -193,12 +191,16 @@ func (r *Runner) Supervise(timeout time.Duration) *Result {
 			if !ok {
 				err := fmt.Errorf("feedback channel closed unexpectedly")
 				r.result.AddError(err, types.SupervisorError)
-				return r.Result()
+				result = r.Result()
+				return
 			}
+			fmt.Printf("feedback: %v\n", f)
 			r.ProcessFeedback(f)
+			r.TryCloseData()
 			r.TryCloseFeedback()
 			if r.IsDone() {
-				return r.Result()
+				result = r.Result()
+				return
 			}
 		case <-time.After(timeout):
 			if !r.result.isTimeout {
@@ -209,6 +211,8 @@ func (r *Runner) Supervise(timeout time.Duration) *Result {
 	}
 }
 func (r *Runner) TryCloseFeedback() bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if r.result.isInputDone && r.result.isOutputDone && !r.isFeedbackClosed {
 		r.isFeedbackClosed = true
 		r.wire.CloseFeedback()
@@ -217,6 +221,8 @@ func (r *Runner) TryCloseFeedback() bool {
 	return r.isFeedbackClosed
 }
 func (r *Runner) TryDone() bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if r.result.isInputDone && r.result.isOutputDone {
 		r.result.isDone = true
 		return true
@@ -224,7 +230,9 @@ func (r *Runner) TryDone() bool {
 	return r.result.isDone
 }
 func (r *Runner) TryCloseData() bool {
-	if r.result.isInputDone && r.result.isOutputDone && !r.isDataClosed {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.result.isInputDone && !r.isDataClosed {
 		r.wire.CloseData()
 		return true
 	}
