@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
@@ -13,7 +14,7 @@ func TestNewRunner(t *testing.T) {
 	c := params.Connection{
 		ConnectionType: "dummy",
 	}
-	if _, err := New(c, c); err != nil {
+	if _, err := New(context.Background(), &c, &c); err != nil {
 		t.Error(err)
 	}
 }
@@ -25,7 +26,7 @@ func TestRunner(t *testing.T) {
 	connection := params.Connection{
 		ConnectionType: "dummy",
 	}
-	runner, err := New(connection, connection)
+	runner, err := New(context.Background(), &connection, &connection)
 	if err != nil {
 		t.Error(err)
 	}

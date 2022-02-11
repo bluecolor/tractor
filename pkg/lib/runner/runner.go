@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -30,9 +31,10 @@ type Result struct {
 }
 
 type Runner struct {
+	ctx              context.Context
 	mu               sync.Mutex
-	inputConnection  params.Connection
-	outputConnection params.Connection
+	inputConnection  *params.Connection
+	outputConnection *params.Connection
 	wire             *wire.Wire
 	inputConnector   connectors.Input
 	outputConnector  connectors.Output
@@ -79,7 +81,7 @@ func (r *Result) AddError(err error, es ...types.ErrorSource) {
 	r.errors.Add(err)
 }
 
-func New(inputConnection params.Connection, outputConnection params.Connection) (*Runner, error) {
+func New(ctx context.Context, inputConnection *params.Connection, outputConnection *params.Connection) (*Runner, error) {
 	ic, err := connectors.GetConnector(
 		outputConnection.ConnectionType,
 		connectors.ConnectorConfig(inputConnection.Config),
@@ -105,6 +107,7 @@ func New(inputConnection params.Connection, outputConnection params.Connection) 
 	}
 
 	return &Runner{
+		ctx:              ctx,
 		mu:               sync.Mutex{},
 		inputConnection:  inputConnection,
 		outputConnection: outputConnection,
@@ -201,6 +204,8 @@ func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
 				result = r.Result()
 				return
 			}
+		case <-r.ctx.Done():
+			r.Cancel()
 		case <-time.After(timeout):
 			if !r.result.isTimeout {
 				r.result.isTimeout = true
@@ -239,4 +244,15 @@ func (r *Runner) TryCloseData() bool {
 }
 func (r *Runner) IsDone() bool {
 	return r.TryDone()
+}
+func (r *Runner) Cancel() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.Result().AddError(fmt.Errorf("canceled"), types.SupervisorError)
+	r.inputConnector.Close()
+	r.outputConnector.Close()
+	r.isDataClosed = true
+	r.isFeedbackClosed = true
+	r.wire.CloseData()
+	r.wire.CloseFeedback()
 }

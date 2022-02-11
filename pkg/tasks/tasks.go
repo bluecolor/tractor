@@ -1,6 +1,9 @@
 package tasks
 
 import (
+	"encoding/json"
+
+	"github.com/bluecolor/tractor/pkg/bridge"
 	"github.com/bluecolor/tractor/pkg/models"
 	"github.com/hibiken/asynq"
 )
@@ -11,11 +14,22 @@ const (
 )
 
 func NewExtractionRunTask(e models.Extraction) (*asynq.Task, error) {
-
-	return nil, nil
-	// payload, err := json.Marshal(EmailDeliveryPayload{UserID: userID, TemplateID: tmplID})
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// return asynq.NewTask(TypeEmailDelivery, payload), nil
+	ext := bridge.NewExtraction(e)
+	params, err := ext.ExtParams()
+	if err != nil {
+		return nil, err
+	}
+	inputc, outputc, err := ext.Connections()
+	if err != nil {
+		return nil, err
+	}
+	payload, err := json.Marshal(ExtractionPayload{
+		SourceConnection: inputc,
+		TargetConnection: outputc,
+		Params:           params,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return asynq.NewTask(TypeExtractionRun, payload), nil
 }

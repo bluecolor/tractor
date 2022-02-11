@@ -8,6 +8,7 @@ require (
 	github.com/Xuanwo/gg v0.2.0 // indirect
 	github.com/Xuanwo/go-bufferpool v0.2.0 // indirect
 	github.com/Xuanwo/templateutils v0.1.0 // indirect
+	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
 	github.com/aws/aws-sdk-go-v2 v1.10.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.9.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.5.0 // indirect
@@ -42,6 +43,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
+	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da // indirect
 	go.beyondstorage.io/credential v1.0.0 // indirect
 	go.beyondstorage.io/endpoint v1.2.0 // indirect
 	go.beyondstorage.io/services/fs/v4 v4.0.0 // indirect
@@ -58,6 +60,7 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
+	github.com/alicebob/miniredis/v2 v2.18.0
 	github.com/brianvoe/gofakeit/v6 v6.14.3
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
 	github.com/go-chi/chi v1.5.4
