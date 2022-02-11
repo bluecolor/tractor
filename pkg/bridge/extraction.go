@@ -37,3 +37,14 @@ func (e *Extraction) ExtParams() (p params.ExtParams, err error) {
 		WithFieldMappings(fm)
 	return
 }
+func (e *Extraction) Connections() (input *params.Connection, output *params.Connection, err error) {
+	input, err = NewConnection(e.model.SourceConnection).Connection()
+	if err != nil {
+		return nil, nil, err
+	}
+	output, err = NewConnection(e.model.TargetConnection).Connection()
+	if err != nil {
+		return nil, nil, err
+	}
+	return
+}

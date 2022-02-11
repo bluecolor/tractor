@@ -10,14 +10,18 @@ type ExtractionMode struct {
 
 type Extraction struct {
 	Model
-	Name             string          `json:"name"`
-	SourceDatasetID  uint            `json:"sourceDatasetId"`
-	SourceDataset    *Dataset        `gorm:"foreignkey:SourceDatasetID" json:"sourceDataset"`
-	TargetDatasetID  uint            `json:"targetDatasetId"`
-	TargetDataset    *Dataset        `gorm:"foreignkey:TargetDatasetID" json:"targetDataset"`
-	ExtractionModeID uint            `json:"extractionModeID"`
-	ExtractionMode   *ExtractionMode `gorm:"foreignkey:ExtractionModeID" json:"extractionMode"`
-	FieldMappings    []FieldMapping  `json:"fieldMappings"`
+	Name               string          `json:"name"`
+	SourceConnection   *Connection     `gorm:"foreignkey:SourceConnectionID" json:"source_connection"`
+	SourceConnectionID uint            `json:"source_connection_id"`
+	TargetConnection   *Connection     `gorm:"foreignkey:TargetConnectionID" json:"target_connection"`
+	TargetConnectionID uint            `json:"target_connection_id"`
+	SourceDatasetID    uint            `json:"sourceDatasetId"`
+	SourceDataset      *Dataset        `gorm:"foreignkey:SourceDatasetID" json:"sourceDataset"`
+	TargetDatasetID    uint            `json:"targetDatasetId"`
+	TargetDataset      *Dataset        `gorm:"foreignkey:TargetDatasetID" json:"targetDataset"`
+	ExtractionModeID   uint            `json:"extractionModeID"`
+	ExtractionMode     *ExtractionMode `gorm:"foreignkey:ExtractionModeID" json:"extractionMode"`
+	FieldMappings      []FieldMapping  `json:"fieldMappings"`
 }
 
 type Dataset struct {
