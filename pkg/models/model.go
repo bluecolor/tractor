@@ -22,5 +22,7 @@ func init() {
 		&Provider{},
 		&ProviderType{},
 		&Param{},
+		&SessionStatus{},
+		&Session{},
 	)
 }

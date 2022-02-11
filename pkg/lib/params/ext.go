@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	SessionIDKey      = "session_id"
 	TimeoutKey        = "timeout"
 	InputDatasetKey   = "input_dataset"
 	OutputDatasetKey  = "output_dataset"
@@ -21,6 +22,18 @@ type ExtParams map[string]interface{}
 func (p ExtParams) WithTimeout(timeout time.Duration) ExtParams {
 	p[TimeoutKey] = timeout
 	return p
+}
+func (p ExtParams) WithSessionID(id int) ExtParams {
+	p[SessionIDKey] = id
+	return p
+}
+func (p ExtParams) GetSessionID() int {
+	if id, ok := p[SessionIDKey]; ok {
+		if i, ok := id.(int); ok {
+			return i
+		}
+	}
+	return 0
 }
 func (p ExtParams) WithInputDataset(dataset *Dataset) ExtParams {
 	p[InputDatasetKey] = dataset

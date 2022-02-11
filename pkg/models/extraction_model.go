@@ -22,6 +22,7 @@ type Extraction struct {
 	ExtractionModeID   uint            `json:"extractionModeID"`
 	ExtractionMode     *ExtractionMode `gorm:"foreignkey:ExtractionModeID" json:"extractionMode"`
 	FieldMappings      []FieldMapping  `json:"fieldMappings"`
+	Sessions           []*Session      `json:"sessions"`
 }
 
 type Dataset struct {
