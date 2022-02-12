@@ -31,7 +31,7 @@ type testrecord struct {
 	CreatedFormat time.Time      `fake:"{year}-{month}-{day}" format:"2006-01-02" json:"created_format"`
 }
 
-func GetExtParams() params.ExtParams {
+func GetSession() params.SessionParams {
 	inChannel := make(chan interface{}, 1000)
 	outChannel := make(chan interface{}, 1000)
 	inputDataset := params.Dataset{
@@ -114,7 +114,7 @@ func GetExtParams() params.ExtParams {
 			TargetField: &params.Field{Name: "created_format"},
 		},
 	}
-	return params.ExtParams{}.
+	return params.SessionParams{}.
 		WithInputDataset(&inputDataset).
 		WithFieldMappings(fm).
 		WithOutputDataset(&outputDataset)

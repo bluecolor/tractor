@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (c *MySQLConnector) write(p params.ExtParams, i int, data msg.Data) error {
+func (c *MySQLConnector) write(p params.SessionParams, i int, data msg.Data) error {
 	ok := true
 	dataset := *p.GetOutputDataset()
 	query, err := c.BuildBatchInsertQuery(dataset, data.Count())
@@ -37,7 +37,7 @@ func (c *MySQLConnector) write(p params.ExtParams, i int, data msg.Data) error {
 
 // todo add batch size, buffer
 // todo add timeout
-func (m *MySQLConnector) StartWriteWorker(ctx context.Context, p params.ExtParams, w *wire.Wire, i int) error {
+func (m *MySQLConnector) StartWriteWorker(ctx context.Context, p params.SessionParams, w *wire.Wire, i int) error {
 	for {
 		select {
 		case data, ok := <-w.ReceiveData():
@@ -55,7 +55,7 @@ func (m *MySQLConnector) StartWriteWorker(ctx context.Context, p params.ExtParam
 }
 
 // todo transactions
-func (m *MySQLConnector) Write(p params.ExtParams, w *wire.Wire) (err error) {
+func (m *MySQLConnector) Write(p params.SessionParams, w *wire.Wire) (err error) {
 	var parallel int = p.GetOutputParallel()
 	if parallel > 1 {
 		log.Warn().Msgf("parallel write is not supported for MySQL connector. Using %d", 1)
@@ -141,7 +141,7 @@ func (m *MySQLConnector) TruncateTable(d params.Dataset) (err error) {
 	_, err = m.db.Exec(query)
 	return
 }
-func (m *MySQLConnector) PrepareTable(p params.ExtParams) (err error) {
+func (m *MySQLConnector) PrepareTable(p params.SessionParams) (err error) {
 	dataset := *p.GetOutputDataset()
 	switch p.GetExtractionMode() {
 	case params.ExtractionModeCreate:

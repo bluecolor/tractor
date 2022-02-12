@@ -6,18 +6,18 @@ import (
 )
 
 type Extraction struct {
-	model models.Extraction
+	model *models.Extraction
 }
 
-func NewExtraction(model models.Extraction) (e *Extraction) {
+func NewExtraction(model *models.Extraction) (e *Extraction) {
 	return &Extraction{model: model}
 }
 
-func (e *Extraction) Model() models.Extraction {
+func (e *Extraction) Model() *models.Extraction {
 	return e.model
 }
 
-func (e *Extraction) ExtParams() (p params.ExtParams, err error) {
+func (e *Extraction) SessionParams() (p params.SessionParams, err error) {
 	sourceFields, targetFields := e.model.GetSourceTargetFields()
 	inputDataset, err := NewDataset(e.model.SourceDataset).WithFields(sourceFields)
 	if err != nil {
@@ -31,7 +31,7 @@ func (e *Extraction) ExtParams() (p params.ExtParams, err error) {
 	if err != nil {
 		return p, err
 	}
-	p = params.ExtParams{}.
+	p = params.SessionParams{}.
 		WithInputDataset(inputDataset).
 		WithOutputDataset(outputDataset).
 		WithFieldMappings(fm)

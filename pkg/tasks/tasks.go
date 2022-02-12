@@ -9,17 +9,17 @@ import (
 )
 
 const (
-	TypeEmailSend     = "email:send"
-	TypeExtractionRun = "extraction:run"
+	TypeEmailSend  = "email:send"
+	TypeSessionRun = "session:run"
 )
 
-func NewExtractionRunTask(e models.Extraction) (*asynq.Task, error) {
-	ext := bridge.NewExtraction(e)
-	params, err := ext.ExtParams()
+func NewSessionRunTask(s *models.Session) (*asynq.Task, error) {
+	session := bridge.NewSession(s)
+	params, err := session.SessionParamsWithID()
 	if err != nil {
 		return nil, err
 	}
-	inputc, outputc, err := ext.Connections()
+	inputc, outputc, err := session.Connections()
 	if err != nil {
 		return nil, err
 	}
@@ -31,5 +31,5 @@ func NewExtractionRunTask(e models.Extraction) (*asynq.Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	return asynq.NewTask(TypeExtractionRun, payload), nil
+	return asynq.NewTask(TypeSessionRun, payload), nil
 }

@@ -26,7 +26,7 @@ func TestIO(t *testing.T) {
 	recordCount := 10
 	config := connectors.ConnectorConfig{}
 	connector := New(config)
-	p := test.GetExtParams()
+	p := test.GetSession()
 	w := wire.New()
 	wg := &sync.WaitGroup{}
 
@@ -51,7 +51,7 @@ func TestIO(t *testing.T) {
 
 	// generate test data
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, p params.ExtParams) {
+	go func(wg *sync.WaitGroup, p params.SessionParams) {
 		ch := p.GetInputDataset().Config.GetChannel("channel")
 		defer close(ch)
 		defer wg.Done()
@@ -62,7 +62,7 @@ func TestIO(t *testing.T) {
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p params.ExtParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p params.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
@@ -71,7 +71,7 @@ func TestIO(t *testing.T) {
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p params.ExtParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, p params.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)
@@ -86,7 +86,7 @@ func TestParallelIO(t *testing.T) {
 	recordCount := 100
 	config := connectors.ConnectorConfig{}
 	connector := New(config)
-	p := test.GetExtParams().WithInputParallel(2).WithOutputParallel(2)
+	p := test.GetSession().WithInputParallel(2).WithOutputParallel(2)
 	w := wire.New()
 	wg := &sync.WaitGroup{}
 
@@ -111,7 +111,7 @@ func TestParallelIO(t *testing.T) {
 
 	// generate test data
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, p params.ExtParams) {
+	go func(wg *sync.WaitGroup, p params.SessionParams) {
 		ch := p.GetInputDataset().Config.GetChannel("channel")
 		defer close(ch)
 		defer wg.Done()
@@ -122,7 +122,7 @@ func TestParallelIO(t *testing.T) {
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p params.ExtParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p params.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
@@ -131,7 +131,7 @@ func TestParallelIO(t *testing.T) {
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p params.ExtParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, p params.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)
@@ -146,7 +146,7 @@ func TestIOError(t *testing.T) {
 	recordCount := 100
 	config := connectors.ConnectorConfig{}
 	connector := New(config)
-	p := test.GetExtParams().WithInputParallel(2).WithOutputParallel(2)
+	p := test.GetSession().WithInputParallel(2).WithOutputParallel(2)
 	w := wire.New()
 	wg := &sync.WaitGroup{}
 
@@ -168,7 +168,7 @@ func TestIOError(t *testing.T) {
 
 	// generate test data
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, p params.ExtParams) {
+	go func(wg *sync.WaitGroup, p params.SessionParams) {
 		ch := p.GetInputDataset().Config.GetChannel("channel")
 		defer close(ch)
 		defer wg.Done()
@@ -179,7 +179,7 @@ func TestIOError(t *testing.T) {
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p params.ExtParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p params.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
@@ -188,7 +188,7 @@ func TestIOError(t *testing.T) {
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p params.ExtParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, p params.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)

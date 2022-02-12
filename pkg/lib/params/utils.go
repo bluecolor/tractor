@@ -5,7 +5,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func ToOutputData(input []msg.Record, p ExtParams) ([]msg.Record, error) {
+func ToOutputData(input []msg.Record, p SessionParams) ([]msg.Record, error) {
 	dataset := p.GetOutputDataset()
 	output := make([]msg.Record, len(input))
 	for i, r := range input {

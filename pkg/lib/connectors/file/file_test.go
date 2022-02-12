@@ -89,7 +89,7 @@ func testCsvIO(connector *FileConnector, t *testing.T) {
 			Type: "int",
 		},
 	}
-	p := params.ExtParams{}
+	p := params.SessionParams{}
 	p.WithInputDataset(&params.Dataset{
 		Name:   "test",
 		Fields: fields,
@@ -118,13 +118,13 @@ func testCsvIO(connector *FileConnector, t *testing.T) {
 	})
 	w := wire.New()
 
-	go func(w *wire.Wire, p params.ExtParams) {
+	go func(w *wire.Wire, p params.SessionParams) {
 		if err := connector.Write(p, w); err != nil {
 			t.Error(err)
 		}
 	}(w, p)
 
-	go func(w *wire.Wire, p params.ExtParams) {
+	go func(w *wire.Wire, p params.SessionParams) {
 		if err := connector.Read(p, w); err != nil {
 			t.Error(err)
 		}

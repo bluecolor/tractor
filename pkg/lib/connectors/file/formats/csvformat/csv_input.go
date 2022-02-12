@@ -12,19 +12,19 @@ import (
 	"go.beyondstorage.io/v5/pairs"
 )
 
-func getInputCsvDelimiter(p params.ExtParams) string {
+func getInputCsvDelimiter(p params.SessionParams) string {
 	return p.GetInputDataset().Config.GetString(DelimiterKey, ",")
 }
-func getLazyQuotes(p params.ExtParams) bool {
+func getLazyQuotes(p params.SessionParams) bool {
 	return p.GetInputDataset().Config.GetBool(QuotesKey, true)
 }
-func getInputFiles(p params.ExtParams) []string {
+func getInputFiles(p params.SessionParams) []string {
 	return p.GetInputDataset().Config.GetStringArray(FilesKey, []string{})
 }
-func getHeader(p params.ExtParams) bool {
+func getHeader(p params.SessionParams) bool {
 	return p.GetInputDataset().Config.GetBool(HeaderKey, true)
 }
-func (f *CsvFormat) Work(filename string, p params.ExtParams, w *wire.Wire, wi int) (err error) {
+func (f *CsvFormat) Work(filename string, p params.SessionParams, w *wire.Wire, wi int) (err error) {
 	var buf bytes.Buffer
 	size, offset := int64(1000), int64(0) // todo size from .env
 	rest := []byte{}
@@ -72,7 +72,7 @@ func (f *CsvFormat) Work(filename string, p params.ExtParams, w *wire.Wire, wi i
 	bw.Flush()
 	return nil
 }
-func (f *CsvFormat) StartReadWorker(files []string, p params.ExtParams, w *wire.Wire, wi int) (err error) {
+func (f *CsvFormat) StartReadWorker(files []string, p params.SessionParams, w *wire.Wire, wi int) (err error) {
 	for _, file := range files {
 		if err = f.Work(file, p, w, wi); err != nil {
 			return
@@ -80,7 +80,7 @@ func (f *CsvFormat) StartReadWorker(files []string, p params.ExtParams, w *wire.
 	}
 	return
 }
-func (f *CsvFormat) Read(p params.ExtParams, w *wire.Wire) (err error) {
+func (f *CsvFormat) Read(p params.SessionParams, w *wire.Wire) (err error) {
 	chunks, err := getFileChunks(getInputFiles(p), p.GetInputParallel())
 	if err != nil {
 		return err
