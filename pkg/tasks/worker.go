@@ -10,7 +10,7 @@ type Server struct {
 	server *asynq.Server
 }
 
-func NewServer(c conf.Tasks) *Server {
+func NewWorker(c conf.Tasks) *Server {
 	server := asynq.NewServer(
 		asynq.RedisClientOpt{Addr: c.Addr},
 		asynq.Config{

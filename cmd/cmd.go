@@ -51,6 +51,17 @@ func Run() {
 				},
 			},
 			{
+				Name:  "worker",
+				Usage: "worker command",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "start",
+						Usage:  "start tractor worker",
+						Action: runWorkerStartCmd,
+					},
+				},
+			},
+			{
 				Name:   "db",
 				Usage:  "db command",
 				Before: runConnectRepo,
