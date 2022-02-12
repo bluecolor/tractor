@@ -15,7 +15,7 @@ const (
 
 func NewSessionRunTask(s *models.Session) (*asynq.Task, error) {
 	session := bridge.NewSession(s)
-	params, err := session.SessionParamsWithID()
+	params, err := session.SessionParams()
 	if err != nil {
 		return nil, err
 	}

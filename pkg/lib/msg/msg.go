@@ -102,6 +102,9 @@ type Feedback struct {
 	Sender  Sender
 	Content interface{}
 }
+type FeedbackBackend interface {
+	Store(sessionID string, feedback *Feedback) error
+}
 
 func (f *Feedback) String() string {
 	return fmt.Sprintf("%v: %v", f.Sender, f.Type)

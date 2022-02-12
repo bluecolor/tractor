@@ -3,6 +3,8 @@ package params
 import (
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -19,21 +21,35 @@ const (
 
 type SessionParams map[string]interface{}
 
+func (p SessionParams) Init() SessionParams {
+	return p.EnsureSessionID().WithTimeout(DefaultTimeOut)
+}
 func (p SessionParams) WithTimeout(timeout time.Duration) SessionParams {
 	p[TimeoutKey] = timeout
 	return p
 }
-func (p SessionParams) WithSessionID(id uint) SessionParams {
-	p[SessionIDKey] = id
+func (p SessionParams) WithSessionID(id interface{}) SessionParams {
+	switch val := id.(type) {
+	case string:
+		p[SessionIDKey] = val
+	default:
+		p[SessionIDKey] = fmt.Sprintf("%d", val)
+	}
 	return p
 }
-func (p SessionParams) GetSessionID() int {
+func (p SessionParams) GetSessionID() string {
 	if id, ok := p[SessionIDKey]; ok {
-		if i, ok := id.(int); ok {
+		if i, ok := id.(string); ok {
 			return i
 		}
 	}
-	return 0
+	return ""
+}
+func (p SessionParams) EnsureSessionID() SessionParams {
+	if _, ok := p[SessionIDKey]; !ok {
+		p.WithSessionID(uuid.New().String())
+	}
+	return p
 }
 func (p SessionParams) WithInputDataset(dataset *Dataset) SessionParams {
 	p[InputDatasetKey] = dataset

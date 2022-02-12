@@ -27,11 +27,20 @@ type Log struct {
 	Level string `mapstructure:"log_level"`
 }
 
+type RedisBackend struct {
+	Addr string `mapstructure:"feedback_backend__redis__addr"`
+}
+
+type FeedbackBackeds struct {
+	Redis RedisBackend `mapstructure:",squash"`
+}
+
 type Config struct {
-	DB    DB    `mapstructure:",squash"`
-	Tasks Tasks `mapstructure:",squash"`
-	Log   Log   `mapstructure:",squash"`
-	App   App   `mapstructure:",squash"`
+	DB               DB              `mapstructure:",squash"`
+	Tasks            Tasks           `mapstructure:",squash"`
+	Log              Log             `mapstructure:",squash"`
+	App              App             `mapstructure:",squash"`
+	FeedbackBackends FeedbackBackeds `mapstructure:",squash"`
 }
 
 func LoadConfig(args ...string) (config Config, err error) {
@@ -47,7 +56,6 @@ func LoadConfig(args ...string) (config Config, err error) {
 	if err != nil {
 		return config, err
 	}
-
 	err = viper.Unmarshal(&config)
 	return config, err
 }
