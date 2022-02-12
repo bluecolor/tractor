@@ -45,7 +45,7 @@ func TestNewSession(t *testing.T) {
 	for _, test := range tests {
 		t.Run("", func(t *testing.T) {
 			e := NewExtraction(&test.Model)
-			p, err := e.Session()
+			p, err := e.SessionParams()
 			if err != nil {
 				t.Error(err)
 			}

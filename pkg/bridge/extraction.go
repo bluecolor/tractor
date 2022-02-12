@@ -17,7 +17,7 @@ func (e *Extraction) Model() *models.Extraction {
 	return e.model
 }
 
-func (e *Extraction) Session() (p params.SessionParams, err error) {
+func (e *Extraction) SessionParams() (p params.SessionParams, err error) {
 	sourceFields, targetFields := e.model.GetSourceTargetFields()
 	inputDataset, err := NewDataset(e.model.SourceDataset).WithFields(sourceFields)
 	if err != nil {

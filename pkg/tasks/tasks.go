@@ -13,13 +13,13 @@ const (
 	TypeSessionRun = "session:run"
 )
 
-func NewESessionRunTask(s *models.Session) (*asynq.Task, error) {
-	ext := bridge.NewExtraction(e)
-	params, err := ext.Session()
+func NewSessionRunTask(s *models.Session) (*asynq.Task, error) {
+	session := bridge.NewSession(s)
+	params, err := session.SessionParamsWithID()
 	if err != nil {
 		return nil, err
 	}
-	inputc, outputc, err := ext.Connections()
+	inputc, outputc, err := session.Connections()
 	if err != nil {
 		return nil, err
 	}
@@ -31,5 +31,5 @@ func NewESessionRunTask(s *models.Session) (*asynq.Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	return asynq.NewTask(TypeExtractionRun, payload), nil
+	return asynq.NewTask(TypeSessionRun, payload), nil
 }

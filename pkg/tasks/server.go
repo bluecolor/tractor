@@ -25,7 +25,7 @@ func NewServer(c conf.Tasks) *Server {
 
 func (s *Server) Run() error {
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(TypeExtractionRun, HandleExtractionTask)
+	mux.HandleFunc(TypeSessionRun, HandleExtractionTask)
 	if err := s.server.Run(mux); err != nil {
 		return err
 	}
