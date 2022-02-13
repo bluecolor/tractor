@@ -98,9 +98,9 @@ func (d Data) Count() int {
 }
 
 type Feedback struct {
-	Type    FeedbackType
-	Sender  Sender
-	Content interface{}
+	Type    FeedbackType `json:"type"`
+	Sender  Sender       `json:"sender"`
+	Content interface{}  `json:"content"`
 }
 
 func (f *Feedback) String() string {
