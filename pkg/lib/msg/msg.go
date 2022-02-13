@@ -98,12 +98,9 @@ func (d Data) Count() int {
 }
 
 type Feedback struct {
-	Type    FeedbackType
-	Sender  Sender
-	Content interface{}
-}
-type FeedbackBackend interface {
-	Store(sessionID string, feedback *Feedback) error
+	Type    FeedbackType `json:"type"`
+	Sender  Sender       `json:"sender"`
+	Content interface{}  `json:"content"`
 }
 
 func (f *Feedback) String() string {
