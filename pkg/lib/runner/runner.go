@@ -41,6 +41,8 @@ type Runner struct {
 	result           *Result
 	isFeedbackClosed bool
 	isDataClosed     bool
+	sessionID        string
+	feedbackBackends []msg.FeedbackBackend
 }
 
 func (r *Result) Eval() *Result {
@@ -81,7 +83,12 @@ func (r *Result) AddError(err error, es ...types.ErrorSource) {
 	r.errors.Add(err)
 }
 
-func New(ctx context.Context, inputConnection *params.Connection, outputConnection *params.Connection) (*Runner, error) {
+func New(
+	ctx context.Context,
+	inputConnection *params.Connection,
+	outputConnection *params.Connection,
+	options ...Option,
+) (*Runner, error) {
 	ic, err := connectors.GetConnector(
 		outputConnection.ConnectionType,
 		connectors.ConnectorConfig(inputConnection.Config),
@@ -105,8 +112,7 @@ func New(ctx context.Context, inputConnection *params.Connection, outputConnecti
 	if !ok {
 		return nil, fmt.Errorf("connector %s is not an output connector", outputConnection.ConnectionType)
 	}
-
-	return &Runner{
+	r := &Runner{
 		ctx:              ctx,
 		mu:               sync.Mutex{},
 		inputConnection:  inputConnection,
@@ -114,10 +120,26 @@ func New(ctx context.Context, inputConnection *params.Connection, outputConnecti
 		wire:             wire.New(),
 		inputConnector:   inputConnector,
 		outputConnector:  outputConnector,
+		feedbackBackends: make([]msg.FeedbackBackend, 0),
 		result: &Result{
 			errors: types.Errors{},
 		},
-	}, nil
+	}
+	return r.SetOptions(options...), nil
+}
+func (r *Runner) SetOptions(options ...Option) *Runner {
+	for _, o := range options {
+		switch o.Type {
+		case SessionIDOption:
+			r.SetSessionID(o.Value.(string))
+		case FeedbackBackendOption:
+			r.feedbackBackends = append(r.feedbackBackends, o.Value.(msg.FeedbackBackend))
+		}
+	}
+	return r
+}
+func (r *Runner) SetSessionID(sessionID string) {
+	r.sessionID = sessionID
 }
 func (r *Runner) ProcessFeedback(f *msg.Feedback) {
 	r.result.readCount += f.InputProgress()
@@ -138,7 +160,8 @@ func (r *Runner) ProcessFeedback(f *msg.Feedback) {
 func (r *Runner) Result() *Result {
 	return r.result
 }
-func (r *Runner) Run(p params.SessionParams) (err error) {
+func (r *Runner) Run(p params.SessionParams, options ...Option) (err error) {
+	r.SetOptions(options...)
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
 	// supervisor
@@ -180,6 +203,12 @@ func (r *Runner) RunOutput(p params.SessionParams) error {
 
 	return r.outputConnector.Write(p, r.wire)
 }
+func (r *Runner) ForwardFeedback(feedback *msg.Feedback) {
+	for _, backend := range r.feedbackBackends {
+		// ignore error
+		backend.Store(r.sessionID, feedback)
+	}
+}
 func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -197,6 +226,7 @@ func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
 				result = r.Result()
 				return
 			}
+			r.ForwardFeedback(f)
 			r.ProcessFeedback(f)
 			r.TryCloseData()
 			r.TryCloseFeedback()
