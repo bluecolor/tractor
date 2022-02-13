@@ -1,8 +1,19 @@
 <template lang="pug">
-navbar
+a-layout
+  navbar
 router-view
 </template>
 
-<script setup>
-import Navbar from '@/components/Navbar.vue'
+<script>
+import Navbar from '../components/Navbar.vue'
+export default {
+  components: {
+    Navbar
+  },
+  data() {
+    return {
+      collapsed: false
+    }
+  }
+}
 </script>
