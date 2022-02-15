@@ -1,2 +1,3 @@
-name
-aws s3
+name;code
+AWS S3;s3
+Local File System;local

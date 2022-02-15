@@ -32,6 +32,7 @@ func (r *Repository) SeedExtractionModes(basePath string) (err error) {
 		}
 		record := models.ExtractionMode{
 			Name: row[0],
+			Code: row[1],
 		}
 		records = append(records, record)
 	}
@@ -65,6 +66,7 @@ func (r *Repository) SeedFileTypes(basePath string) (err error) {
 		}
 		record := models.FileType{
 			Name: row[0],
+			Code: row[1],
 		}
 		records = append(records, record)
 	}
@@ -98,6 +100,7 @@ func (r *Repository) SeedProviderTypes(basePath string) (err error) {
 		}
 		record := models.ProviderType{
 			Name: row[0],
+			Code: row[1],
 		}
 		records = append(records, record)
 	}

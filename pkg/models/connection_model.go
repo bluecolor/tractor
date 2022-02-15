@@ -47,4 +47,5 @@ type Provider struct {
 type FileType struct {
 	Model
 	Name string `gorm:"size:100;not null;unique" json:"name"`
+	Code string `gorm:"size:100;not null;unique" json:"code"`
 }

@@ -2,7 +2,7 @@
 .no-connections
   .message
     | Yo don't have any connections yet.
-  a-button(type='primary', size='large')
+  a-button(type='primary', size='large', @click='$router.push("/connections/new")')
     | Add Connection
 </template>
 

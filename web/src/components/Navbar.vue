@@ -4,38 +4,35 @@ a-layout-header.header
     a-col.container(:span='16')
       img(src='@/assets/tractor.png', alt='Tractor', style='height: 32px')
       .right
-        .actions
-          a-tooltip(title='Connections')
-            a-button.action(shape='circle', @click='$router.push("connections")')
+        a-menu(v-model:selectedkeys='current', mode='horizontal')
+          a-menu-item(key='connections')
+            template(#icon='')
+              ApiOutlined
+            | Connections
+          a-menu-item(key='extractions')
+            template(#icon='')
+              VerticalAlignBottomOutlined
+            | Extractions
+          a-menu-item(key='sessions')
+            template(#icon='')
+              ThunderboltOutlined
+            | Sessions
+          a-sub-menu(key='more')
+            template(#icon='')
+              MoreOutlined
+            template(#title='') More
+            a-menu-item.menu-item(key='more.settings')
               template(#icon)
-                ApiOutlined
-          a-tooltip(title='Extractions')
-            a-button.action(shape='circle')
+                SettingOutlined
+              span(style='display: inline-block') Settings
+            a-menu-item.menu-item(key='more.help')
               template(#icon)
-                VerticalAlignBottomOutlined
-          a-tooltip(title='Sessions')
-            a-button.action(shape='circle')
+                QuestionOutlined
+              span(style='display: inline-block') Help
+            a-menu-item.menu-item(key='more.source')
               template(#icon)
-                ThunderboltOutlined
-          a-tooltip(title='More')
-            a-dropdown.action.drop-down(placement='bottomRight', trigger='click')
-              a-button(shape='circle')
-                template(#icon)
-                  MoreOutlined
-              template(#overlay='')
-                a-menu.header-right-menu
-                  a-menu-item.menu-item
-                    template(#icon)
-                      SettingOutlined
-                    span(style='display: inline-block') Settings
-                  a-menu-item.menu-item
-                    template(#icon)
-                      QuestionOutlined
-                    span(style='display: inline-block') Help
-                  a-menu-item.menu-item
-                    template(#icon)
-                      GithubOutlined
-                    span(style='display: inline-block') Source
+                GithubOutlined
+              span(style='display: inline-block') Source Code
 </template>
 
 <script setup>
@@ -49,6 +46,9 @@ import {
   GithubOutlined,
   QuestionOutlined
 } from '@ant-design/icons-vue'
+import { ref } from 'vue'
+
+const current = ref('')
 </script>
 
 <style lang="scss" scoped>

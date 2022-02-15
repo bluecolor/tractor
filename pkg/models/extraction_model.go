@@ -30,7 +30,6 @@ type Dataset struct {
 	Name         string         `json:"name"`
 	Config       datatypes.JSON `gorm:"type:text" json:"config"`
 	ExtractionID uint           `json:"extractionID"`
-	Extraction   *Extraction    `gorm:"foreignkey:ExtractionID" json:"extraction"`
 }
 
 type Field struct {
