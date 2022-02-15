@@ -8,7 +8,19 @@ const routes = [
       {
         path: 'connections',
         name: 'connections',
-        component: () => import('@/pages/connections/Connections.vue')
+        component: () => import('@/pages/connections/ConnectionLayout.vue'),
+        children: [
+          {
+            path: '',
+            name: 'connections.list',
+            component: () => import('@/pages/connections/ConnectionList.vue')
+          },
+          {
+            path: 'new',
+            name: 'new-connection',
+            component: () => import('@/pages/connections/NewConnection.vue')
+          }
+        ]
       }
     ]
   }
