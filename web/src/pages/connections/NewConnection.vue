@@ -17,17 +17,27 @@ a-form.create-connection(
     a-input(v-model:value='state.name')
   a-form-item(label='Type', name='type')
     a-select(ref='select', v-model:value='state.type')
-      a-select-option(value='file') File
-      a-select-option(value='mysql') MySQL
+      a-select-option(v-for='m in connectionTypes', :value='m.code') {{ m.name }}
   component(:is='components[state.type]', :state.path='state.config')
   a-form-item(:wrapper-col='{ offset: 8, span: 8 }')
     a-button(type='primary', html-type='submit', block) Save
 </template>
 
 <script setup>
-import { ref, markRaw } from 'vue'
+import { ref, markRaw, onBeforeMount } from 'vue'
 import FileConnection from './types/file/FileConnection.vue'
 import MySQLConnection from './types/mysql/MySQLConnection.vue'
+import { useStore } from 'vuex'
+const store = useStore()
+
+const connectionTypes = ref([])
+
+onBeforeMount(() => {
+  store.dispatch('connections/getConnectionTypes').then((types) => {
+    connectionTypes.value = types
+    console.log(types)
+  })
+})
 
 const onValidate = () => {
   return true

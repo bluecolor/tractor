@@ -1,8 +1,7 @@
 <template lang="pug">
 a-form-item(label='Provider', name='provider')
   a-select(v-model:value='state.provider')
-    a-select-option(value='s3') AWS S3
-    a-select-option(value='local') Local
+    a-select-option(v-for='m in providerTypes', :value='m.code') {{ m.name }}
 a-form-item(label='Format', name='format')
   a-select(v-model:value='state.format')
     a-select-option(value='csv') CSV
@@ -15,7 +14,17 @@ a-form-item(
 </template>
 
 <script setup>
-import { defineProps } from 'vue'
+import { defineProps, onBeforeMount, ref } from 'vue'
+import { useStore } from 'vuex'
+
+const providerTypes = ref([])
+const store = useStore()
+
+onBeforeMount(() => {
+  store.dispatch('connections/getProviderTypes').then((types) => {
+    providerTypes.value = types
+  })
+})
 
 const validatePath = (rule, value) => {
   if (props.state.path.length === 0) {
