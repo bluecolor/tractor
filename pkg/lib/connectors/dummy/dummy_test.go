@@ -15,9 +15,9 @@ const TIMEOUT = 30000 * time.Second
 
 func TestNew(t *testing.T) {
 	config := connectors.ConnectorConfig{}
-	connector := New(config)
-	if connector == nil {
-		t.Error("expected a connector, got nil")
+	_, err := New(config)
+	if err != nil {
+		t.Error(err)
 	}
 }
 
@@ -25,7 +25,10 @@ func TestIO(t *testing.T) {
 	t.Parallel()
 	recordCount := 10
 	config := connectors.ConnectorConfig{}
-	connector := New(config)
+	connector, err := New(config)
+	if err != nil {
+		t.Error(err)
+	}
 	p := test.GetSession()
 	w := wire.New()
 	wg := &sync.WaitGroup{}
@@ -85,7 +88,10 @@ func TestParallelIO(t *testing.T) {
 	t.Parallel()
 	recordCount := 100
 	config := connectors.ConnectorConfig{}
-	connector := New(config)
+	connector, err := New(config)
+	if err != nil {
+		t.Error(err)
+	}
 	p := test.GetSession().WithInputParallel(2).WithOutputParallel(2)
 	w := wire.New()
 	wg := &sync.WaitGroup{}
@@ -145,7 +151,10 @@ func TestIOError(t *testing.T) {
 	t.Parallel()
 	recordCount := 100
 	config := connectors.ConnectorConfig{}
-	connector := New(config)
+	connector, err := New(config)
+	if err != nil {
+		t.Error(err)
+	}
 	p := test.GetSession().WithInputParallel(2).WithOutputParallel(2)
 	w := wire.New()
 	wg := &sync.WaitGroup{}
@@ -200,6 +209,63 @@ func TestIOError(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		w.CloseData()
 	}()
+
+	wg.Wait()
+}
+
+func TestDataGenConf(t *testing.T) {
+	t.Parallel()
+	recordCount := 10
+
+	config := connectors.ConnectorConfig{
+		"generateFakeData":   true,
+		"fakeRecordCount":    recordCount,
+		"fakeRecordInterval": 100,
+	}
+	connector, err := New(config)
+	if err != nil {
+		t.Error(err)
+	}
+	p := test.GetSession()
+	w := wire.New()
+	wg := &sync.WaitGroup{}
+
+	// collect test results
+	wg.Add(1)
+	go func(wg *sync.WaitGroup, t *testing.T) {
+		defer wg.Done()
+		casette := test.Record(w)
+		memo := casette.Memo()
+		if memo.HasError() {
+			for _, e := range memo.Errors() {
+				t.Error(e)
+			}
+		}
+		if memo.ReadCount() != recordCount {
+			t.Errorf("(read) expected %d records, got %d", recordCount, memo.ReadCount())
+		}
+		if memo.WriteCount() != recordCount {
+			t.Errorf("(write) expected %d records, got %d", recordCount, memo.WriteCount())
+		}
+	}(wg, t)
+
+	// start output connector
+	wg.Add(1)
+	go func(wg *sync.WaitGroup, c connectors.Output, p params.SessionParams, w *wire.Wire) {
+		defer wg.Done()
+		if err := c.Write(p, w); err != nil {
+			t.Error(err)
+		}
+	}(wg, connector, p, w)
+
+	// start input connector
+	wg.Add(1)
+	go func(wg *sync.WaitGroup, c connectors.Input, p params.SessionParams, w *wire.Wire) {
+		defer wg.Done()
+		if err := c.Read(p, w); err != nil {
+			t.Error(err)
+		}
+	}(wg, connector, p, w)
 
 	wg.Wait()
 }

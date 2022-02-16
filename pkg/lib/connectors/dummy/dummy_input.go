@@ -1,6 +1,8 @@
 package dummy
 
 import (
+	"errors"
+
 	"github.com/bluecolor/tractor/pkg/lib/esync"
 	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/types"
@@ -29,7 +31,15 @@ func (c *DummyConnector) StartReadWorker(channel <-chan interface{}, w *wire.Wir
 
 func (c *DummyConnector) Read(p params.SessionParams, w *wire.Wire) error {
 	var parallel int = p.GetInputParallel()
-	var channel <-chan interface{} = getInputChannel(p)
+	var channel <-chan interface{}
+	if c.config.GenerateFakeData {
+		channel = c.Generate()
+	} else {
+		channel = getInputChannel(p)
+		if channel == nil {
+			return errors.New("no input channel")
+		}
+	}
 	wg := esync.NewWaitGroup(w, types.InputConnector)
 	for i := 0; i < parallel; i++ {
 		wg.Add(1)
