@@ -35,7 +35,6 @@ const connectionTypes = ref([])
 onBeforeMount(() => {
   store.dispatch('connections/getConnectionTypes').then((types) => {
     connectionTypes.value = types
-    console.log(types)
   })
 })
 
