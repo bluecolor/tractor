@@ -3,9 +3,11 @@ package mysql
 import (
 	"database/sql"
 	"fmt"
+	"reflect"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
 	_ "github.com/go-sql-driver/mysql"
+	"gorm.io/gorm/utils"
 )
 
 type MySQLConfig struct {
@@ -33,18 +35,32 @@ func New(config connectors.ConnectorConfig) (connectors.Connector, error) {
 		config: mysqlConfig,
 	}, nil
 }
-func (m *MySQLConnector) Connect() error {
-	dsn := m.config.User + ":" + m.config.Password + "@tcp(" + m.config.Host + ":" + fmt.Sprint(m.config.Port) + ")/" + m.config.Database
+func (c *MySQLConnector) Connect() error {
+	dsn := c.config.User + ":" + c.config.Password + "@tcp(" + c.config.Host + ":" + fmt.Sprint(c.config.Port) + ")/" + c.config.Database
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return err
 	}
-	m.db = db
+	c.db = db
 	return nil
 }
-func (m *MySQLConnector) Close() error {
-	return m.db.Close()
+func (c *MySQLConnector) Close() error {
+	return c.db.Close()
 }
+func (c *MySQLConnector) Validate(config connectors.ConnectorConfig) error {
+	fields := reflect.VisibleFields(reflect.TypeOf(c.config))
+	tags := make([]string, len(fields))
+	for i, field := range fields {
+		tags[i] = field.Tag.Get("json")
+	}
+	for key, _ := range config {
+		if !utils.Contains(tags, key) {
+			return fmt.Errorf("invalid config key %s", key)
+		}
+	}
+	return nil
+}
+
 func init() {
 	connectors.Add("mysql", func(config connectors.ConnectorConfig) (connectors.Connector, error) {
 		return New(config)
