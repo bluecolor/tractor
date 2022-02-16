@@ -4,7 +4,7 @@ a-layout-header.header
     a-col.container(:span='16')
       img(src='@/assets/tractor.png', alt='Tractor', style='height: 32px')
       .right
-        a-menu(v-model:selectedkeys='current', mode='horizontal')
+        a-menu(v-model:selectedKeys='selectedKeys', mode='horizontal')
           a-menu-item(key='connections')
             template(#icon='')
               ApiOutlined
@@ -47,6 +47,8 @@ import {
   QuestionOutlined
 } from '@ant-design/icons-vue'
 import { ref } from 'vue'
+
+const selectedKeys = ref([''])
 
 const current = ref('')
 </script>
