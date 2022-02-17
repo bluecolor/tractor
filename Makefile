@@ -24,6 +24,9 @@ db-reset:
 server-start:
 	go run cmd/tractor/main.go server start
 
+web-serve:
+	cd web && npm run serve
+
 server-reset:
 	go run cmd/tractor/main.go db reset
 	go run cmd/tractor/main.go server start

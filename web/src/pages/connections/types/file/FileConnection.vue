@@ -14,7 +14,7 @@ a-form-item(
 </template>
 
 <script setup>
-import { defineProps, onBeforeMount, ref } from 'vue'
+import { defineProps, onBeforeMount, ref, defineExpose } from 'vue'
 import { useStore } from 'vuex'
 
 const providerTypes = ref([])
@@ -44,4 +44,9 @@ const props = defineProps({
     })
   }
 })
+
+const getState = () => {
+  return props.state
+}
+defineExpose({ getState })
 </script>

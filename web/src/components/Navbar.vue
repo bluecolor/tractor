@@ -5,7 +5,7 @@ a-layout-header.header
       img(src='@/assets/tractor.png', alt='Tractor', style='height: 32px')
       .right
         a-menu(v-model:selectedKeys='selectedKeys', mode='horizontal')
-          a-menu-item(key='connections')
+          a-menu-item(key='connections', @click='$router.push("/connections")')
             template(#icon='')
               ApiOutlined
             | Connections
@@ -29,7 +29,7 @@ a-layout-header.header
               template(#icon)
                 QuestionOutlined
               span(style='display: inline-block') Help
-            a-menu-item.menu-item(key='more.source')
+            a-menu-item.menu-item(key='more.source', @click='onSource')
               template(#icon)
                 GithubOutlined
               span(style='display: inline-block') Source Code
@@ -47,14 +47,18 @@ import {
   QuestionOutlined
 } from '@ant-design/icons-vue'
 import { ref } from 'vue'
-
 const selectedKeys = ref([''])
-
 const current = ref('')
+const onSource = () => {
+  window.open('https://github.com/bluecolor/tractor', '_blank')
+}
 </script>
 
 <style lang="scss" scoped>
 .header {
+  position: fixed;
+  width: 100%;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   background: #fff;

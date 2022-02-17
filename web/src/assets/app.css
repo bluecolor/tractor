@@ -1,3 +1,16 @@
 .width-100 {
     width: 100%;
 }
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 7px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: #ebebeb;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+}

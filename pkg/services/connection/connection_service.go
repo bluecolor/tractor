@@ -31,7 +31,7 @@ func (s *Service) OneConnection(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Service) FindConnections(w http.ResponseWriter, r *http.Request) {
 	connections := []models.Connection{}
-	result := s.repo.Find(&connections)
+	result := s.repo.Preload("ConnectionType").Find(&connections)
 	if result.Error != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, result.Error)
 	}
@@ -95,6 +95,19 @@ func (s *Service) DeleteConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.repo.Delete(&connection).Error; err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	utils.RespondwithJSON(w, http.StatusOK, connection)
+}
+func (s *Service) UpdateConnection(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var connection models.Connection
+	if err := json.NewDecoder(r.Body).Decode(&connection); err != nil {
+		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.repo.Model(&connection).Where("id = ?", id).Updates(connection).Error; err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
