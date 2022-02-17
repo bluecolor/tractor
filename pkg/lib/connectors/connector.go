@@ -24,6 +24,11 @@ type MetaFinder interface {
 	FindDatasets(pattern string) ([]params.Dataset, error)
 }
 
+type RequestResolver interface {
+	GetResolvers() map[string]func(map[string]interface{}) (interface{}, error)
+	Resolve(request string, body map[string]interface{}) map[string]interface{}
+}
+
 type Input interface {
 	Connector
 	Read(p params.SessionParams, w *wire.Wire) error

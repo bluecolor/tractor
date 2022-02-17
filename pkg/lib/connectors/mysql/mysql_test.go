@@ -204,3 +204,64 @@ func TestIO(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestResolveDatabases(t *testing.T) {
+	db, mock, err := sqlmock.New()
+
+	mock.MatchExpectationsInOrder(false)
+	if err != nil {
+		log.Fatal().Err(err).Msg("error creating mock db")
+	}
+	rows := sqlmock.NewRows([]string{"name"})
+	rows.AddRow("db1")
+	rows.AddRow("db2")
+	rows.AddRow("db3")
+	mock.ExpectQuery("SHOW DATABASES").WillReturnRows(rows)
+	c := &MySQLConnector{
+		db: db,
+	}
+	resolvers := c.GetResolvers()
+	dbs, err := resolvers["databases"](nil)
+	if err != nil {
+		t.Error(err)
+	}
+	names := dbs.([]string)
+	if len(names) != 3 {
+		t.Errorf("expected 3 databases, got %d", len(names))
+	}
+	if names[0] != "db1" {
+		t.Errorf("expected db1, got %s", names[0])
+	}
+	if names[1] != "db2" {
+		t.Errorf("expected db2, got %s", names[1])
+	}
+	if names[2] != "db3" {
+		t.Errorf("expected db3, got %s", names[2])
+	}
+}
+
+func TestResolveTables(t *testing.T) {
+	db, mock, err := sqlmock.New()
+
+	mock.MatchExpectationsInOrder(false)
+	if err != nil {
+		log.Fatal().Err(err).Msg("error creating mock db")
+	}
+	rows := sqlmock.NewRows([]string{"name"})
+	rows.AddRow("table1")
+	rows.AddRow("table2")
+	rows.AddRow("table3")
+	mock.ExpectQuery("SHOW TABLES FROM db1").WillReturnRows(rows)
+	c := &MySQLConnector{
+		db: db,
+	}
+	resolvers := c.GetResolvers()
+	dbs, err := resolvers["tables"](map[string]interface{}{"database": "db1"})
+	if err != nil {
+		t.Error(err)
+	}
+	names := dbs.([]string)
+	if len(names) != 3 {
+		t.Errorf("expected 3 tables, got %d", len(names))
+	}
+}

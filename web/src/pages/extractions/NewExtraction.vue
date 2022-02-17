@@ -10,7 +10,7 @@ a-row.extraction-connections(type='flex', :gutter='16')
     )
     a-collapse(ghost)
       a-collapse-panel.options(v-if='sourceOptComponent', key='1', header='Options')
-        component(:is='sourceOptComponent')
+        component(:is='sourceOptComponent', :connection='getConnection(sourceConnectionId)')
   a-col.target-conn(:flex='1', :xs='24', :sm='24', :md='12', :lg='12')
     ConnectionSelect(
       :connections='connections',
@@ -97,6 +97,9 @@ const getComponent = (id) => {
   } else {
     return undefined
   }
+}
+const getConnection = (id) => {
+  return connections.value.find((c) => c.id === id)
 }
 const onSourceConnectionChange = (id) => {
   sourceConnectionId.value = id

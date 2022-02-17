@@ -2,6 +2,7 @@ package connection
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
@@ -112,4 +113,34 @@ func (s *Service) UpdateConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.RespondwithJSON(w, http.StatusOK, connection)
+}
+
+func (s *Service) ResolveConnectorRequest(w http.ResponseWriter, r *http.Request) {
+	request := struct {
+		Connection models.Connection      `json:"connection"`
+		Request    string                 `json:"request"`
+		Options    map[string]interface{} `json:"options"`
+	}{}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
+		return
+	}
+	conn := request.Connection
+	config, err := conn.GetConnectorConfig()
+	if err != nil {
+		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
+		return
+	}
+	connector, err := connectors.GetConnector(conn.ConnectionType.Code, config)
+	if err != nil {
+		log.Error().Err(err).Msg("error getting connector")
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	if resolver, ok := connector.(connectors.RequestResolver); ok {
+		resolver.Resolve(request.Request, request.Options)
+	} else {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, errors.New("connector does not support request resolver"))
+		return
+	}
 }

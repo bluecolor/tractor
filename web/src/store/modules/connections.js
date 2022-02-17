@@ -25,6 +25,9 @@ const actions = {
   },
   updateConnection({ commit }, { id, ...payload }) {
     return api.updateConnection(id, payload)
+  },
+  resolveConnectorRequest({ commit }, payload) {
+    return api.resolveConnectorRequest(payload)
   }
 }
 
