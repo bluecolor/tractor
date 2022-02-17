@@ -1,4 +1,4 @@
-import api from '@/api/connection'
+import api from '@/api/connections'
 
 const state = {}
 

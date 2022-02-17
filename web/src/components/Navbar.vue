@@ -9,7 +9,7 @@ a-layout-header.header
             template(#icon='')
               ApiOutlined
             | Connections
-          a-menu-item(key='extractions')
+          a-menu-item(key='extractions', @click='$router.push("/extractions")')
             template(#icon='')
               VerticalAlignBottomOutlined
             | Extractions

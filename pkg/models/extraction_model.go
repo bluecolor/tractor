@@ -44,8 +44,8 @@ type Field struct {
 
 type FieldMapping struct {
 	Model
-	SourceField  *Field         `gorm:"type:text" json:"sourceDataset"`
-	TargetField  *Field         `gorm:"type:text" json:"targetDataset"`
+	SourceField  *Field         `gorm:"type:text" json:"sourceField"`
+	TargetField  *Field         `gorm:"type:text" json:"targetField"`
 	Extraction   *Extraction    `json:"extraction"`
 	ExtractionID uint           `json:"extractionID"`
 	Config       datatypes.JSON `gorm:"type:text" json:"config"`

@@ -17,12 +17,12 @@ const routes = [
           },
           {
             path: 'new',
-            name: 'new-connection',
+            name: 'connections.new',
             component: () => import('@/pages/connections/NewConnection.vue')
           },
           {
             path: ':id',
-            name: 'connection',
+            name: 'connection.edit',
             component: () => import('@/pages/connections/Connection.vue')
           }
         ]
@@ -33,8 +33,13 @@ const routes = [
         component: () => import('@/pages/extractions/ExtractionLayout.vue'),
         children: [
           {
+            path: '',
+            name: 'extractions.list',
+            component: () => import('@/pages/extractions/ExtractionList.vue')
+          },
+          {
             path: 'new',
-            name: 'new-extraction',
+            name: 'extractions.new',
             component: () => import('@/pages/extractions/NewExtraction.vue')
           }
         ]
