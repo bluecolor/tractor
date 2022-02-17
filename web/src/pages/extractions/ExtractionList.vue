@@ -4,7 +4,7 @@ PageTitle(title='Extractions')
   .message
     | Yo don't have any extractions yet.
   a-button(type='primary', size='large', @click='$router.push("/extractions/new")')
-    | Add Connection
+    | Add Extraction
 .loading(v-if='status.loading')
   .message
     | Loading...
