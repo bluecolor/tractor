@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import request from './request'
 
 export default {
@@ -7,5 +6,20 @@ export default {
   },
   getProviderTypes() {
     return request.get('/connections/providers/types')
+  },
+  createConnection(payload) {
+    return request.post('/connections', payload)
+  },
+  getConnections() {
+    return request.get('/connections')
+  },
+  getConnection(id) {
+    return request.get(`/connections/${id}`)
+  },
+  deleteConnection(id) {
+    return request.delete(`/connections/${id}`)
+  },
+  updateConnection(id, payload) {
+    return request.put(`/connections/${id}`, payload)
   }
 }

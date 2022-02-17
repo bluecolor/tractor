@@ -19,8 +19,8 @@ type Connection struct {
 	ConnectionTypeID uint            `json:"connectionTypeId"`
 	ConnectionType   *ConnectionType `fake:"skip" gorm:"foreignkey:ConnectionTypeID" json:"connectionType"`
 	Config           datatypes.JSON  `fake:"skip" gorm:"type:text" json:"config"`
-	AsSource         bool            `gorm:"default:false" json:"asSource"`
-	AsTarget         bool            `gorm:"default:false" json:"asTarget"`
+	AsSource         bool            `gorm:"default:true" json:"asSource"`
+	AsTarget         bool            `gorm:"default:true" json:"asTarget"`
 }
 
 func (c *Connection) GetConnectorConfig() (connectors.ConnectorConfig, error) {
