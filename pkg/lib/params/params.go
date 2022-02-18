@@ -83,6 +83,12 @@ func (c Config) GetChannel(key string) chan interface{} {
 	return nil
 }
 
+type JsonSchema struct {
+	Type        string                 `json:"type"`
+	Description string                 `json:"description"`
+	Properties  map[string]interface{} `json:"properties"`
+}
+
 type Dataset struct {
 	Name   string   `json:"name"`
 	Config Config   `json:"config"`
@@ -93,6 +99,10 @@ type Field struct {
 	Type       string `json:"type"`
 	Expression string `json:"expression"`
 	Config     Config `json:"config"`
+}
+
+func (f Field) ToJsonSchema(converter func() (JsonSchema, error)) (JsonSchema, error) {
+	return converter()
 }
 
 func (f *Field) GetExpressionOrName() string {

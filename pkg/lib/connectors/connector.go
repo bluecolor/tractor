@@ -20,13 +20,15 @@ func (c Base) Close() error {
 }
 
 type MetaFinder interface {
-	Connector
-	FindDatasets(pattern string) ([]params.Dataset, error)
+	FindDatasets(options map[string]interface{}) ([]params.Dataset, error)
+}
+type FieldFinder interface {
+	FindFields(options map[string]interface{}) ([]params.Field, error)
 }
 
 type RequestResolver interface {
 	GetResolvers() map[string]func(map[string]interface{}) (interface{}, error)
-	Resolve(request string, body map[string]interface{}) map[string]interface{}
+	Resolve(request string, body map[string]interface{}) (interface{}, error)
 }
 
 type Input interface {

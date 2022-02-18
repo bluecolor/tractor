@@ -138,7 +138,13 @@ func (s *Service) ResolveConnectorRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if resolver, ok := connector.(connectors.RequestResolver); ok {
-		resolver.Resolve(request.Request, request.Options)
+		result, err := resolver.Resolve(request.Request, request.Options)
+		if err != nil {
+			log.Error().Err(err).Msg("error resolving request")
+			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+			return
+		}
+		utils.RespondwithJSON(w, http.StatusOK, result)
 	} else {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, errors.New("connector does not support request resolver"))
 		return

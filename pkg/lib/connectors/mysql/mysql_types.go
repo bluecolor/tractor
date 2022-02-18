@@ -1,0 +1,40 @@
+package mysql
+
+// var typeToGo = map[string]string{
+// 	"tinyint":    "int8",
+// 	"smallint":   "int16",
+// 	"mediumint":  "int32",
+// 	"int":        "int32",
+// 	"integer":    "int32",
+// 	"bigint":     "int64",
+// 	"float":      "float32",
+// 	"double":     "float64",
+// 	"decimal":    "float64",
+// 	"bit":        "int8",
+// 	"bool":       "bool",
+// 	"char":       "string",
+// 	"varchar":    "string",
+// 	"tinytext":   "string",
+// 	"text":       "string",
+// 	"mediumtext": "string",
+// 	"longtext":   "string",
+// 	"date":       "time.Time",
+// 	"datetime":   "time.Time",
+// 	"timestamp":  "time.Time",
+// 	"time":       "time.Time",
+// 	"year":       "time.Time",
+// 	"enum":       "string",
+// 	"set":        "string",
+// }
+
+// var goToType = map[string]string{
+// 	"int8":      "tinyint",
+// 	"int16":     "smallint",
+// 	"int32":     "mediumint",
+// 	"int64":     "bigint",
+// 	"float32":   "float",
+// 	"float64":   "double",
+// 	"bool":      "bit",
+// 	"string":    "text",
+// 	"time.Time": "timestamp",
+// }
