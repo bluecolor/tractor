@@ -1,11 +1,12 @@
-package params
+package helpers
 
 import (
 	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/rs/zerolog/log"
 )
 
-func ToOutputData(input []msg.Record, p SessionParams) ([]msg.Record, error) {
+func ToOutputData(input []msg.Record, p types.SessionParams) ([]msg.Record, error) {
 	dataset := p.GetOutputDataset()
 	output := make([]msg.Record, len(input))
 	for i, r := range input {

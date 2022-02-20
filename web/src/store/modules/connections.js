@@ -28,6 +28,9 @@ const actions = {
   },
   resolveConnectorRequest({ commit }, payload) {
     return api.resolveConnectorRequest(payload)
+  },
+  getFields({ commit }, { connectionId, ...payload }) {
+    return api.getFields(connectionId, payload)
   }
 }
 

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
-	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/test"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
@@ -54,7 +54,7 @@ func TestIO(t *testing.T) {
 
 	// generate test data
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, p params.SessionParams) {
+	go func(wg *sync.WaitGroup, p types.SessionParams) {
 		ch := p.GetInputDataset().Config.GetChannel("channel")
 		defer close(ch)
 		defer wg.Done()
@@ -65,7 +65,7 @@ func TestIO(t *testing.T) {
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p params.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p types.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
@@ -74,7 +74,7 @@ func TestIO(t *testing.T) {
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p params.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, p types.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)
@@ -117,7 +117,7 @@ func TestParallelIO(t *testing.T) {
 
 	// generate test data
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, p params.SessionParams) {
+	go func(wg *sync.WaitGroup, p types.SessionParams) {
 		ch := p.GetInputDataset().Config.GetChannel("channel")
 		defer close(ch)
 		defer wg.Done()
@@ -128,7 +128,7 @@ func TestParallelIO(t *testing.T) {
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p params.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p types.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
@@ -137,7 +137,7 @@ func TestParallelIO(t *testing.T) {
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p params.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, p types.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)
@@ -177,7 +177,7 @@ func TestIOError(t *testing.T) {
 
 	// generate test data
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, p params.SessionParams) {
+	go func(wg *sync.WaitGroup, p types.SessionParams) {
 		ch := p.GetInputDataset().Config.GetChannel("channel")
 		defer close(ch)
 		defer wg.Done()
@@ -188,7 +188,7 @@ func TestIOError(t *testing.T) {
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p params.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p types.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
@@ -197,7 +197,7 @@ func TestIOError(t *testing.T) {
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p params.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, p types.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)
@@ -251,7 +251,7 @@ func TestDataGenConf(t *testing.T) {
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p params.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p types.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
@@ -260,7 +260,7 @@ func TestDataGenConf(t *testing.T) {
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p params.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, p types.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)

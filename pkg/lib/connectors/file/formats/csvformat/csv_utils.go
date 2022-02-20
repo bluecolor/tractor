@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/msg"
-	"github.com/bluecolor/tractor/pkg/lib/params"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/utils"
 )
 
@@ -35,7 +35,7 @@ func toLinesWithRest(bs string) ([]string, []byte) {
 	}
 	return lines, rest
 }
-func toRecord(row []string, fields []*params.Field) (msg.Record, error) {
+func toRecord(row []string, fields []*types.Field) (msg.Record, error) {
 	if len(row) != len(fields) {
 		return nil, errors.New("wrong number of fields in record")
 	}

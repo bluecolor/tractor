@@ -1,40 +1,126 @@
 package mysql
 
-// var typeToGo = map[string]string{
-// 	"tinyint":    "int8",
-// 	"smallint":   "int16",
-// 	"mediumint":  "int32",
-// 	"int":        "int32",
-// 	"integer":    "int32",
-// 	"bigint":     "int64",
-// 	"float":      "float32",
-// 	"double":     "float64",
-// 	"decimal":    "float64",
-// 	"bit":        "int8",
-// 	"bool":       "bool",
-// 	"char":       "string",
-// 	"varchar":    "string",
-// 	"tinytext":   "string",
-// 	"text":       "string",
-// 	"mediumtext": "string",
-// 	"longtext":   "string",
-// 	"date":       "time.Time",
-// 	"datetime":   "time.Time",
-// 	"timestamp":  "time.Time",
-// 	"time":       "time.Time",
-// 	"year":       "time.Time",
-// 	"enum":       "string",
-// 	"set":        "string",
-// }
+import (
+	"database/sql"
 
-// var goToType = map[string]string{
-// 	"int8":      "tinyint",
-// 	"int16":     "smallint",
-// 	"int32":     "mediumint",
-// 	"int64":     "bigint",
-// 	"float32":   "float",
-// 	"float64":   "double",
-// 	"bool":      "bit",
-// 	"string":    "text",
-// 	"time.Time": "timestamp",
-// }
+	"github.com/bluecolor/tractor/pkg/lib/types"
+)
+
+type MySQLField struct {
+	Name    string         `json:"name"`
+	Type    string         `json:"type"`
+	Null    sql.NullString `json:"null"`
+	Key     sql.NullString `json:"key"`
+	Default sql.NullString `json:"default"`
+	Extra   sql.NullString `json:"extra"`
+}
+
+func (f MySQLField) ToField() types.Field {
+	typeMap := map[string]types.FieldType{
+		"tinyint":    types.FieldTypeInt,
+		"smallint":   types.FieldTypeInt,
+		"mediumint":  types.FieldTypeInt,
+		"int":        types.FieldTypeInt,
+		"bigint":     types.FieldTypeInt,
+		"float":      types.FieldTypeNumber,
+		"double":     types.FieldTypeNumber,
+		"decimal":    types.FieldTypeNumber,
+		"bit":        types.FieldTypeInt,
+		"bool":       types.FieldTypeBool,
+		"char":       types.FieldTypeString,
+		"varchar":    types.FieldTypeString,
+		"tinytext":   types.FieldTypeString,
+		"text":       types.FieldTypeString,
+		"mediumtext": types.FieldTypeString,
+		"longtext":   types.FieldTypeString,
+		"date":       types.FieldTypeDate,
+		"time":       types.FieldTypeTime,
+		"datetime":   types.FieldTypeDateTime,
+		"timestamp":  types.FieldTypeDateTime,
+		"year":       types.FieldTypeInt,
+		"enum":       types.FieldTypeString,
+		"set":        types.FieldTypeString,
+		"binary":     types.FieldTypeString,
+		"varbinary":  types.FieldTypeString,
+		"tinyblob":   types.FieldTypeString,
+		"blob":       types.FieldTypeString,
+		"mediumblob": types.FieldTypeString,
+		"longblob":   types.FieldTypeString,
+		"json":       types.FieldTypeObject,
+	}
+
+	tp, ok := typeMap[f.Type]
+	if !ok {
+		tp = types.FieldTypeString
+	}
+
+	return types.Field{
+		Name: f.Name,
+		Type: tp,
+		Config: types.Config{
+			"null":    f.Null.String,
+			"key":     f.Key.String,
+			"default": f.Default.String,
+			"extra":   f.Extra.String,
+		},
+	}
+}
+func ToMySQLField(f types.Field) MySQLField {
+	typeMap := map[types.FieldType]string{
+		types.FieldTypeInt:      "int",
+		types.FieldTypeNumber:   "double",
+		types.FieldTypeBool:     "bool",
+		types.FieldTypeString:   "string",
+		types.FieldTypeDate:     "date",
+		types.FieldTypeTime:     "time",
+		types.FieldTypeDateTime: "datetime",
+		types.FieldTypeObject:   "json",
+	}
+
+	tp, ok := typeMap[f.Type]
+	if !ok {
+		tp = "string"
+	}
+
+	null := sql.NullString{
+		String: "YES",
+		Valid:  true,
+	}
+	if s, ok := f.Config["null"]; ok {
+		null.Valid = true
+		null.String = s.(string)
+	}
+	key := sql.NullString{
+		String: "",
+		Valid:  false,
+	}
+	if s, ok := f.Config["key"]; ok {
+		key.Valid = true
+		key.String = s.(string)
+	}
+	defaultValue := sql.NullString{
+		String: "",
+		Valid:  false,
+	}
+	if s, ok := f.Config["default"]; ok {
+		defaultValue.Valid = true
+		defaultValue.String = s.(string)
+	}
+	extra := sql.NullString{
+		String: "",
+		Valid:  false,
+	}
+	if s, ok := f.Config["extra"]; ok {
+		extra.Valid = true
+		extra.String = s.(string)
+	}
+
+	return MySQLField{
+		Name:    f.Name,
+		Type:    tp,
+		Null:    null,
+		Key:     key,
+		Default: defaultValue,
+		Extra:   extra,
+	}
+}

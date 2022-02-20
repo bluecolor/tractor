@@ -107,8 +107,8 @@ const loadConnection = (id) => {
 }
 
 onBeforeMount(() => {
-  if (route.params.id) {
-    loadConnection(route.params.id)
+  if (route.types.id) {
+    loadConnection(route.types.id)
   }
 })
 const onValidate = () => {

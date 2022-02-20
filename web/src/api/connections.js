@@ -24,5 +24,8 @@ export default {
   },
   resolveConnectorRequest(payload) {
     return request.post('/connections/connectors/resolve', payload)
+  },
+  getFields(connectionId, payload) {
+    return request.post(`/connections/${connectionId}/fields`, payload)
   }
 }

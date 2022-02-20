@@ -150,3 +150,46 @@ func (s *Service) ResolveConnectorRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 }
+
+func (s *Service) FindFields(w http.ResponseWriter, r *http.Request) {
+	connectionID := chi.URLParam(r, "id")
+	options := map[string]interface{}{}
+	if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
+		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
+		return
+	}
+	connection := models.Connection{}
+	if err := s.repo.Preload("ConnectionType").First(&connection, connectionID).Error; err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	connectorConfig, err := connection.GetConnectorConfig()
+	if err != nil {
+		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
+		return
+	}
+	connector, err := connectors.GetConnector(connection.ConnectionType.Code, connectorConfig)
+	if err != nil {
+		log.Error().Err(err).Msg("error getting connector")
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	if fieldFinder, ok := connector.(connectors.FieldFinder); ok {
+		if err := fieldFinder.Connect(); err != nil {
+			log.Error().Err(err).Msg("error connecting")
+			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+			return
+		}
+		defer fieldFinder.Close()
+		result, err := fieldFinder.FindFields(options)
+		if err != nil {
+			log.Error().Err(err).Msg("error finding fields")
+			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+			return
+		}
+		utils.RespondwithJSON(w, http.StatusOK, result)
+	} else {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, errors.New("connector does not support field finder"))
+		return
+	}
+}

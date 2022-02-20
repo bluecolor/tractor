@@ -9,8 +9,8 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
-	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/test"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
@@ -27,9 +27,9 @@ func NewMock() (*sql.DB, sqlmock.Sqlmock) {
 	return db, mock
 }
 func TestBuildReadQuery(t *testing.T) {
-	dataset := params.Dataset{
+	dataset := types.Dataset{
 		Name: "test",
-		Fields: []*params.Field{
+		Fields: []*types.Field{
 			{
 				Name: "id",
 				Type: "int",
@@ -43,18 +43,18 @@ func TestBuildReadQuery(t *testing.T) {
 			"parallel": 1,
 		},
 	}
-	fm := []params.FieldMapping{
+	fm := []types.FieldMapping{
 		{
-			SourceField: &params.Field{Name: "id"},
-			TargetField: &params.Field{Name: "id"},
+			SourceField: &types.Field{Name: "id"},
+			TargetField: &types.Field{Name: "id"},
 		},
 		{
-			SourceField: &params.Field{Name: "name"},
-			TargetField: &params.Field{Name: "name"},
+			SourceField: &types.Field{Name: "name"},
+			TargetField: &types.Field{Name: "name"},
 		},
 	}
 
-	p := params.SessionParams{}.
+	p := types.SessionParams{}.
 		WithInputDataset(&dataset).
 		WithFieldMappings(fm)
 
@@ -83,9 +83,9 @@ func TestIO(t *testing.T) {
 	}
 	expectedrc := len(data)
 
-	inputDataset := params.Dataset{
+	inputDataset := types.Dataset{
 		Name: "test_in",
-		Fields: []*params.Field{
+		Fields: []*types.Field{
 			{
 				Name: "id",
 				Type: "int",
@@ -99,9 +99,9 @@ func TestIO(t *testing.T) {
 			"parallel": 1,
 		},
 	}
-	outputDataset := params.Dataset{
+	outputDataset := types.Dataset{
 		Name: "test_out",
-		Fields: []*params.Field{
+		Fields: []*types.Field{
 			{
 				Name: "id",
 				Type: "int",
@@ -115,18 +115,18 @@ func TestIO(t *testing.T) {
 			"parallel": 1,
 		},
 	}
-	fm := []params.FieldMapping{
+	fm := []types.FieldMapping{
 		{
-			SourceField: &params.Field{Name: "id"},
-			TargetField: &params.Field{Name: "id"},
+			SourceField: &types.Field{Name: "id"},
+			TargetField: &types.Field{Name: "id"},
 		},
 		{
-			SourceField: &params.Field{Name: "name"},
-			TargetField: &params.Field{Name: "full_name", Type: "string"},
+			SourceField: &types.Field{Name: "name"},
+			TargetField: &types.Field{Name: "full_name", Type: "string"},
 		},
 	}
-	ip := params.SessionParams{}.WithInputDataset(&inputDataset).WithFieldMappings(fm)
-	op := params.SessionParams{}.WithOutputDataset(&outputDataset).WithFieldMappings(fm)
+	ip := types.SessionParams{}.WithInputDataset(&inputDataset).WithFieldMappings(fm)
+	op := types.SessionParams{}.WithOutputDataset(&outputDataset).WithFieldMappings(fm)
 
 	connector := &MySQLConnector{
 		db: db,
@@ -186,7 +186,7 @@ func TestIO(t *testing.T) {
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p params.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p types.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
@@ -195,7 +195,7 @@ func TestIO(t *testing.T) {
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p params.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, p types.SessionParams, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)

@@ -1,7 +1,7 @@
 package connectors
 
 import (
-	"github.com/bluecolor/tractor/pkg/lib/params"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
@@ -20,10 +20,11 @@ func (c Base) Close() error {
 }
 
 type MetaFinder interface {
-	FindDatasets(options map[string]interface{}) ([]params.Dataset, error)
+	FindDatasets(options map[string]interface{}) ([]types.Dataset, error)
 }
 type FieldFinder interface {
-	FindFields(options map[string]interface{}) ([]params.Field, error)
+	Connector
+	FindFields(options map[string]interface{}) ([]types.Field, error)
 }
 
 type RequestResolver interface {
@@ -33,9 +34,9 @@ type RequestResolver interface {
 
 type Input interface {
 	Connector
-	Read(p params.SessionParams, w *wire.Wire) error
+	Read(p types.SessionParams, w *wire.Wire) error
 }
 type Output interface {
 	Connector
-	Write(e params.SessionParams, w *wire.Wire) error
+	Write(e types.SessionParams, w *wire.Wire) error
 }

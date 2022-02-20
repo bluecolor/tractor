@@ -3,15 +3,16 @@ package bridge
 import (
 	"encoding/json"
 
-	"github.com/bluecolor/tractor/pkg/lib/params"
+	types "github.com/bluecolor/tractor/pkg/lib/types"
+
 	"gorm.io/datatypes"
 )
 
-func GetConfig(c datatypes.JSON) (params.Config, error) {
+func GetConfig(c datatypes.JSON) (types.Config, error) {
 	if c == nil {
-		return params.Config{}, nil
+		return types.Config{}, nil
 	}
-	var config params.Config
+	var config types.Config
 	if err := json.Unmarshal(c, &config); err != nil {
 		return nil, err
 	}

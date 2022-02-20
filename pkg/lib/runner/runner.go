@@ -9,7 +9,6 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
 	_ "github.com/bluecolor/tractor/pkg/lib/connectors/all"
 	"github.com/bluecolor/tractor/pkg/lib/msg"
-	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
@@ -33,8 +32,8 @@ type Result struct {
 type Runner struct {
 	ctx              context.Context
 	mu               sync.Mutex
-	inputConnection  *params.Connection
-	outputConnection *params.Connection
+	inputConnection  *types.Connection
+	outputConnection *types.Connection
 	wire             *wire.Wire
 	inputConnector   connectors.Input
 	outputConnector  connectors.Output
@@ -85,8 +84,8 @@ func (r *Result) AddError(err error, es ...types.ErrorSource) {
 
 func New(
 	ctx context.Context,
-	inputConnection *params.Connection,
-	outputConnection *params.Connection,
+	inputConnection *types.Connection,
+	outputConnection *types.Connection,
 	options ...Option,
 ) (*Runner, error) {
 	ic, err := connectors.GetConnector(
@@ -160,12 +159,12 @@ func (r *Runner) ProcessFeedback(f *msg.Feedback) {
 func (r *Runner) Result() *Result {
 	return r.result
 }
-func (r *Runner) Run(p params.SessionParams, options ...Option) (err error) {
+func (r *Runner) Run(p types.SessionParams, options ...Option) (err error) {
 	r.SetOptions(options...)
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
 	// supervisor
-	go func(wg *sync.WaitGroup, p params.SessionParams) {
+	go func(wg *sync.WaitGroup, p types.SessionParams) {
 		defer wg.Done()
 		err = r.Supervise(p.GetTimeout()).Eval().Errors().Wrap()
 	}(wg, p)
@@ -182,7 +181,7 @@ func (r *Runner) Run(p params.SessionParams, options ...Option) (err error) {
 	wg.Wait()
 	return
 }
-func (r *Runner) RunInput(p params.SessionParams) error {
+func (r *Runner) RunInput(p types.SessionParams) error {
 	defer func() {
 		if err := r.inputConnector.Close(); err != nil {
 			r.wire.SendInputError(err)
@@ -194,7 +193,7 @@ func (r *Runner) RunInput(p params.SessionParams) error {
 	}
 	return r.inputConnector.Read(p, r.wire)
 }
-func (r *Runner) RunOutput(p params.SessionParams) error {
+func (r *Runner) RunOutput(p types.SessionParams) error {
 
 	if err := r.outputConnector.Connect(); err != nil {
 		r.wire.SendOutputError(err)

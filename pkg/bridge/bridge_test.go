@@ -3,7 +3,7 @@ package bridge
 import (
 	"testing"
 
-	"github.com/bluecolor/tractor/pkg/lib/params"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/models"
 )
 
@@ -11,7 +11,7 @@ func TestNewSession(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		Model    models.Extraction
-		Expected params.SessionParams
+		Expected types.SessionParams
 	}{
 		{
 			Model: models.Extraction{
@@ -24,19 +24,19 @@ func TestNewSession(t *testing.T) {
 					},
 				},
 			},
-			Expected: params.SessionParams{
-				params.InputDatasetKey: &params.Dataset{
+			Expected: types.SessionParams{
+				types.InputDatasetKey: &types.Dataset{
 					Name:   "source",
-					Fields: []*params.Field{{Name: "source_field"}},
+					Fields: []*types.Field{{Name: "source_field"}},
 				},
-				params.OutputDatasetKey: &params.Dataset{
+				types.OutputDatasetKey: &types.Dataset{
 					Name:   "target",
-					Fields: []*params.Field{{Name: "target_field"}},
+					Fields: []*types.Field{{Name: "target_field"}},
 				},
-				params.FieldMappingsKey: []params.FieldMapping{
+				types.FieldMappingsKey: []types.FieldMapping{
 					{
-						SourceField: &params.Field{Name: "source_field"},
-						TargetField: &params.Field{Name: "target_field"},
+						SourceField: &types.Field{Name: "source_field"},
+						TargetField: &types.Field{Name: "target_field"},
 					},
 				},
 			},
