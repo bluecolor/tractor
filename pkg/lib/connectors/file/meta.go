@@ -1,7 +1,7 @@
 package file
 
-import "github.com/bluecolor/tractor/pkg/lib/params"
+import "github.com/bluecolor/tractor/pkg/lib/types"
 
-func (f *FileConnector) FindDatasets(pattern string) ([]params.Dataset, error) {
+func (f *FileConnector) FindDatasets(pattern string) ([]types.Dataset, error) {
 	return nil, nil
 }

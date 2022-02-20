@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
-	"github.com/bluecolor/tractor/pkg/lib/params"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/rs/zerolog/log"
@@ -75,7 +75,7 @@ func prepareFiles(connector *FileConnector) (err error) {
 func testCsvIO(connector *FileConnector, t *testing.T) {
 	outfile := "test_out.csv"
 	connector.Storage.Delete(outfile)
-	fields := []*params.Field{
+	fields := []*types.Field{
 		{
 			Name: "id",
 			Type: "string",
@@ -89,20 +89,20 @@ func testCsvIO(connector *FileConnector, t *testing.T) {
 			Type: "int",
 		},
 	}
-	p := params.SessionParams{}
-	p.WithInputDataset(&params.Dataset{
+	p := types.SessionParams{}
+	p.WithInputDataset(&types.Dataset{
 		Name:   "test",
 		Fields: fields,
-		Config: params.Config{
+		Config: types.Config{
 			"files": getFileNames(csvTestFiles),
 		},
-	}).WithOutputDataset(&params.Dataset{
+	}).WithOutputDataset(&types.Dataset{
 		Name:   "test",
 		Fields: fields,
-		Config: params.Config{
+		Config: types.Config{
 			"file_name": outfile,
 		},
-	}).WithFieldMappings([]params.FieldMapping{
+	}).WithFieldMappings([]types.FieldMapping{
 		{
 			SourceField: fields[0],
 			TargetField: fields[0],
@@ -118,13 +118,13 @@ func testCsvIO(connector *FileConnector, t *testing.T) {
 	})
 	w := wire.New()
 
-	go func(w *wire.Wire, p params.SessionParams) {
+	go func(w *wire.Wire, p types.SessionParams) {
 		if err := connector.Write(p, w); err != nil {
 			t.Error(err)
 		}
 	}(w, p)
 
-	go func(w *wire.Wire, p params.SessionParams) {
+	go func(w *wire.Wire, p types.SessionParams) {
 		if err := connector.Read(p, w); err != nil {
 			t.Error(err)
 		}

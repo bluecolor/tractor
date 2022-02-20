@@ -6,25 +6,24 @@ import (
 	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/esync"
-	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"go.beyondstorage.io/v5/pairs"
 )
 
-func getInputCsvDelimiter(p params.SessionParams) string {
+func getInputCsvDelimiter(p types.SessionParams) string {
 	return p.GetInputDataset().Config.GetString(DelimiterKey, ",")
 }
-func getLazyQuotes(p params.SessionParams) bool {
+func getLazyQuotes(p types.SessionParams) bool {
 	return p.GetInputDataset().Config.GetBool(QuotesKey, true)
 }
-func getInputFiles(p params.SessionParams) []string {
+func getInputFiles(p types.SessionParams) []string {
 	return p.GetInputDataset().Config.GetStringArray(FilesKey, []string{})
 }
-func getHeader(p params.SessionParams) bool {
+func getHeader(p types.SessionParams) bool {
 	return p.GetInputDataset().Config.GetBool(HeaderKey, true)
 }
-func (f *CsvFormat) Work(filename string, p params.SessionParams, w *wire.Wire, wi int) (err error) {
+func (f *CsvFormat) Work(filename string, p types.SessionParams, w *wire.Wire, wi int) (err error) {
 	var buf bytes.Buffer
 	size, offset := int64(1000), int64(0) // todo size from .env
 	rest := []byte{}
@@ -72,7 +71,7 @@ func (f *CsvFormat) Work(filename string, p params.SessionParams, w *wire.Wire, 
 	bw.Flush()
 	return nil
 }
-func (f *CsvFormat) StartReadWorker(files []string, p params.SessionParams, w *wire.Wire, wi int) (err error) {
+func (f *CsvFormat) StartReadWorker(files []string, p types.SessionParams, w *wire.Wire, wi int) (err error) {
 	for _, file := range files {
 		if err = f.Work(file, p, w, wi); err != nil {
 			return
@@ -80,7 +79,7 @@ func (f *CsvFormat) StartReadWorker(files []string, p params.SessionParams, w *w
 	}
 	return
 }
-func (f *CsvFormat) Read(p params.SessionParams, w *wire.Wire) (err error) {
+func (f *CsvFormat) Read(p types.SessionParams, w *wire.Wire) (err error) {
 	chunks, err := getFileChunks(getInputFiles(p), p.GetInputParallel())
 	if err != nil {
 		return err

@@ -21,5 +21,11 @@ export default {
   },
   updateConnection(id, payload) {
     return request.put(`/connections/${id}`, payload)
+  },
+  resolveConnectorRequest(payload) {
+    return request.post('/connections/connectors/resolve', payload)
+  },
+  getFields(connectionId, payload) {
+    return request.post(`/connections/${connectionId}/fields`, payload)
   }
 }

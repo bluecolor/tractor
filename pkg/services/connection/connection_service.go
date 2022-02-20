@@ -2,6 +2,7 @@ package connection
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
@@ -112,4 +113,83 @@ func (s *Service) UpdateConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.RespondwithJSON(w, http.StatusOK, connection)
+}
+
+func (s *Service) ResolveConnectorRequest(w http.ResponseWriter, r *http.Request) {
+	request := struct {
+		Connection models.Connection      `json:"connection"`
+		Request    string                 `json:"request"`
+		Options    map[string]interface{} `json:"options"`
+	}{}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
+		return
+	}
+	conn := request.Connection
+	config, err := conn.GetConnectorConfig()
+	if err != nil {
+		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
+		return
+	}
+	connector, err := connectors.GetConnector(conn.ConnectionType.Code, config)
+	if err != nil {
+		log.Error().Err(err).Msg("error getting connector")
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	if resolver, ok := connector.(connectors.RequestResolver); ok {
+		result, err := resolver.Resolve(request.Request, request.Options)
+		if err != nil {
+			log.Error().Err(err).Msg("error resolving request")
+			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+			return
+		}
+		utils.RespondwithJSON(w, http.StatusOK, result)
+	} else {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, errors.New("connector does not support request resolver"))
+		return
+	}
+}
+
+func (s *Service) FindFields(w http.ResponseWriter, r *http.Request) {
+	connectionID := chi.URLParam(r, "id")
+	options := map[string]interface{}{}
+	if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
+		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
+		return
+	}
+	connection := models.Connection{}
+	if err := s.repo.Preload("ConnectionType").First(&connection, connectionID).Error; err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	connectorConfig, err := connection.GetConnectorConfig()
+	if err != nil {
+		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
+		return
+	}
+	connector, err := connectors.GetConnector(connection.ConnectionType.Code, connectorConfig)
+	if err != nil {
+		log.Error().Err(err).Msg("error getting connector")
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	if fieldFinder, ok := connector.(connectors.FieldFinder); ok {
+		if err := fieldFinder.Connect(); err != nil {
+			log.Error().Err(err).Msg("error connecting")
+			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+			return
+		}
+		defer fieldFinder.Close()
+		result, err := fieldFinder.FindFields(options)
+		if err != nil {
+			log.Error().Err(err).Msg("error finding fields")
+			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+			return
+		}
+		utils.RespondwithJSON(w, http.StatusOK, result)
+	} else {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, errors.New("connector does not support field finder"))
+		return
+	}
 }

@@ -13,7 +13,7 @@ import (
 type MySQLConfig struct {
 	Host     string `json:"host"`
 	Port     int    `json:"port"`
-	User     string `json:"user"`
+	Username string `json:"username"`
 	Password string `json:"password"`
 	Database string `json:"database"`
 }
@@ -36,7 +36,10 @@ func New(config connectors.ConnectorConfig) (connectors.Connector, error) {
 	}, nil
 }
 func (c *MySQLConnector) Connect() error {
-	dsn := c.config.User + ":" + c.config.Password + "@tcp(" + c.config.Host + ":" + fmt.Sprint(c.config.Port) + ")/" + c.config.Database
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s:%d)/%s",
+		c.config.Username, c.config.Password, c.config.Host, c.config.Port, c.config.Database,
+	)
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return err

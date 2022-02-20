@@ -1,7 +1,7 @@
 package bridge
 
 import (
-	"github.com/bluecolor/tractor/pkg/lib/params"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/models"
 )
 
@@ -17,22 +17,21 @@ func NewField(model *models.Field) *Field {
 func (f *Field) Model() *models.Field {
 	return f.model
 }
-func (f *Field) Field() (*params.Field, error) {
+func (f *Field) Field() (*types.Field, error) {
 	config, err := GetConfig(f.model.Config)
 	if err != nil {
 		return nil, err
 	}
 
-	return &params.Field{
-		Name:       f.model.Name,
-		Type:       f.model.Type,
-		Expression: f.model.Expression,
-		Config:     config,
+	return &types.Field{
+		Name:   f.model.Name,
+		Type:   types.FieldTypeFromString(f.model.Type),
+		Config: config,
 	}, nil
 }
 
-func getFields(fields []*models.Field) (output []*params.Field, err error) {
-	output = make([]*params.Field, len(fields))
+func getFields(fields []*models.Field) (output []*types.Field, err error) {
+	output = make([]*types.Field, len(fields))
 	for i, f := range fields {
 		output[i], err = NewField(f).Field()
 		if err != nil {
@@ -42,8 +41,8 @@ func getFields(fields []*models.Field) (output []*params.Field, err error) {
 	return output, nil
 }
 
-func getFieldMappings(m []models.FieldMapping) (output []params.FieldMapping, err error) {
-	output = make([]params.FieldMapping, len(m))
+func getFieldMappings(m []models.FieldMapping) (output []types.FieldMapping, err error) {
+	output = make([]types.FieldMapping, len(m))
 	for i, fm := range m {
 		source, err := NewField(fm.SourceField).Field()
 		if err != nil {
@@ -57,7 +56,7 @@ func getFieldMappings(m []models.FieldMapping) (output []params.FieldMapping, er
 		if err != nil {
 			return nil, err
 		}
-		output[i] = params.FieldMapping{
+		output[i] = types.FieldMapping{
 			SourceField: source,
 			TargetField: target,
 			Config:      config,

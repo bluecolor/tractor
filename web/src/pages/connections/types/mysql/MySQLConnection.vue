@@ -14,7 +14,7 @@ a-form-item(label='Params', name='params')
 </template>
 
 <script setup>
-import { defineProps } from 'vue'
+import { defineProps, defineExpose } from 'vue'
 
 const validateHost = (rule) => {
   if (props.state.host.length === 0) {
@@ -33,4 +33,8 @@ const props = defineProps({
     })
   }
 })
+const getState = () => {
+  return props.state
+}
+defineExpose({ getState })
 </script>

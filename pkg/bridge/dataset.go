@@ -1,7 +1,7 @@
 package bridge
 
 import (
-	"github.com/bluecolor/tractor/pkg/lib/params"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/models"
 )
 
@@ -17,7 +17,7 @@ func NewDataset(model *models.Dataset) *Dataset {
 func (d *Dataset) Model() *models.Dataset {
 	return d.model
 }
-func (d *Dataset) WithFields(f []*models.Field) (*params.Dataset, error) {
+func (d *Dataset) WithFields(f []*models.Field) (*types.Dataset, error) {
 	config, err := GetConfig(d.model.Config)
 	if err != nil {
 		return nil, err
@@ -27,7 +27,7 @@ func (d *Dataset) WithFields(f []*models.Field) (*params.Dataset, error) {
 		return nil, err
 	}
 
-	return &params.Dataset{
+	return &types.Dataset{
 		Name:   d.model.Name,
 		Config: config,
 		Fields: fields,

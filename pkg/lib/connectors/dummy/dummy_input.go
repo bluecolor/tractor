@@ -4,12 +4,11 @@ import (
 	"errors"
 
 	"github.com/bluecolor/tractor/pkg/lib/esync"
-	"github.com/bluecolor/tractor/pkg/lib/params"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-func getInputChannel(p params.SessionParams) <-chan interface{} {
+func getInputChannel(p types.SessionParams) <-chan interface{} {
 	return p.GetInputDataset().Config.GetChannel(InputChannelKey)
 }
 
@@ -29,7 +28,7 @@ func (c *DummyConnector) StartReadWorker(channel <-chan interface{}, w *wire.Wir
 	}
 }
 
-func (c *DummyConnector) Read(p params.SessionParams, w *wire.Wire) error {
+func (c *DummyConnector) Read(p types.SessionParams, w *wire.Wire) error {
 	var parallel int = p.GetInputParallel()
 	var channel <-chan interface{}
 	if c.config.GenerateFakeData {
