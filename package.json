@@ -1,5 +1,10 @@
 {
   "dependencies": {
     "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^1.0.0-next.29",
+    "node-sass": "^7.0.1",
+    "sass": "^1.49.9"
   }
 }
