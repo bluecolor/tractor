@@ -8,7 +8,7 @@
 
 <template lang="pug">
 
-nav.bg-white.border-b
+nav.nav-top.bg-white.border-b
   .max-w-full.mx-auto
     .flex.items-center.justify-center.h-12
       .justify-between.flex.items-center(class='w-3/5')
@@ -16,7 +16,7 @@ nav.bg-white.border-b
           Tractor(width='2em' class="nav-link")
         .hidden(class='md:block')
           .ml-10.flex.items-baseline.space-x-6
-            a.navlink
+            a.navlink(href='/connections')
               Connection(width='1.4em')
             a.navlink
               Download(width='1.4em')
@@ -26,7 +26,14 @@ nav.bg-white.border-b
 </template>
 
 <style>
-	.navlink {
+	.nav-top {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 100;
+	}
+	.nav-top .navlink {
 		-webkit-font-smoothing: antialiased;
 		cursor: pointer;
 	}

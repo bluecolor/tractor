@@ -44,6 +44,10 @@ func (c *MySQLConnector) Connect() error {
 	if err != nil {
 		return err
 	}
+	// test connection
+	if err := db.Ping(); err != nil {
+		return err
+	}
 	c.db = db
 	return nil
 }

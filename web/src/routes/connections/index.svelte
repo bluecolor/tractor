@@ -2,13 +2,29 @@
 	import Trash from '../../assets/icons/trash.svg';
 
 	import { onMount } from 'svelte';
-	import { endpoint } from '$lib/utils';
+	import { endpoint, api } from '$lib/utils';
 
 	let connections = [];
 	onMount(async () => {
 		const response = await fetch(endpoint('connections'));
 		connections = await response.json();
 	});
+
+	function onDeleteConnection(id) {
+		let connection = connections.find((connection) => connection.id === id);
+		let ok = confirm('Are you sure you want to delete this connection? ' + connection.name);
+		if (ok) {
+			api('DELETE', 'connections/' + id).then((response) => {
+				if (response.ok) {
+					connections = connections.filter((connection) => connection.id !== id);
+				} else {
+					response.text().then((text) => {
+						alert('Failed to delete connection\n' + text);
+					});
+				}
+			});
+		}
+	}
 </script>
 
 <template lang="pug">
@@ -16,8 +32,12 @@
     .flex.justify-between.items-center
       .title
         | Connections
-      .search
-        input(type="text" placeholder="Search")
+      .search.space-x-2.inline-flex.items-center()
+        .action
+          input(type="text" placeholder="Search")
+        .action
+          button Add
+
     .bg-white.mt-4.p-2.rounded-md
       table.min-w-full
         thead.border-b
@@ -36,8 +56,13 @@
               td.text-sm.text-gray-900.font-light.px-6.py-4.whitespace-nowrap
                 | {conn.connectionType.name}
               td.actions
-                Trash(class="w-6 h-6 ml-2 cursor-pointer fill-current hover:text-red-500")
-
-
+                span(on:click='{onDeleteConnection(conn.id)}')
+                  Trash(class="w-6 h-6 ml-2 cursor-pointer fill-current hover:text-red-500")
 
 </template>
+
+<style lang="scss">
+	tr:hover a {
+		text-decoration: underline;
+	}
+</style>

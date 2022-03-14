@@ -7,3 +7,11 @@ button {
         duration-200 text-center text-base
         focus:outline-none focus:ring-2 focus:ring-offset-1  rounded;
 }
+
+button.warning {
+	@apply focus:ring-offset-yellow-200
+    bg-yellow-400
+    hover:bg-yellow-500
+    focus:ring-yellow-200
+    focus:ring-offset-yellow-200;
+}

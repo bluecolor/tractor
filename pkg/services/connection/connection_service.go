@@ -25,7 +25,7 @@ func NewService(repo *repo.Repository) *Service {
 func (s *Service) OneConnection(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	connection := models.Connection{}
-	if err := s.repo.First(&connection, id).Error; err != nil {
+	if err := s.repo.Preload("ConnectionType").First(&connection, id).Error; err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 	}
 	utils.RespondwithJSON(w, http.StatusOK, connection)
