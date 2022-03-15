@@ -4,6 +4,7 @@
 	import Trash from '@icons/trash.svg';
 	import MenuIcon from '@icons/menu.svg';
 	import PlusIcon from '@icons/plus.svg';
+	import SaveIcon from '@icons/save.svg';
 
 	export let sourceConnection, targetConnection, sourceDataset, targetDataset;
 
@@ -79,12 +80,13 @@
     table.table.min-w-full
       thead
         tr
-          th(scope="col")
+          th(scope="col" align="left")
             | Source column
-          th(scope="col")
+          th(scope="col" align="left")
             | Target column
-          th.actions.flex.space-x-2.justify-end(align="right")
-            PlusIcon.icon-btn
+          th.actions.flex.justify-end.items-center(align="right")
+            SaveIcon.icon-btn.mr-3
+            PlusIcon.icon-btn.mr-3
             Dropdown(label="Options" bind:options='{options}' on:select='{onDropdown}') Reset
               div(slot="button")
                 MenuIcon.icon-btn()
@@ -102,6 +104,6 @@
 
 <style lang="postcss">
 	table thead tr th {
-		@apply font-normal text-base text-gray-500;
+		@apply font-normal text-base text-gray-500 pl-0 pr-0 pb-2;
 	}
 </style>

@@ -42,7 +42,7 @@
     .flex.justify-between.items-center
       .title
         | New Extraction
-    .bg-white.mt-4.p-2.rounded-md.flex.flex-col
+    .bg-white.mt-4.p-4.rounded-md.flex.flex-col
       .grid.grid-cols-2.gap-4.w-full
         .source
           .form-item
