@@ -11,5 +11,23 @@ function api(method, resource, data) {
 		body: data && JSON.stringify(data)
 	});
 }
+function clickOutside(element, callbackFunction) {
+	function onClick(event) {
+		if (!element.contains(event.target)) {
+			callbackFunction();
+		}
+	}
 
-export { endpoint, api };
+	document.body.addEventListener('click', onClick);
+
+	return {
+		update(newCallbackFunction) {
+			callbackFunction = newCallbackFunction;
+		},
+		destroy() {
+			document.body.removeEventListener('click', onClick);
+		}
+	};
+}
+
+export { endpoint, api, clickOutside };

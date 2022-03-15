@@ -1,6 +1,6 @@
 <script>
 	import Mappings from './components/Mappings.svelte';
-	import MySQL from './components/MySQL.svelte';
+	import MySQLDataset from './components/MySQLDataset.svelte';
 	import { onMount } from 'svelte';
 	import { api } from '$lib/utils';
 	let connections = [];
@@ -8,10 +8,15 @@
 	let targetConnectionId = null;
 	let sourceComponent = null;
 	let targetComponent = null;
+	let sourceDatasetConfig = {};
+	let targetDatasetConfig = {};
 
-	function component(connectionId) {
+	function getConnection(id) {
+		return connections.find((connection) => connection.id === id);
+	}
+	function getComponent(connectionId) {
 		const components = {
-			MySQL
+			mysql: MySQLDataset
 		};
 		let connection = connections.find((c) => c.id == connectionId);
 		let connectionTypeCode = connection.connectionType.code;
@@ -47,7 +52,7 @@
                 option(value='{c.id}' selected='{sourceConnectionId === c.id}') {c.name}
           .form-item
             +if('sourceConnectionId')
-                <svelte:component this={component(sourceConnectionId)} connection={connections.find((c) => c.id == sourceConnectionId)} />
+                <svelte:component bind:config={sourceDatasetConfig} this={getComponent(sourceConnectionId)} connection={connections.find((c) => c.id == sourceConnectionId)} />
 
         .target
           .form-item
@@ -57,8 +62,13 @@
                 option(value='{c.id}' selected='{targetConnectionId === c.id}') {c.name}
           .form-item
             +if('targetConnectionId')
-                <svelte:component this={component(targetConnectionId)} connection={connections.find((c) => c.id == targetConnectionId)} />
+                <svelte:component bind:config={targetDatasetConfig} this={getComponent(targetConnectionId)} connection={connections.find((c) => c.id == targetConnectionId)} />
 
-      .mappings
-        Mappings
+      +if('sourceDatasetConfig && targetDatasetConfig && sourceConnectionId && targetConnectionId')
+        Mappings(
+          sourceDataset='{sourceDatasetConfig}'
+          targetDataset='{targetDatasetConfig}'
+          sourceConnection='{getConnection(sourceConnectionId)}',
+          targetConnection='{getConnection(targetConnectionId)}'
+        )
 </template>

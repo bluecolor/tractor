@@ -20,7 +20,8 @@ const config = {
 				alias: {
 					// these are the aliases and paths to them
 					'@components': path.resolve('./src/components'),
-					'@lib': path.resolve('./src/lib')
+					'@lib': path.resolve('./src/lib'),
+					'@icons': path.resolve('./src/assets/icons')
 				}
 			},
 			plugins: [
@@ -39,7 +40,8 @@ const config = {
 	},
 	preprocess: sveltePreprocess({
 		pug: true,
-		scss: true
+		scss: true,
+		postcss: true
 	})
 };
 
