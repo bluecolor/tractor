@@ -12,15 +12,15 @@ nav.nav-top.bg-white.border-b
   .max-w-full.mx-auto
     .flex.items-center.justify-center.h-12
       .justify-between.flex.items-center(class='w-3/5')
-        a.cursor-pointer
+        a.cursor-pointer(href='/')
           Tractor(width='2em' class="nav-link")
         .hidden(class='md:block')
           .ml-10.flex.items-baseline.space-x-6
             a.navlink(href='/connections')
               Connection(width='1.4em')
-            a.navlink
+            a.navlink(href='/extractions')
               Download(width='1.4em')
-            a.navlink
+            a.navlink(href='/sessions')
               Pulse(width='1.4em')
 
 </template>

@@ -2,24 +2,24 @@
 	import Trash from '../../assets/icons/trash.svg';
 
 	import { onMount } from 'svelte';
-	import { endpoint, api } from '$lib/utils';
+	import { api } from '$lib/utils';
 
-	let connections = [];
+	let extractions = [];
 	onMount(async () => {
-		const response = await fetch(endpoint('connections'));
-		connections = await response.json();
+		const response = await api('GET', 'extractions');
+		extractions = await response.json();
 	});
 
-	function onDeleteConnection(id) {
-		let connection = connections.find((connection) => connection.id === id);
-		let ok = confirm('Are you sure you want to delete this connection? ' + connection.name);
+	function onDeleteExtraction(id) {
+		let extraction = extractions.find((e) => e.id === id);
+		let ok = confirm('Are you sure you want to delete this extraction? ' + extraction.name);
 		if (ok) {
-			api('DELETE', 'connections/' + id).then((response) => {
+			api('DELETE', 'extractions/' + id).then((response) => {
 				if (response.ok) {
-					connections = connections.filter((connection) => connection.id !== id);
+					extractions = extractions.filter((e) => e.id !== id);
 				} else {
 					response.text().then((text) => {
-						alert('Failed to delete connection\n' + text);
+						alert('Failed to delete extraction\n' + text);
 					});
 				}
 			});
@@ -31,11 +31,11 @@
   .w-full.h-full.flex.flex-col.pt-4
     .flex.justify-between.items-center
       .title
-        | Connections
+        | Extractions
       .search.space-x-2.inline-flex.items-center()
         .action
           input(type="text" placeholder="Search")
-        a.action(href="/connections/new")
+        a.action(href="/extractions/new")
           button Add
 
     .bg-white.mt-4.p-2.rounded-md
@@ -48,15 +48,15 @@
               | Type
             th.actions
         tbody
-          +each('connections as conn')
+          +each('extractions as e')
             tr(class="last:border-b-0  hover:bg-gray-50")
               td
-                a(href="/connections/{conn.id}")
-                  | {conn.name}
+                a(href="/extractions/{e.id}")
+                  | {e.name}
               td
-                | {conn.connectionType.name}
+                | {e.name}
               td.actions
-                span(on:click='{onDeleteConnection(conn.id)}')
+                span(on:click='{onDeleteExtraction(e.id)}')
                   Trash(class="trash")
 
 </template>

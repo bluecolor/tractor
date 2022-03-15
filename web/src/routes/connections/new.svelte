@@ -6,20 +6,15 @@
 	import FileConnection from '@components/FileConnection.svelte';
 	import MySQLConnection from '@components/MySQLConnection.svelte';
 	let loading = false;
-	let connection = {};
+	let connection = {
+		config: {}
+	};
 	let connectionTypes = [];
 	let connectionTypeId = undefined;
 	let connectionTypeCode = undefined;
-	const id = $page.params.id;
 	onMount(async () => {
-		const [con, ctypes] = await Promise.all([
-			fetch(endpoint('connections/' + id)),
-			fetch(endpoint('connections/types'))
-		]);
-		connection = await con.json();
+		const [ctypes] = await Promise.all([fetch(endpoint('connections/types'))]);
 		connectionTypes = await ctypes.json();
-		connectionTypeId = connection.connectionTypeId;
-		connectionTypeCode = connection.connectionType.code;
 	});
 	const components = {
 		file: FileConnection,
@@ -36,7 +31,7 @@
 	}
 	function onSubmit(e) {
 		let method = 'PUT';
-		let resource = 'connections/' + connection.id;
+		let resource = 'connections';
 		loading = true;
 		console.log(connection);
 		api(method, resource, connection)
@@ -76,7 +71,7 @@
   .w-full.h-full.flex.flex-col.pt-4
     .flex.justify-between.items-center
       .title
-        | Connection: {connection?.name}
+        | New Connection
     .bg-white.mt-4.p-2.rounded-md.flex.items-center.justify-center
       form(action='#' method='POST' class="w-2/3" on:submit|preventDefault='{onSubmit}')
         .px-4.py-5.bg-white(class='sm:p-6')

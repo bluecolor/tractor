@@ -1,17 +1,18 @@
 button {
-	@apply py-1.5 px-4
+	.btn {
+		@apply py-1.5 px-4
         bg-blue-400 hover:bg-blue-500 focus:ring-blue-200
         focus:ring-offset-blue-200
         text-white
         transition ease-in
         duration-200 text-center text-base
         focus:outline-none focus:ring-2 focus:ring-offset-1  rounded;
-}
-
-button.warning {
-	@apply focus:ring-offset-yellow-200
-    bg-yellow-400
-    hover:bg-yellow-500
-    focus:ring-yellow-200
-    focus:ring-offset-yellow-200;
+		.warning {
+			@apply focus:ring-offset-yellow-200
+            bg-yellow-400
+            hover:bg-yellow-500
+            focus:ring-yellow-200
+            focus:ring-offset-yellow-200;
+		}
+	}
 }
