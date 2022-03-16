@@ -1,10 +1,16 @@
 <script>
+	import EditIcon from '@icons/edit.svg';
 	import { onMount } from 'svelte';
 	import { api } from '$lib/utils';
-	export let connection, config;
+	export let connection, config, target;
+
 	let databases = [];
 	let tables = [];
+	let editTable = false;
 
+	function toggleEditTable() {
+		editTable = !editTable;
+	}
 	function onDatabaseChange() {
 		api('POST', 'connections/connectors/resolve', {
 			connection: connection,
@@ -45,9 +51,16 @@
 
 .form-item
   label(for="table") Table
-  select(name='table', bind:value='{config.table}' on:change='{onTableChange}')
-    +each('tables as t')
-      option(value='{t}' selected='{t === config.table}') {t}
+  .flex.justify-between.items-center
+    +if('!editTable')
+      select(name='table', bind:value='{config.table}' on:change='{onTableChange}')
+        +each('tables as t')
+          option(value='{t}' selected='{t === config.table}') {t}
+    +if('editTable')
+      input.input(type='text', name='table', bind:value='{config.table}' placeholder='Table name')
+    +if('target')
+      .icon-btn(on:click='{toggleEditTable}')
+        EditIcon
 
 
 </template>

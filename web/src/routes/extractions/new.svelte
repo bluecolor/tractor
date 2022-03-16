@@ -42,8 +42,8 @@
     .flex.justify-between.items-center
       .title
         | New Extraction
-    .bg-white.mt-4.p-4.rounded-md.flex.flex-col
-      .grid.grid-cols-2.gap-4.w-full
+    .bg-white.mt-4.rounded-md.flex.flex-col
+      .grid.grid-cols-2.gap-4.w-full.p-4
         .source
           .form-item
             label(for='source-connection') Source connection
@@ -62,7 +62,7 @@
                 option(value='{c.id}' selected='{targetConnectionId === c.id}') {c.name}
           .form-item
             +if('targetConnectionId')
-                <svelte:component bind:config={targetDatasetConfig} this={getComponent(targetConnectionId)} connection={connections.find((c) => c.id == targetConnectionId)} />
+                <svelte:component target={true} bind:config={targetDatasetConfig} this={getComponent(targetConnectionId)} connection={connections.find((c) => c.id == targetConnectionId)} />
 
       +if('sourceDatasetConfig && targetDatasetConfig && sourceConnectionId && targetConnectionId')
         Mappings(

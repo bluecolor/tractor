@@ -9,6 +9,7 @@
 	export let sourceConnection, targetConnection, sourceDataset, targetDataset;
 
 	let mappings = [];
+
 	let options = [
 		{
 			label: 'Fetch fileds',
@@ -40,8 +41,9 @@
 			let mapping = mappings.find((mapping) => mapping.source.name === field.name);
 			if (!mapping) {
 				mapping = {
+					__index__: mappings.length,
 					source: field,
-					target: null
+					target: {}
 				};
 				mappings.push(mapping);
 			} else {
@@ -65,12 +67,19 @@
 			}
 		);
 	}
-	function onDeleteMapping(m) {
-		mappings = mappings.filter(
-			(mapping) =>
-				(!mapping.source || mapping.source?.name !== m.source?.name) &&
-				(!mapping.target || mapping.target?.name !== m.target?.name)
-		);
+	function onDeleteMapping({ __index__ }) {
+		mappings.splice(__index__, 1);
+		mappings = [...mappings];
+	}
+	function onAddMapping() {
+		mappings = [
+			...mappings,
+			{
+				__index__: mappings.length,
+				source: {},
+				target: {}
+			}
+		];
 	}
 </script>
 
@@ -84,26 +93,40 @@
             | Source column
           th(scope="col" align="left")
             | Target column
+          th(scope="col" align="left")
+            | Type
           th.actions.flex.justify-end.items-center(align="right")
             SaveIcon.icon-btn.mr-3
-            PlusIcon.icon-btn.mr-3
+            .action.icon-btn.mr-3(on:click='{onAddMapping}')
+              PlusIcon()
             Dropdown(label="Options" bind:options='{options}' on:select='{onDropdown}') Reset
               div(slot="button")
                 MenuIcon.icon-btn()
       tbody
         +each('mappings as m')
-          tr(class="last:border-b-0  hover:bg-gray-50")
+          tr(class="last:border-b-0  hover:bg-blue-50")
             td
-              | {m.source?.name}
+              input.input(placeholder="Source column", bind:value='{m.source.name}')
             td
-              | {m.target?.name}
-            td.actions
-              span(on:click='{onDeleteMapping(m)}')
+              input.input(placeholder="Target column", bind:value='{m.target.name}')
+            td
+              select.cursor-pointer()
+                option(value="string") string
+                option(value="integer") integer
+                option(value="float") float
+                option(value="boolean") boolean
+                option(value="date") date
+
+            td
+              div.flex.justify-end.items-center(on:click='{onDeleteMapping(m)}')
                 Trash(class="trash")
 </template>
 
 <style lang="postcss">
 	table thead tr th {
-		@apply font-normal text-base text-gray-500 pl-0 pr-0 pb-2;
+		@apply font-normal text-base text-gray-500 pl-4 pr-4 pb-2 pt-2;
+	}
+	table tbody tr td {
+		@apply font-normal text-base text-gray-700 pl-4 pr-4 pb-2 pt-2;
 	}
 </style>
