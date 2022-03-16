@@ -1,5 +1,3 @@
 {
-    "include": [
-        "./src/**/*"
-    ]
+	"extends": "./.svelte-kit/tsconfig.json"
 }

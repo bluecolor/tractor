@@ -1,0 +1,21 @@
+input.input {
+	@apply block
+        focus:ring-2
+        focus:ring-blue-200
+        focus:border-blue-200
+        focus:outline-none
+        w-full
+        px-3
+        py-1.5
+        text-base
+        font-normal
+        text-gray-700
+        bg-white
+        bg-clip-padding
+        transition
+        ease-in-out
+        rounded
+        border
+        border-solid
+        border-gray-300;
+}

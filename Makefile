@@ -9,6 +9,9 @@ build:
 
 test:
 	go test -v ./... -count=1 -failfast
+
+db-start:
+	docker-compose up -d
 db-drop:
 	go run cmd/tractor/main.go db drop
 
@@ -24,8 +27,13 @@ db-reset:
 server-start:
 	go run cmd/tractor/main.go server start
 
-web-serve:
-	cd web && npm run serve
+web-dev:
+	cd web && npm run dev
+
+web-install:
+	cd web && npm install
+
+
 
 server-reset:
 	go run cmd/tractor/main.go db reset
