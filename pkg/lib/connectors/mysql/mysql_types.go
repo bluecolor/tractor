@@ -7,15 +7,24 @@ import (
 )
 
 type MySQLField struct {
-	Name    string         `json:"name"`
-	Type    string         `json:"type"`
-	Null    sql.NullString `json:"null"`
-	Key     sql.NullString `json:"key"`
-	Default sql.NullString `json:"default"`
-	Extra   sql.NullString `json:"extra"`
+	ColumnName             string
+	OrdinalPosition        int
+	ColumnDefault          sql.NullString
+	IsNullable             string
+	DataType               string
+	CharacterMaximumLength int
+	CharacterOctetLength   int
+	NumericPrecision       int
+	NumericScale           int
+	DatetimePrecision      int
+	CharacterSetName       sql.NullString
+	ColumnType             string
+	ColumnKey              sql.NullString
+	Extra                  sql.NullString
+	ColumnComment          sql.NullString
 }
 
-func (f MySQLField) ToField() types.Field {
+func (f MySQLField) ToField() *types.Field {
 	typeMap := map[string]types.FieldType{
 		"tinyint":    types.FieldTypeInt,
 		"smallint":   types.FieldTypeInt,
@@ -49,20 +58,16 @@ func (f MySQLField) ToField() types.Field {
 		"json":       types.FieldTypeObject,
 	}
 
-	tp, ok := typeMap[f.Type]
+	tp, ok := typeMap[f.DataType]
 	if !ok {
 		tp = types.FieldTypeString
 	}
 
-	return types.Field{
-		Name: f.Name,
-		Type: tp,
-		Config: types.Config{
-			"null":    f.Null.String,
-			"key":     f.Key.String,
-			"default": f.Default.String,
-			"extra":   f.Extra.String,
-		},
+	return &types.Field{
+		Name:    f.ColumnName,
+		Type:    tp,
+		RawType: f.ColumnType,
+		Config:  types.Config{},
 	}
 }
 func ToMySQLField(f types.Field) MySQLField {
@@ -116,11 +121,7 @@ func ToMySQLField(f types.Field) MySQLField {
 	}
 
 	return MySQLField{
-		Name:    f.Name,
-		Type:    tp,
-		Null:    null,
-		Key:     key,
-		Default: defaultValue,
-		Extra:   extra,
+		ColumnName: f.Name,
+		DataType:   tp,
 	}
 }

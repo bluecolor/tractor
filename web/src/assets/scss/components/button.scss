@@ -1,5 +1,5 @@
 button {
-	.btn {
+	&.btn {
 		@apply py-1.5 px-4
         bg-blue-400
         hover:bg-blue-500
@@ -9,10 +9,10 @@ button {
         rounded
         focus:ring-blue-200
         focus:ring-offset-blue-200
-        focus:ring-1
+        focus:ring-2
         focus:ring-offset-1
         focus:outline-none;
-		.warning {
+		&.warning {
 			@apply focus:ring-offset-yellow-200
             bg-yellow-400
             hover:bg-yellow-500

@@ -24,6 +24,7 @@ type FileConfig struct {
 }
 
 type FileConnector struct {
+	connectors.Base
 	Config     FileConfig
 	FileFormat formats.FileFormat
 	Storage    types.Storager

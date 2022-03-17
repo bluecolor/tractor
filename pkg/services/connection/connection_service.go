@@ -2,7 +2,6 @@ package connection
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
@@ -114,18 +113,17 @@ func (s *Service) UpdateConnection(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.RespondwithJSON(w, http.StatusOK, connection)
 }
-
-func (s *Service) ResolveConnectorRequest(w http.ResponseWriter, r *http.Request) {
-	request := struct {
+func (s *Service) GetInfo(w http.ResponseWriter, r *http.Request) {
+	payload := struct {
 		Connection models.Connection      `json:"connection"`
-		Request    string                 `json:"request"`
+		Info       string                 `json:"info"`
 		Options    map[string]interface{} `json:"options"`
 	}{}
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
 		return
 	}
-	conn := request.Connection
+	conn := payload.Connection
 	config, err := conn.GetConnectorConfig()
 	if err != nil {
 		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
@@ -137,21 +135,15 @@ func (s *Service) ResolveConnectorRequest(w http.ResponseWriter, r *http.Request
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
-	if resolver, ok := connector.(connectors.RequestResolver); ok {
-		result, err := resolver.Resolve(request.Request, request.Options)
-		if err != nil {
-			log.Error().Err(err).Msg("error resolving request")
-			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
-			return
-		}
-		utils.RespondwithJSON(w, http.StatusOK, result)
-	} else {
-		utils.ErrorWithJSON(w, http.StatusInternalServerError, errors.New("connector does not support request resolver"))
+	result, err := connector.GetInfo(payload.Info, payload.Options)
+	if err != nil {
+		log.Error().Err(err).Msg("error getting info")
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
+	utils.RespondwithJSON(w, http.StatusOK, result)
 }
-
-func (s *Service) FindFields(w http.ResponseWriter, r *http.Request) {
+func (s *Service) GetDataset(w http.ResponseWriter, r *http.Request) {
 	connectionID := chi.URLParam(r, "id")
 	options := map[string]interface{}{}
 	if err := json.NewDecoder(r.Body).Decode(&options); err != nil {
@@ -174,22 +166,11 @@ func (s *Service) FindFields(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
-	if fieldFinder, ok := connector.(connectors.FieldFinder); ok {
-		if err := fieldFinder.Connect(); err != nil {
-			log.Error().Err(err).Msg("error connecting")
-			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
-			return
-		}
-		defer fieldFinder.Close()
-		result, err := fieldFinder.FindFields(options)
-		if err != nil {
-			log.Error().Err(err).Msg("error finding fields")
-			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
-			return
-		}
-		utils.RespondwithJSON(w, http.StatusOK, result)
-	} else {
-		utils.ErrorWithJSON(w, http.StatusInternalServerError, errors.New("connector does not support field finder"))
+
+	dataset, err := connector.GetDataset(options)
+	if err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
+	utils.RespondwithJSON(w, http.StatusOK, dataset)
 }

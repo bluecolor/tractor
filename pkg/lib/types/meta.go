@@ -47,20 +47,16 @@ func FieldTypeFromString(s string) FieldType {
 	return FieldTypeString
 }
 
-type JsonSchema struct {
-	Type        string                 `json:"type"`
-	Description string                 `json:"description"`
-	Properties  map[string]interface{} `json:"properties"`
-}
 type Dataset struct {
 	Name   string   `json:"name"`
 	Config Config   `json:"config"`
 	Fields []*Field `json:"fields"`
 }
 type Field struct {
-	Name   string    `json:"name"`
-	Type   FieldType `json:"type"`
-	Config Config    `json:"config"`
+	Name    string    `json:"name"`
+	Type    FieldType `json:"type"`
+	RawType string    `json:"rawType"`
+	Config  Config    `json:"config"`
 }
 
 func (f *Field) GetExpressionOrName() string {

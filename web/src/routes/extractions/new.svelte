@@ -38,11 +38,13 @@
 </script>
 
 <template lang="pug">
-  .w-full.flex.flex-col.pt-4
+  .w-full.flex.flex-col.pt-4.mb-4
     .flex.justify-between.items-center
       .title
         | New Extraction
     .bg-white.mt-4.rounded-md.flex.flex-col
+      .toolbar.flex.justify-end.pt-4.pr-4
+        button.btn Save
       .grid.grid-cols-2.gap-4.w-full.p-4
         .source
           .form-item

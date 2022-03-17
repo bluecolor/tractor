@@ -12,9 +12,9 @@
 		editTable = !editTable;
 	}
 	function onDatabaseChange() {
-		api('POST', 'connections/connectors/resolve', {
+		api('POST', 'connections/info', {
 			connection: connection,
-			request: 'tables',
+			info: 'tables',
 			options: { database: config.database }
 		}).then(async (response) => {
 			if (response.ok) {
@@ -28,9 +28,9 @@
 	}
 	function onTableChange() {}
 	onMount(async () => {
-		api('POST', 'connections/connectors/resolve', {
+		api('POST', 'connections/info', {
 			connection: connection,
-			request: 'databases'
+			info: 'databases'
 		}).then(async (response) => {
 			if (response.ok) {
 				databases = await response.json();

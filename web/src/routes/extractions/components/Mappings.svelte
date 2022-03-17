@@ -4,7 +4,6 @@
 	import Trash from '@icons/trash.svg';
 	import MenuIcon from '@icons/menu.svg';
 	import PlusIcon from '@icons/plus.svg';
-	import SaveIcon from '@icons/save.svg';
 
 	export let sourceConnection, targetConnection, sourceDataset, targetDataset;
 
@@ -12,20 +11,24 @@
 
 	let options = [
 		{
-			label: 'Fetch fileds',
+			label: 'Fetch',
 			value: 'fetch'
 		},
 		{
-			label: 'Fetch source fields',
+			label: 'Fetch source',
 			value: 'fetchesource'
 		},
 		{
-			label: 'Fetch target fields',
+			label: 'Fetch target',
 			value: 'fetchetarget'
 		},
 		{
 			label: 'Clear',
 			value: 'clear'
+		},
+		{
+			label: 'Config',
+			value: 'config'
 		}
 	];
 	function onDropdown(e) {
@@ -34,35 +37,58 @@
 			case 'fetchesource':
 				onFetchSource();
 				break;
+			case 'fetchetarget':
+				onFetchTarget();
+				break;
 		}
 	}
-	function mapSourceFields(fields) {
-		fields.forEach((field) => {
-			let mapping = mappings.find((mapping) => mapping.source.name === field.name);
-			if (!mapping) {
-				mapping = {
-					__index__: mappings.length,
-					source: field,
-					target: {}
-				};
-				mappings.push(mapping);
-			} else {
-				mapping.source = field;
+	function mapFields({ sources, targets }) {
+		sources = sources ?? mappings.map((m) => m.source);
+		targets = targets ?? mappings.map((m) => m.target);
+		while (sources.length < targets.length) {
+			sources.push({});
+		}
+		while (targets.length < sources.length) {
+			targets.push({});
+		}
+		mappings = sources.map((source, i) => {
+			let m = {
+				__index__: i,
+				source: source
+			};
+			let ti = targets.findIndex((t) => t.name === source.name);
+			if (ti > -1) {
+				m.target = targets[ti];
+				targets.splice(ti, 1);
+				return m;
 			}
+			m.target = targets.shift();
+			return m;
 		});
 		mappings = [...mappings];
 	}
 	function onFetchSource() {
-		console.log(sourceConnection, sourceDataset);
-		api('POST', `connections/${sourceConnection.id}/fields`, sourceDataset).then(
+		api('POST', `connections/${sourceConnection.id}/dataset`, sourceDataset).then(
 			async (response) => {
 				if (response.ok) {
-					let sourceFields = await response.json();
-					console.log(sourceFields);
-					mapSourceFields(sourceFields);
+					let source = await response.json();
+					mapFields({ sources: source.fields, targets: undefined });
 				} else {
 					let errm = await response.text();
 					alert('Failed to load source fields\n' + errm);
+				}
+			}
+		);
+	}
+	function onFetchTarget() {
+		api('POST', `connections/${targetConnection.id}/dataset`, targetDataset).then(
+			async (response) => {
+				if (response.ok) {
+					let target = await response.json();
+					mapFields({ sources: undefined, targets: target.fields });
+				} else {
+					let errm = await response.text();
+					alert('Failed to load target fields\n' + errm);
 				}
 			}
 		);
@@ -92,11 +118,12 @@
           th(scope="col" align="left")
             | Source column
           th(scope="col" align="left")
+            | Source type
+          th(scope="col" align="left")
             | Target column
           th(scope="col" align="left")
-            | Type
+            | Target Type
           th.actions.flex.justify-end.items-center(align="right")
-            SaveIcon.icon-btn.mr-3
             .action.icon-btn.mr-3(on:click='{onAddMapping}')
               PlusIcon()
             Dropdown(label="Options" bind:options='{options}' on:select='{onDropdown}') Reset
@@ -108,6 +135,9 @@
             td
               input.input(placeholder="Source column", bind:value='{m.source.name}')
             td
+              span.text-gray-600
+                | {m.source.type}
+            td
               input.input(placeholder="Target column", bind:value='{m.target.name}')
             td
               select.cursor-pointer()
@@ -118,8 +148,9 @@
                 option(value="date") date
 
             td
-              div.flex.justify-end.items-center(on:click='{onDeleteMapping(m)}')
-                Trash(class="trash")
+              div.flex.justify-end.items-center
+                span(on:click='{onDeleteMapping(m)}')
+                  Trash(class="trash")
 </template>
 
 <style lang="postcss">
