@@ -34,9 +34,9 @@
         | Extractions
       .search.space-x-2.inline-flex.items-center()
         .action
-          input(type="text" placeholder="Search")
+          input.input(type="text" placeholder="Search")
         a.action(href="/extractions/new")
-          button Add
+          button.btn Add
 
     .bg-white.mt-4.p-2.rounded-md
       table.min-w-full

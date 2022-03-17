@@ -4,6 +4,7 @@
 	import Trash from '@icons/trash.svg';
 	import MenuIcon from '@icons/menu.svg';
 	import PlusIcon from '@icons/plus.svg';
+	import Mode from './Mode.svelte';
 
 	export let sourceConnection, targetConnection, sourceDataset, targetDataset;
 
@@ -25,10 +26,6 @@
 		{
 			label: 'Clear',
 			value: 'clear'
-		},
-		{
-			label: 'Config',
-			value: 'config'
 		}
 	];
 	function onDropdown(e) {
@@ -39,6 +36,12 @@
 				break;
 			case 'fetchetarget':
 				onFetchTarget();
+				break;
+			case 'fetch':
+				onFetch();
+				break;
+			case 'clear':
+				onClear();
 				break;
 		}
 	}
@@ -93,6 +96,21 @@
 			}
 		);
 	}
+	function onFetch() {
+		Promise.all([
+			api('POST', `connections/${sourceConnection.id}/dataset`, sourceDataset),
+			api('POST', `connections/${targetConnection.id}/dataset`, targetDataset)
+		]).then(async (responses) => {
+			if (responses.every((r) => r.ok)) {
+				let sources = await responses[0].json();
+				let targets = await responses[1].json();
+				mapFields({ sources: sources.fields, targets: targets.fields });
+			} else {
+				let errms = await Promise.all(responses.map((r) => r.text()));
+				alert('Failed to load fields\n' + errms.join('\n'));
+			}
+		});
+	}
 	function onDeleteMapping({ __index__ }) {
 		mappings.splice(__index__, 1);
 		mappings = [...mappings];
@@ -106,6 +124,9 @@
 				target: {}
 			}
 		];
+	}
+	function onClear() {
+		mappings = [];
 	}
 </script>
 
@@ -122,8 +143,10 @@
           th(scope="col" align="left")
             | Target column
           th(scope="col" align="left")
-            | Target Type
+            | Target type
           th.actions.flex.justify-end.items-center(align="right")
+            .action.mr-3
+              Mode
             .action.icon-btn.mr-3(on:click='{onAddMapping}')
               PlusIcon()
             Dropdown(label="Options" bind:options='{options}' on:select='{onDropdown}') Reset
@@ -146,7 +169,6 @@
                 option(value="float") float
                 option(value="boolean") boolean
                 option(value="date") date
-
             td
               div.flex.justify-end.items-center
                 span(on:click='{onDeleteMapping(m)}')
