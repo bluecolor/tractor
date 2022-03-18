@@ -3,8 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { endpoint, api } from '$lib/utils';
-	import FileConnection from '@components/FileConnection.svelte';
-	import MySQLConnection from '@components/MySQLConnection.svelte';
+	import FileConnection from './components/FileConnection.svelte';
+	import MySQLConnection from './components/MySQLConnection.svelte';
 	let loading = false;
 	let connection = {
 		config: {}

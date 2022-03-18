@@ -4,7 +4,6 @@
 	import Trash from '@icons/trash.svg';
 	import MenuIcon from '@icons/menu.svg';
 	import PlusIcon from '@icons/plus.svg';
-	import Mode from './Mode.svelte';
 
 	export let sourceConnection, targetConnection, sourceDataset, targetDataset;
 
@@ -145,8 +144,6 @@
           th(scope="col" align="left")
             | Target type
           th.actions.flex.justify-end.items-center(align="right")
-            .action.mr-3
-              Mode
             .action.icon-btn.mr-3(on:click='{onAddMapping}')
               PlusIcon()
             Dropdown(label="Options" bind:options='{options}' on:select='{onDropdown}') Reset
