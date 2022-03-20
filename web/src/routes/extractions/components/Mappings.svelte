@@ -1,13 +1,14 @@
 <script>
 	import { api } from '$lib/utils';
 	import Dropdown from '@components/Dropdown.svelte';
-	import Trash from '@icons/trash.svg';
+	import TrashIcon from '@icons/trash.svg';
 	import MenuIcon from '@icons/menu.svg';
 	import PlusIcon from '@icons/plus.svg';
+	import GreaterThanIcon from '@icons/greater-than.svg';
 
 	export let sourceConnection, targetConnection, sourceDataset, targetDataset;
 
-	let mappings = [];
+	export let mappings = [];
 
 	let options = [
 		{
@@ -55,7 +56,6 @@
 		}
 		mappings = sources.map((source, i) => {
 			let m = {
-				__index__: i,
 				source: source
 			};
 			let ti = targets.findIndex((t) => t.name === source.name);
@@ -110,15 +110,14 @@
 			}
 		});
 	}
-	function onDeleteMapping({ __index__ }) {
-		mappings.splice(__index__, 1);
+	function onDeleteMapping(i) {
+		mappings.splice(i, 1);
 		mappings = [...mappings];
 	}
 	function onAddMapping() {
 		mappings = [
 			...mappings,
 			{
-				__index__: mappings.length,
 				source: {},
 				target: {}
 			}
@@ -150,7 +149,7 @@
               div(slot="button")
                 MenuIcon.icon-btn()
       tbody
-        +each('mappings as m')
+        +each('mappings as m, i')
           tr(class="last:border-b-0  hover:bg-blue-50")
             td
               input.input(placeholder="Source column", bind:value='{m.source.name}')
@@ -168,8 +167,11 @@
                 option(value="date") date
             td
               div.flex.justify-end.items-center
-                span(on:click='{onDeleteMapping(m)}')
-                  Trash(class="trash")
+                span.cursor-pointer(on:click='{onDeleteMapping(m, i)}')
+                  GreaterThanIcon(class="fill-current text-gray-200 hover:text-blue-500")
+                span(on:click='{onDeleteMapping(m, i)}')
+                  TrashIcon(class="trash")
+
 </template>
 
 <style lang="postcss">

@@ -78,7 +78,7 @@
           .flex.flex-col
             .form-item
               label(for='connection-name') Name
-              input.mt-1(type='text' id="connection-name" name='name' autocomplete='conneciton-name' bind:value='{connection.name}')
+              input.input.mt-1(type='text' id="connection-name" name='name' autocomplete='conneciton-name' bind:value='{connection.name}')
 
             .form-item
               label(for='connection-type') Connection Type

@@ -16,7 +16,6 @@ func init() {
 	Models = append(Models,
 		&Connection{},
 		&ConnectionType{},
-		&ExtractionMode{},
 		&Extraction{},
 		&Dataset{},
 		&FileType{},

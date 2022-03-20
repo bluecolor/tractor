@@ -2,12 +2,16 @@
 	import EditIcon from '@icons/edit.svg';
 	import { onMount } from 'svelte';
 	import { api } from '$lib/utils';
-	export let connection, config, target;
+	import ExtractionMode from './ExtractionMode.svelte';
+	export let connection, config;
+	export let usedIn = 'source';
+
+	console.log(usedIn);
 
 	let databases = [];
 	let tables = [];
 	let editTable = false;
-	export let modes = [
+	let modes = [
 		{
 			label: 'Append',
 			value: 'append'
@@ -21,7 +25,19 @@
 			value: 'merge'
 		}
 	];
-	let mode = undefined;
+	if (usedIn == 'source') {
+		modes = [
+			{
+				label: 'Full',
+				value: 'full'
+			},
+			{
+				label: 'Incremental',
+				value: 'incremental'
+			}
+		];
+	}
+
 	onMount(async () => {
 		api('POST', 'connections/info', {
 			connection: connection,
@@ -54,10 +70,6 @@
 		});
 	}
 	function onTableChange() {}
-
-	function onModeSelect(m) {
-		mode = m.value;
-	}
 </script>
 
 <template lang="pug">
@@ -76,18 +88,10 @@
           option(value='{t}' selected='{t === config.table}') {t}
     +if('editTable')
       input.input(type='text', name='table', bind:value='{config.table}' placeholder='Table name')
-    +if('target')
+    +if('usedIn == "target"')
       .icon-btn(on:click='{toggleEditTable}')
         EditIcon
-+if('target')
-  .form-item
-    label(for="table") Mode
-    .flex
-      +each('modes as m')
-        div(on:click='{onModeSelect(m)}')
-          label.inline-flex.items-center.mr-2()
-            input.form-radio.h-4.w-4.text-blue-400(type='radio' checked='{mode==m.value}'  class='focus:ring-2 focus:ring-offset-1 focus:border-blue-300 focus:ring focus:ring-offset-0 focus:ring-blue-200')
-            span.ml-2.text-gray-400 {m.label}
 
+ExtractionMode(bind:mode='{config.mode}' modes='{modes}')
 
 </template>

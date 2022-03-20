@@ -2,27 +2,19 @@ package models
 
 import "gorm.io/datatypes"
 
-type ExtractionMode struct {
-	Model
-	Name string `json:"name"`
-	Code string `json:"code"`
-}
-
 type Extraction struct {
 	Model
-	Name               string          `json:"name"`
-	SourceConnection   *Connection     `gorm:"foreignkey:SourceConnectionID" json:"source_connection"`
-	SourceConnectionID uint            `json:"source_connection_id"`
-	TargetConnection   *Connection     `gorm:"foreignkey:TargetConnectionID" json:"target_connection"`
-	TargetConnectionID uint            `json:"target_connection_id"`
-	SourceDatasetID    uint            `json:"sourceDatasetId"`
-	SourceDataset      *Dataset        `gorm:"foreignkey:SourceDatasetID" json:"sourceDataset"`
-	TargetDatasetID    uint            `json:"targetDatasetId"`
-	TargetDataset      *Dataset        `gorm:"foreignkey:TargetDatasetID" json:"targetDataset"`
-	ExtractionModeID   uint            `json:"extractionModeID"`
-	ExtractionMode     *ExtractionMode `gorm:"foreignkey:ExtractionModeID" json:"extractionMode"`
-	FieldMappings      []FieldMapping  `json:"fieldMappings"`
-	Sessions           []*Session      `json:"sessions"`
+	Name               string         `json:"name"`
+	SourceConnection   *Connection    `gorm:"foreignkey:SourceConnectionID" json:"sourceConnection"`
+	SourceConnectionID uint           `json:"sourceConnectionId"`
+	TargetConnection   *Connection    `gorm:"foreignkey:TargetConnectionID" json:"targetConnection"`
+	TargetConnectionID uint           `json:"targetConnectionId"`
+	SourceDatasetID    uint           `json:"sourceDatasetId"`
+	SourceDataset      *Dataset       `gorm:"foreignkey:SourceDatasetID" json:"sourceDataset"`
+	TargetDatasetID    uint           `json:"targetDatasetId"`
+	TargetDataset      *Dataset       `gorm:"foreignkey:TargetDatasetID" json:"targetDataset"`
+	FieldMappings      []FieldMapping `json:"fieldMappings"`
+	Sessions           []*Session     `json:"sessions"`
 }
 
 type Dataset struct {
