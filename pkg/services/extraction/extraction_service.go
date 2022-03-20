@@ -1,6 +1,7 @@
 package extraction
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/bluecolor/tractor/pkg/models"
@@ -47,4 +48,16 @@ func (s *Service) DeleteExtraction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.RespondwithJSON(w, http.StatusOK, ext)
+}
+func (s *Service) CreateExtraction(w http.ResponseWriter, r *http.Request) {
+	extraction := models.Extraction{}
+	if err := json.NewDecoder(r.Body).Decode(&extraction); err != nil {
+		utils.ErrorWithJSON(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.repo.Create(&extraction).Error; err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	utils.RespondwithJSON(w, http.StatusOK, extraction)
 }

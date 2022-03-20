@@ -1,6 +1,8 @@
 package connectors
 
 import (
+	"errors"
+
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
@@ -8,28 +10,32 @@ import (
 type Connector interface {
 	Connect() error
 	Close() error
+	GetDataset(options map[string]interface{}) (*types.Dataset, error)
+	GetDatasets(options map[string]interface{}) ([]*types.Dataset, error)
+	GetInfo(info string, options map[string]interface{}) (interface{}, error)
+	Validate(config ConnectorConfig) error
 }
 
 type Base struct{}
 
-func (c Base) Connect() error {
+func (b Base) Connect() error {
 	return nil
 }
-func (c Base) Close() error {
+func (b Base) Close() error {
 	return nil
 }
 
-type MetaFinder interface {
-	FindDatasets(options map[string]interface{}) ([]types.Dataset, error)
+func (b Base) GetDataset(options map[string]interface{}) (*types.Dataset, error) {
+	return nil, errors.New("not implemented")
 }
-type FieldFinder interface {
-	Connector
-	FindFields(options map[string]interface{}) ([]types.Field, error)
+func (b Base) GetDatasets(options map[string]interface{}) ([]*types.Dataset, error) {
+	return nil, errors.New("not implemented")
 }
-
-type RequestResolver interface {
-	GetResolvers() map[string]func(map[string]interface{}) (interface{}, error)
-	Resolve(request string, body map[string]interface{}) (interface{}, error)
+func (b Base) GetInfo(info string, options map[string]interface{}) (interface{}, error) {
+	return nil, errors.New("not implemented")
+}
+func (b Base) Validate(config ConnectorConfig) error {
+	return errors.New("not implemented")
 }
 
 type Input interface {

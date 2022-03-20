@@ -3,8 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { endpoint, api } from '$lib/utils';
-	import FileConnection from '@components/FileConnection.svelte';
-	import MySQLConnection from '@components/MySQLConnection.svelte';
+	import FileConnection from './components/FileConnection.svelte';
+	import MySQLConnection from './components/MySQLConnection.svelte';
 	let loading = false;
 	let connection = {};
 	let connectionTypes = [];
@@ -38,7 +38,6 @@
 		let method = 'PUT';
 		let resource = 'connections/' + connection.id;
 		loading = true;
-		console.log(connection);
 		api(method, resource, connection)
 			.then((response) => {
 				if (response.ok) {
@@ -83,7 +82,7 @@
           .flex.flex-col
             .form-item
               label(for='connection-name') Name
-              input.mt-1(type='text' id="connection-name" name='name' autocomplete='conneciton-name' bind:value='{connection.name}')
+              input.input.mt-1(type='text' id="connection-name" name='name' autocomplete='conneciton-name' bind:value='{connection.name}')
 
             .form-item
               label(for='connection-type') Connection Type
@@ -94,7 +93,7 @@
               <svelte:component this={components[connectionTypeCode]} state={connection.config} />
 
         .py-3.text-right.space-x-4(class='sm:px-6')
-          button.warning(on:click|preventDefault='{onTest}' disabled='{loading}') {loading ? 'Testing...' : 'Test Connection'}
-          button() Save
+          button.btn.warning(on:click|preventDefault='{onTest}' disabled='{loading}') {loading ? 'Testing...' : 'Test Connection'}
+          button.btn() Save
 
 </template>

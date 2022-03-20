@@ -205,7 +205,7 @@ func TestIO(t *testing.T) {
 	wg.Wait()
 }
 
-func TestResolveDatabases(t *testing.T) {
+func TestGetDatabases(t *testing.T) {
 	db, mock, err := sqlmock.New()
 
 	mock.MatchExpectationsInOrder(false)
@@ -220,8 +220,7 @@ func TestResolveDatabases(t *testing.T) {
 	c := &MySQLConnector{
 		db: db,
 	}
-	resolvers := c.GetResolvers()
-	dbs, err := resolvers["databases"](nil)
+	dbs, err := c.getDatabases(nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -240,7 +239,7 @@ func TestResolveDatabases(t *testing.T) {
 	}
 }
 
-func TestResolveTables(t *testing.T) {
+func TestGetTables(t *testing.T) {
 	db, mock, err := sqlmock.New()
 
 	mock.MatchExpectationsInOrder(false)
@@ -255,8 +254,7 @@ func TestResolveTables(t *testing.T) {
 	c := &MySQLConnector{
 		db: db,
 	}
-	resolvers := c.GetResolvers()
-	dbs, err := resolvers["tables"](map[string]interface{}{"database": "db1"})
+	dbs, err := c.getTables(map[string]interface{}{"database": "db1"})
 	if err != nil {
 		t.Error(err)
 	}

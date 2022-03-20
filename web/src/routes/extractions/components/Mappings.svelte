@@ -1,26 +1,26 @@
 <script>
 	import { api } from '$lib/utils';
 	import Dropdown from '@components/Dropdown.svelte';
-	import Trash from '@icons/trash.svg';
+	import TrashIcon from '@icons/trash.svg';
 	import MenuIcon from '@icons/menu.svg';
 	import PlusIcon from '@icons/plus.svg';
-	import SaveIcon from '@icons/save.svg';
+	import GreaterThanIcon from '@icons/greater-than.svg';
 
 	export let sourceConnection, targetConnection, sourceDataset, targetDataset;
 
-	let mappings = [];
+	export let mappings = [];
 
 	let options = [
 		{
-			label: 'Fetch fileds',
+			label: 'Fetch',
 			value: 'fetch'
 		},
 		{
-			label: 'Fetch source fields',
+			label: 'Fetch source',
 			value: 'fetchesource'
 		},
 		{
-			label: 'Fetch target fields',
+			label: 'Fetch target',
 			value: 'fetchetarget'
 		},
 		{
@@ -34,32 +34,47 @@
 			case 'fetchesource':
 				onFetchSource();
 				break;
+			case 'fetchetarget':
+				onFetchTarget();
+				break;
+			case 'fetch':
+				onFetch();
+				break;
+			case 'clear':
+				onClear();
+				break;
 		}
 	}
-	function mapSourceFields(fields) {
-		fields.forEach((field) => {
-			let mapping = mappings.find((mapping) => mapping.source.name === field.name);
-			if (!mapping) {
-				mapping = {
-					__index__: mappings.length,
-					source: field,
-					target: {}
-				};
-				mappings.push(mapping);
-			} else {
-				mapping.source = field;
+	function mapFields({ sources, targets }) {
+		sources = sources ?? mappings.map((m) => m.source);
+		targets = targets ?? mappings.map((m) => m.target);
+		while (sources.length < targets.length) {
+			sources.push({});
+		}
+		while (targets.length < sources.length) {
+			targets.push({});
+		}
+		mappings = sources.map((source, i) => {
+			let m = {
+				source: source
+			};
+			let ti = targets.findIndex((t) => t.name === source.name);
+			if (ti > -1) {
+				m.target = targets[ti];
+				targets.splice(ti, 1);
+				return m;
 			}
+			m.target = targets.shift();
+			return m;
 		});
 		mappings = [...mappings];
 	}
 	function onFetchSource() {
-		console.log(sourceConnection, sourceDataset);
-		api('POST', `connections/${sourceConnection.id}/fields`, sourceDataset).then(
+		api('POST', `connections/${sourceConnection.id}/dataset`, sourceDataset).then(
 			async (response) => {
 				if (response.ok) {
-					let sourceFields = await response.json();
-					console.log(sourceFields);
-					mapSourceFields(sourceFields);
+					let source = await response.json();
+					mapFields({ sources: source.fields, targets: undefined });
 				} else {
 					let errm = await response.text();
 					alert('Failed to load source fields\n' + errm);
@@ -67,19 +82,49 @@
 			}
 		);
 	}
-	function onDeleteMapping({ __index__ }) {
-		mappings.splice(__index__, 1);
+	function onFetchTarget() {
+		api('POST', `connections/${targetConnection.id}/dataset`, targetDataset).then(
+			async (response) => {
+				if (response.ok) {
+					let target = await response.json();
+					mapFields({ sources: undefined, targets: target.fields });
+				} else {
+					let errm = await response.text();
+					alert('Failed to load target fields\n' + errm);
+				}
+			}
+		);
+	}
+	function onFetch() {
+		Promise.all([
+			api('POST', `connections/${sourceConnection.id}/dataset`, sourceDataset),
+			api('POST', `connections/${targetConnection.id}/dataset`, targetDataset)
+		]).then(async (responses) => {
+			if (responses.every((r) => r.ok)) {
+				let sources = await responses[0].json();
+				let targets = await responses[1].json();
+				mapFields({ sources: sources.fields, targets: targets.fields });
+			} else {
+				let errms = await Promise.all(responses.map((r) => r.text()));
+				alert('Failed to load fields\n' + errms.join('\n'));
+			}
+		});
+	}
+	function onDeleteMapping(i) {
+		mappings.splice(i, 1);
 		mappings = [...mappings];
 	}
 	function onAddMapping() {
 		mappings = [
 			...mappings,
 			{
-				__index__: mappings.length,
 				source: {},
 				target: {}
 			}
 		];
+	}
+	function onClear() {
+		mappings = [];
 	}
 </script>
 
@@ -92,21 +137,25 @@
           th(scope="col" align="left")
             | Source column
           th(scope="col" align="left")
+            | Source type
+          th(scope="col" align="left")
             | Target column
           th(scope="col" align="left")
-            | Type
+            | Target type
           th.actions.flex.justify-end.items-center(align="right")
-            SaveIcon.icon-btn.mr-3
             .action.icon-btn.mr-3(on:click='{onAddMapping}')
               PlusIcon()
             Dropdown(label="Options" bind:options='{options}' on:select='{onDropdown}') Reset
               div(slot="button")
                 MenuIcon.icon-btn()
       tbody
-        +each('mappings as m')
+        +each('mappings as m, i')
           tr(class="last:border-b-0  hover:bg-blue-50")
             td
               input.input(placeholder="Source column", bind:value='{m.source.name}')
+            td
+              span.text-gray-600
+                | {m.source.type}
             td
               input.input(placeholder="Target column", bind:value='{m.target.name}')
             td
@@ -116,10 +165,13 @@
                 option(value="float") float
                 option(value="boolean") boolean
                 option(value="date") date
-
             td
-              div.flex.justify-end.items-center(on:click='{onDeleteMapping(m)}')
-                Trash(class="trash")
+              div.flex.justify-end.items-center
+                span.cursor-pointer(on:click='{onDeleteMapping(m, i)}')
+                  GreaterThanIcon(class="fill-current text-gray-200 hover:text-blue-500")
+                span(on:click='{onDeleteMapping(m, i)}')
+                  TrashIcon(class="trash")
+
 </template>
 
 <style lang="postcss">

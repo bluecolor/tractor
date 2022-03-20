@@ -3,8 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { endpoint, api } from '$lib/utils';
-	import FileConnection from '@components/FileConnection.svelte';
-	import MySQLConnection from '@components/MySQLConnection.svelte';
+	import FileConnection from './components/FileConnection.svelte';
+	import MySQLConnection from './components/MySQLConnection.svelte';
 	let loading = false;
 	let connection = {
 		config: {}
@@ -78,7 +78,7 @@
           .flex.flex-col
             .form-item
               label(for='connection-name') Name
-              input.mt-1(type='text' id="connection-name" name='name' autocomplete='conneciton-name' bind:value='{connection.name}')
+              input.input.mt-1(type='text' id="connection-name" name='name' autocomplete='conneciton-name' bind:value='{connection.name}')
 
             .form-item
               label(for='connection-type') Connection Type

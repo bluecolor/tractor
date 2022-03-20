@@ -12,6 +12,6 @@ func BuildRoutes(repository *repo.Repository) *chi.Mux {
 	router.Get("/", service.FindExtractions)
 	router.Get("/{id}", service.OneExtraction)
 	router.Delete("/{id}", service.DeleteExtraction)
-
+	router.Post("/", service.CreateExtraction)
 	return router
 }

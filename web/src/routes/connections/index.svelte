@@ -34,12 +34,12 @@
         | Connections
       .search.space-x-2.inline-flex.items-center()
         .action
-          input(type="text" placeholder="Search")
+          input.input(type="text" placeholder="Search")
         a.action(href="/connections/new")
-          button Add
+          button.btn Add
 
     .bg-white.mt-4.p-2.rounded-md
-      table.min-w-full
+      table.table.min-w-full
         thead
           tr
             th(scope="col")
@@ -55,8 +55,9 @@
                   | {conn.name}
               td
                 | {conn.connectionType.name}
-              td.actions
-                span(on:click='{onDeleteConnection(conn.id)}')
-                  Trash(class="trash")
+              td.actions(align="right")
+                .flex.justify-end.items-center
+                  span(on:click='{onDeleteConnection(conn.id)}')
+                    Trash(class="trash")
 
 </template>

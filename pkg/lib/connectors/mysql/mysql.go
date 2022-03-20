@@ -18,6 +18,7 @@ type MySQLConfig struct {
 	Database string `json:"database"`
 }
 type MySQLConnector struct {
+	connectors.Base
 	config MySQLConfig
 	db     *sql.DB
 }

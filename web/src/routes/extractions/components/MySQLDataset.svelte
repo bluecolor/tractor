@@ -2,19 +2,62 @@
 	import EditIcon from '@icons/edit.svg';
 	import { onMount } from 'svelte';
 	import { api } from '$lib/utils';
-	export let connection, config, target;
+	import ExtractionMode from './ExtractionMode.svelte';
+	export let connection, config;
+	export let usedIn = 'source';
+
+	console.log(usedIn);
 
 	let databases = [];
 	let tables = [];
 	let editTable = false;
+	let modes = [
+		{
+			label: 'Append',
+			value: 'append'
+		},
+		{
+			label: 'Replace',
+			value: 'replace'
+		},
+		{
+			label: 'Merge',
+			value: 'merge'
+		}
+	];
+	if (usedIn == 'source') {
+		modes = [
+			{
+				label: 'Full',
+				value: 'full'
+			},
+			{
+				label: 'Incremental',
+				value: 'incremental'
+			}
+		];
+	}
 
+	onMount(async () => {
+		api('POST', 'connections/info', {
+			connection: connection,
+			info: 'databases'
+		}).then(async (response) => {
+			if (response.ok) {
+				databases = await response.json();
+			} else {
+				let errm = await response.text();
+				alert('Failed to load databases\n' + errm);
+			}
+		});
+	});
 	function toggleEditTable() {
 		editTable = !editTable;
 	}
 	function onDatabaseChange() {
-		api('POST', 'connections/connectors/resolve', {
+		api('POST', 'connections/info', {
 			connection: connection,
-			request: 'tables',
+			info: 'tables',
 			options: { database: config.database }
 		}).then(async (response) => {
 			if (response.ok) {
@@ -27,19 +70,6 @@
 		});
 	}
 	function onTableChange() {}
-	onMount(async () => {
-		api('POST', 'connections/connectors/resolve', {
-			connection: connection,
-			request: 'databases'
-		}).then(async (response) => {
-			if (response.ok) {
-				databases = await response.json();
-			} else {
-				let errm = await response.text();
-				alert('Failed to load databases\n' + errm);
-			}
-		});
-	});
 </script>
 
 <template lang="pug">
@@ -58,9 +88,10 @@
           option(value='{t}' selected='{t === config.table}') {t}
     +if('editTable')
       input.input(type='text', name='table', bind:value='{config.table}' placeholder='Table name')
-    +if('target')
+    +if('usedIn == "target"')
       .icon-btn(on:click='{toggleEditTable}')
         EditIcon
 
+ExtractionMode(bind:mode='{config.mode}' modes='{modes}')
 
 </template>

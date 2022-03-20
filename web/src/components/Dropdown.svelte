@@ -32,16 +32,15 @@
     .origin-top-right.absolute.right-0.mt-2.w-56.rounded-md.shadow-lg.bg-white.ring-1.ring-black.ring-opacity-5(class='')
       .py-1.divide-y.divide-gray-100(role='menu' aria-orientation='vertical' aria-labelledby='options-menu')
         +each('options as o')
-          span.cursor-pointer.flex.items-center.block.px-4.py-2.text-md.text-gray-700(
+          div.cursor-pointer.flex.items-center.block.px-4.py-2.text-md.text-gray-700(
             on:click="{onSelect(o)}"
             class='hover:bg-gray-100 hover:text-gray-900' role='menuitem'
           )
             +if('o.icon')
-              .flex-shrink-0.h-6.w-6.mr-2
-                | {o.icon}
-            span.flex.flex-col
-              span
-                | {o.label}
+              .icon.mr-4
+                <svelte:component this={o.icon}/>
+            .flex.flex-1
+              | {o.label}
 </div>
 </template>
 
