@@ -24,7 +24,5 @@ func (c *Connection) Connection() (*types.Connection, error) {
 		Name:           c.model.Name,
 		ConnectionType: c.model.ConnectionType.Code,
 		Config:         config,
-		AsSource:       c.model.AsSource,
-		AsTarget:       c.model.AsTarget,
 	}, nil
 }

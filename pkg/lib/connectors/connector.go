@@ -40,9 +40,9 @@ func (b Base) Validate(config ConnectorConfig) error {
 
 type Input interface {
 	Connector
-	Read(p types.SessionParams, w *wire.Wire) error
+	Read(d types.Dataset, w *wire.Wire) error
 }
 type Output interface {
 	Connector
-	Write(e types.SessionParams, w *wire.Wire) error
+	Write(d types.Dataset, w *wire.Wire) error
 }

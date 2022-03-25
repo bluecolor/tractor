@@ -26,7 +26,7 @@ func NewSessionRunTask(s *models.Session) (*asynq.Task, error) {
 	payload, err := json.Marshal(ExtractionPayload{
 		SourceConnection: inputc,
 		TargetConnection: outputc,
-		Params:           params,
+		Dataset:          data,
 	})
 	if err != nil {
 		return nil, err

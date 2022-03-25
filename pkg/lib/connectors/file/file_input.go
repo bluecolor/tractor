@@ -5,6 +5,6 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-func (c *FileConnector) Read(p types.SessionParams, w *wire.Wire) (err error) {
-	return c.FileFormat.Read(p, w)
+func (c *FileConnector) Read(d types.Dataset, w *wire.Wire) (err error) {
+	return c.FileFormat.Read(d, w)
 }

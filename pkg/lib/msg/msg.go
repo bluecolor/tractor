@@ -9,7 +9,7 @@ import (
 type (
 	FeedbackType int
 	Sender       int
-	Record       map[string]interface{}
+	Record       []interface{}
 	Data         []Record
 )
 

@@ -31,20 +31,26 @@ func TestRunner(t *testing.T) {
 		t.Error(err)
 	}
 
-	p := test.GetSession().WithInputParallel(2).WithOutputParallel(2)
+	id, od := test.GetDatasets()
+	id.Config.SetInt("parallel", 2)
+	od.Config.SetInt("parallel", 2)
+	extraction := types.Extraction{
+		SourceDataset: &id,
+		TargetDataset: &od,
+	}
 
 	// generate test data
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, p types.SessionParams) {
-		ch := p.GetInputDataset().Config.GetChannel("channel")
+	go func(wg *sync.WaitGroup, d types.Dataset) {
+		ch := d.Config.GetChannel("channel")
 		defer close(ch)
 		defer wg.Done()
 		if err := test.GenerateTestDataWithDuration(recordCount, ch, 3*time.Second); err != nil {
 			t.Error(err)
 		}
-	}(wg, p)
+	}(wg, id)
 
-	if err := runner.Run(p); err != nil {
+	if err := runner.Run(extraction); err != nil {
 		t.Error(err)
 	}
 

@@ -43,23 +43,9 @@ func TestBuildReadQuery(t *testing.T) {
 			"parallel": 1,
 		},
 	}
-	fm := []types.FieldMapping{
-		{
-			SourceField: &types.Field{Name: "id"},
-			TargetField: &types.Field{Name: "id"},
-		},
-		{
-			SourceField: &types.Field{Name: "name"},
-			TargetField: &types.Field{Name: "name"},
-		},
-	}
-
-	p := types.SessionParams{}.
-		WithInputDataset(&dataset).
-		WithFieldMappings(fm)
 
 	m := MySQLConnector{}
-	query, err := m.BuildReadQuery(p, 0)
+	query, err := m.BuildReadQuery(dataset, 0)
 	if err != nil {
 		t.Error(err)
 	}
@@ -115,23 +101,11 @@ func TestIO(t *testing.T) {
 			"parallel": 1,
 		},
 	}
-	fm := []types.FieldMapping{
-		{
-			SourceField: &types.Field{Name: "id"},
-			TargetField: &types.Field{Name: "id"},
-		},
-		{
-			SourceField: &types.Field{Name: "name"},
-			TargetField: &types.Field{Name: "full_name", Type: "string"},
-		},
-	}
-	ip := types.SessionParams{}.WithInputDataset(&inputDataset).WithFieldMappings(fm)
-	op := types.SessionParams{}.WithOutputDataset(&outputDataset).WithFieldMappings(fm)
 
 	connector := &MySQLConnector{
 		db: db,
 	}
-	query, err := connector.BuildReadQuery(ip, 0)
+	query, err := connector.BuildReadQuery(inputDataset, 0)
 	if err != nil {
 		t.Error(err)
 	}
@@ -147,7 +121,7 @@ func TestIO(t *testing.T) {
 	mock.ExpectExec("CREATE TABLE IF NOT EXISTS test_out").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectQuery(query).WillReturnRows(rows)
 
-	query, err = connector.BuildBatchInsertQuery(*op.GetOutputDataset(), expectedrc)
+	query, err = connector.BuildBatchInsertQuery(outputDataset, expectedrc)
 	if err != nil {
 		t.Error(err)
 	}
@@ -186,21 +160,21 @@ func TestIO(t *testing.T) {
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p types.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, p types.Dataset, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Write(p, w); err != nil {
 			t.Error(err)
 		}
-	}(wg, connector, op, w)
+	}(wg, connector, outputDataset, w)
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p types.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, p types.Dataset, w *wire.Wire) {
 		defer wg.Done()
 		if err := c.Read(p, w); err != nil {
 			t.Error(err)
 		}
-	}(wg, connector, ip, w)
+	}(wg, connector, inputDataset, w)
 
 	wg.Wait()
 }

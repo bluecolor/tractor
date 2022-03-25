@@ -31,10 +31,8 @@ type testrecord struct {
 	CreatedFormat time.Time      `fake:"{year}-{month}-{day}" format:"2006-01-02" json:"created_format"`
 }
 
-func GetSession() types.SessionParams {
-	inChannel := make(chan interface{}, 1000)
-	outChannel := make(chan interface{}, 1000)
-	inputDataset := types.Dataset{
+func GetDatasets() (types.Dataset, types.Dataset) {
+	id := types.Dataset{
 		Name: "test_input",
 		Fields: []*types.Field{
 			{Name: "str", Type: "string"},
@@ -52,10 +50,10 @@ func GetSession() types.SessionParams {
 			{Name: "created_format", Type: "time"},
 		},
 		Config: map[string]interface{}{
-			"channel": inChannel,
+			"channel": make(chan interface{}, 1000),
 		},
 	}
-	outputDataset := types.Dataset{
+	od := types.Dataset{
 		Name: "test_output",
 		Fields: []*types.Field{
 			{Name: "str", Type: "string"},
@@ -73,52 +71,12 @@ func GetSession() types.SessionParams {
 			{Name: "created_format", Type: "time"},
 		},
 		Config: map[string]interface{}{
-			"channel": outChannel,
+			"channel": make(chan interface{}, 1000),
 		},
 	}
-	fm := []types.FieldMapping{
-		{
-			SourceField: &types.Field{Name: "name"},
-			TargetField: &types.Field{Name: "name"},
-		},
-		{
-			SourceField: &types.Field{Name: "randstr"},
-			TargetField: &types.Field{Name: "randstr"},
-		},
-		{
-			SourceField: &types.Field{Name: "number"},
-			TargetField: &types.Field{Name: "number"},
-		},
-		{
-			SourceField: &types.Field{Name: "regex"},
-			TargetField: &types.Field{Name: "regex"},
-		},
-		{
-			SourceField: &types.Field{Name: "map"},
-			TargetField: &types.Field{Name: "map"},
-		},
-		{
-			SourceField: &types.Field{Name: "array"},
-			TargetField: &types.Field{Name: "array"},
-		},
-		{
-			SourceField: &types.Field{Name: "bar"},
-			TargetField: &types.Field{Name: "bar"},
-		},
-		{
-			SourceField: &types.Field{Name: "created"},
-			TargetField: &types.Field{Name: "created"},
-		},
-		{
-			SourceField: &types.Field{Name: "created_format"},
-			TargetField: &types.Field{Name: "created_format"},
-		},
-	}
-	return types.SessionParams{}.
-		WithInputDataset(&inputDataset).
-		WithFieldMappings(fm).
-		WithOutputDataset(&outputDataset)
+	return id, od
 }
+
 func GenerateTestData(recordCount int, ch chan<- interface{}) (err error) {
 	data := []msg.Record{}
 	for i := 0; i < recordCount; i++ {

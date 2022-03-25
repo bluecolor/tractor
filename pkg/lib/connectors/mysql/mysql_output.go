@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/esync"
@@ -13,20 +14,23 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (c *MySQLConnector) write(p types.SessionParams, i int, data msg.Data) error {
+func (c *MySQLConnector) write(d types.Dataset, i int, data msg.Data) error {
 	ok := true
-	dataset := *p.GetOutputDataset()
-	query, err := c.BuildBatchInsertQuery(dataset, data.Count())
+	query, err := c.BuildBatchInsertQuery(d, data.Count())
 	if err != nil {
 		log.Error().Err(err).Msg("failed to build batch insert query")
 		return err
 	}
-	values := make([]interface{}, data.Count()*len(dataset.Fields))
-	for i, r := range data {
-		for j, f := range dataset.Fields {
-			values[i*len(dataset.Fields)+j], ok = r[p.GetSourceFieldNameByTargetFieldName(f.Name)]
+	fields := d.Fields
+	sort.Slice(fields, func(i, j int) bool {
+		return fields[i].Order < fields[i].Order
+	})
+	values := make([]interface{}, data.Count()*len(fields))
+	for i, record := range data {
+		for j, _ := range record {
+			values[i*len(fields)+j] = record[j]
 			if !ok {
-				log.Debug().Msgf("field %s not found in record %d", f.Name, i)
+				log.Debug().Msgf("field %s not found in record %d", j, i)
 			}
 		}
 	}
@@ -36,14 +40,14 @@ func (c *MySQLConnector) write(p types.SessionParams, i int, data msg.Data) erro
 
 // todo add batch size, buffer
 // todo add timeout
-func (m *MySQLConnector) StartWriteWorker(ctx context.Context, p types.SessionParams, w *wire.Wire, i int) error {
+func (m *MySQLConnector) StartWriteWorker(ctx context.Context, d types.Dataset, w *wire.Wire, i int) error {
 	for {
 		select {
 		case data, ok := <-w.ReceiveData():
 			if !ok {
 				return nil
 			}
-			if err := m.write(p, i, data); err != nil {
+			if err := m.write(d, i, data); err != nil {
 				return err
 			}
 			w.SendOutputProgress(data.Count())
@@ -54,8 +58,8 @@ func (m *MySQLConnector) StartWriteWorker(ctx context.Context, p types.SessionPa
 }
 
 // todo transactions
-func (m *MySQLConnector) Write(p types.SessionParams, w *wire.Wire) (err error) {
-	var parallel int = p.GetOutputParallel()
+func (m *MySQLConnector) Write(d types.Dataset, w *wire.Wire) (err error) {
+	var parallel int = d.GetParallel()
 	if parallel > 1 {
 		log.Warn().Msgf("parallel write is not supported for MySQL connector. Using %d", 1)
 		parallel = 1
@@ -64,7 +68,7 @@ func (m *MySQLConnector) Write(p types.SessionParams, w *wire.Wire) (err error) 
 		log.Warn().Msgf("invalid parallel write setting %d. Using %d", parallel, 1)
 		parallel = 1
 	}
-	if err = m.PrepareTable(p); err != nil {
+	if err = m.PrepareTable(d); err != nil {
 		w.SendOutputError(err)
 		return
 	}
@@ -73,7 +77,7 @@ func (m *MySQLConnector) Write(p types.SessionParams, w *wire.Wire) (err error) 
 		mwg.Add(1)
 		go func(mwg *esync.WaitGroup, i int, wire *wire.Wire) {
 			defer mwg.Done()
-			if err := m.StartWriteWorker(mwg.Context(), p, w, i); err != nil {
+			if err := m.StartWriteWorker(mwg.Context(), d, w, i); err != nil {
 				mwg.HandleError(err)
 			}
 		}(mwg, i, w)
@@ -140,18 +144,17 @@ func (m *MySQLConnector) TruncateTable(d types.Dataset) (err error) {
 	_, err = m.db.Exec(query)
 	return
 }
-func (m *MySQLConnector) PrepareTable(p types.SessionParams) (err error) {
-	dataset := *p.GetOutputDataset()
-	switch p.GetExtractionMode() {
-	case types.ExtractionModeCreate:
-		if err = m.DropTable(dataset); err != nil {
+func (c *MySQLConnector) PrepareTable(d types.Dataset) (err error) {
+	switch d.GetExtractionMode("append") {
+	case "create":
+		if err = c.DropTable(d); err != nil {
 			return
 		}
-		if err = m.CreateTable(dataset); err != nil {
+		if err = c.CreateTable(d); err != nil {
 			return
 		}
-	case types.ExtractionModeInsert:
-		if err = m.TruncateTable(dataset); err != nil {
+	case "replace":
+		if err = c.TruncateTable(d); err != nil {
 			return
 		}
 	}

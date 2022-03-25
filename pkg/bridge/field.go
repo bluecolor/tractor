@@ -40,27 +40,3 @@ func getFields(fields []*models.Field) (output []*types.Field, err error) {
 	}
 	return output, nil
 }
-
-func getFieldMappings(m []models.FieldMapping) (output []types.FieldMapping, err error) {
-	output = make([]types.FieldMapping, len(m))
-	for i, fm := range m {
-		source, err := NewField(fm.SourceField).Field()
-		if err != nil {
-			return nil, err
-		}
-		target, err := NewField(fm.TargetField).Field()
-		if err != nil {
-			return nil, err
-		}
-		config, err := GetConfig(fm.Config)
-		if err != nil {
-			return nil, err
-		}
-		output[i] = types.FieldMapping{
-			SourceField: source,
-			TargetField: target,
-			Config:      config,
-		}
-	}
-	return output, nil
-}

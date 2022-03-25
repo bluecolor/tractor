@@ -4,49 +4,32 @@ import "gorm.io/datatypes"
 
 type Extraction struct {
 	Model
-	Name               string         `json:"name"`
-	SourceConnection   *Connection    `gorm:"foreignkey:SourceConnectionID" json:"sourceConnection"`
-	SourceConnectionID uint           `json:"sourceConnectionId"`
-	TargetConnection   *Connection    `gorm:"foreignkey:TargetConnectionID" json:"targetConnection"`
-	TargetConnectionID uint           `json:"targetConnectionId"`
-	SourceDatasetID    uint           `json:"sourceDatasetId"`
-	SourceDataset      *Dataset       `gorm:"foreignkey:SourceDatasetID" json:"sourceDataset"`
-	TargetDatasetID    uint           `json:"targetDatasetId"`
-	TargetDataset      *Dataset       `gorm:"foreignkey:TargetDatasetID" json:"targetDataset"`
-	FieldMappings      []FieldMapping `json:"fieldMappings"`
-	Sessions           []*Session     `json:"sessions"`
+	Name            string         `json:"name"`
+	SourceDatasetID uint           `json:"sourceDatasetId"`
+	SourceDataset   *Dataset       `gorm:"foreignkey:SourceDatasetID" json:"sourceDataset"`
+	TargetDatasetID uint           `json:"targetDatasetId"`
+	TargetDataset   *Dataset       `gorm:"foreignkey:TargetDatasetID" json:"targetDataset"`
+	Sessions        []*Session     `json:"sessions"`
+	Config          datatypes.JSON `gorm:"type:text" json:"config"`
 }
 
 type Dataset struct {
 	Model
 	Name         string         `json:"name"`
+	Connection   *Connection    `gorm:"foreignkey:ConnectionID" json:"connection"`
+	ConnectionID uint           `json:"connectionId"`
+	ExtractionID uint           `json:"extractionId"`
 	Config       datatypes.JSON `gorm:"type:text" json:"config"`
-	ExtractionID uint           `json:"extractionID"`
+	Fields       []*Field       `json:"fields"`
 }
 
 type Field struct {
 	Model
+	Order      int            `json:"order"`
 	Name       string         `json:"name"`
 	Expression string         `json:"expression"`
 	Type       string         `json:"type"`
 	Config     datatypes.JSON `gorm:"type:text" json:"config"`
-	DatasetID  uint           `json:"datasetID"`
+	DatasetID  uint           `json:"datasetId"`
 	Dataset    *Dataset       `gorm:"foreignkey:DatasetID" json:"dataset"`
-}
-
-type FieldMapping struct {
-	Model
-	SourceField  *Field         `gorm:"type:text" json:"sourceField"`
-	TargetField  *Field         `gorm:"type:text" json:"targetField"`
-	Extraction   *Extraction    `json:"extraction"`
-	ExtractionID uint           `json:"extractionID"`
-	Config       datatypes.JSON `gorm:"type:text" json:"config"`
-}
-
-func (e *Extraction) GetSourceTargetFields() (s []*Field, t []*Field) {
-	for _, fm := range e.FieldMappings {
-		s = append(s, fm.SourceField)
-		t = append(t, fm.TargetField)
-	}
-	return
 }

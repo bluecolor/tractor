@@ -2,11 +2,8 @@ package csvformat
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
-	"github.com/bluecolor/tractor/pkg/lib/msg"
-	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/utils"
 )
 
@@ -34,17 +31,4 @@ func toLinesWithRest(bs string) ([]string, []byte) {
 		}
 	}
 	return lines, rest
-}
-func toRecord(row []string, fields []*types.Field) (msg.Record, error) {
-	if len(row) != len(fields) {
-		return nil, errors.New("wrong number of fields in record")
-	}
-	record := msg.Record{}
-	for i, f := range fields {
-		if f.Name == "" {
-			f.Name = fmt.Sprintf("col%d", i)
-		}
-		record[f.Name] = row[i]
-	}
-	return record, nil
 }

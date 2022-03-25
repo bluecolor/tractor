@@ -29,7 +29,7 @@ func TestIO(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	p := test.GetSession()
+	id, od := test.GetDatasets()
 	w := wire.New()
 	wg := &sync.WaitGroup{}
 
@@ -54,32 +54,32 @@ func TestIO(t *testing.T) {
 
 	// generate test data
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, p types.SessionParams) {
-		ch := p.GetInputDataset().Config.GetChannel("channel")
+	go func(wg *sync.WaitGroup, d types.Dataset) {
+		ch := id.Config.GetChannel("channel")
 		defer close(ch)
 		defer wg.Done()
 		if err := test.GenerateTestData(recordCount, ch); err != nil {
 			t.Error(err)
 		}
-	}(wg, p)
+	}(wg, id)
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p types.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, d types.Dataset, w *wire.Wire) {
 		defer wg.Done()
-		if err := c.Write(p, w); err != nil {
+		if err := c.Write(d, w); err != nil {
 			t.Error(err)
 		}
-	}(wg, connector, p, w)
+	}(wg, connector, od, w)
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p types.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, d types.Dataset, w *wire.Wire) {
 		defer wg.Done()
-		if err := c.Read(p, w); err != nil {
+		if err := c.Read(d, w); err != nil {
 			t.Error(err)
 		}
-	}(wg, connector, p, w)
+	}(wg, connector, id, w)
 
 	wg.Wait()
 }
@@ -92,7 +92,9 @@ func TestParallelIO(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	p := test.GetSession().WithInputParallel(2).WithOutputParallel(2)
+	id, od := test.GetDatasets()
+	id.Config.SetInt("parallel", 2)
+	od.Config.SetInt("parallel", 2)
 	w := wire.New()
 	wg := &sync.WaitGroup{}
 
@@ -117,32 +119,32 @@ func TestParallelIO(t *testing.T) {
 
 	// generate test data
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, p types.SessionParams) {
-		ch := p.GetInputDataset().Config.GetChannel("channel")
+	go func(wg *sync.WaitGroup, d types.Dataset) {
+		ch := d.Config.GetChannel("channel")
 		defer close(ch)
 		defer wg.Done()
 		if err := test.GenerateTestDataWithDuration(recordCount, ch, 3*time.Second); err != nil {
 			t.Error(err)
 		}
-	}(wg, p)
+	}(wg, id)
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p types.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, d types.Dataset, w *wire.Wire) {
 		defer wg.Done()
-		if err := c.Write(p, w); err != nil {
+		if err := c.Write(d, w); err != nil {
 			t.Error(err)
 		}
-	}(wg, connector, p, w)
+	}(wg, connector, od, w)
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p types.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, d types.Dataset, w *wire.Wire) {
 		defer wg.Done()
-		if err := c.Read(p, w); err != nil {
+		if err := c.Read(d, w); err != nil {
 			t.Error(err)
 		}
-	}(wg, connector, p, w)
+	}(wg, connector, id, w)
 
 	wg.Wait()
 }
@@ -155,7 +157,9 @@ func TestIOError(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	p := test.GetSession().WithInputParallel(2).WithOutputParallel(2)
+	id, od := test.GetDatasets()
+	id.Config.SetInt("parallel", 2)
+	od.Config.SetInt("parallel", 2)
 	w := wire.New()
 	wg := &sync.WaitGroup{}
 
@@ -177,32 +181,32 @@ func TestIOError(t *testing.T) {
 
 	// generate test data
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, p types.SessionParams) {
-		ch := p.GetInputDataset().Config.GetChannel("channel")
+	go func(wg *sync.WaitGroup, d types.Dataset) {
+		ch := d.Config.GetChannel("channel")
 		defer close(ch)
 		defer wg.Done()
 		if err := test.GenerateTestDataWithDuration(recordCount, ch, 4*time.Second); err != nil {
 			t.Error(err)
 		}
-	}(wg, p)
+	}(wg, id)
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p types.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, d types.Dataset, w *wire.Wire) {
 		defer wg.Done()
-		if err := c.Write(p, w); err != nil {
+		if err := c.Write(d, w); err != nil {
 			t.Error(err)
 		}
-	}(wg, connector, p, w)
+	}(wg, connector, od, w)
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p types.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, d types.Dataset, w *wire.Wire) {
 		defer wg.Done()
-		if err := c.Read(p, w); err != nil {
+		if err := c.Read(d, w); err != nil {
 			t.Error(err)
 		}
-	}(wg, connector, p, w)
+	}(wg, connector, id, w)
 
 	go func() {
 		// close data channel, this should cause an error in the input connector
@@ -226,7 +230,7 @@ func TestDataGenConf(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	p := test.GetSession()
+	id, od := test.GetDatasets()
 	w := wire.New()
 	wg := &sync.WaitGroup{}
 
@@ -251,21 +255,21 @@ func TestDataGenConf(t *testing.T) {
 
 	// start output connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Output, p types.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Output, d types.Dataset, w *wire.Wire) {
 		defer wg.Done()
-		if err := c.Write(p, w); err != nil {
+		if err := c.Write(d, w); err != nil {
 			t.Error(err)
 		}
-	}(wg, connector, p, w)
+	}(wg, connector, od, w)
 
 	// start input connector
 	wg.Add(1)
-	go func(wg *sync.WaitGroup, c connectors.Input, p types.SessionParams, w *wire.Wire) {
+	go func(wg *sync.WaitGroup, c connectors.Input, d types.Dataset, w *wire.Wire) {
 		defer wg.Done()
-		if err := c.Read(p, w); err != nil {
+		if err := c.Read(d, w); err != nil {
 			t.Error(err)
 		}
-	}(wg, connector, p, w)
+	}(wg, connector, id, w)
 
 	wg.Wait()
 }

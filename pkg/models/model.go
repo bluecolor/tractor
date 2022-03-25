@@ -19,7 +19,6 @@ func init() {
 		&Extraction{},
 		&Dataset{},
 		&FileType{},
-		&FieldMapping{},
 		&Provider{},
 		&ProviderType{},
 		&Param{},

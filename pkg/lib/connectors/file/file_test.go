@@ -89,46 +89,33 @@ func testCsvIO(connector *FileConnector, t *testing.T) {
 			Type: "int",
 		},
 	}
-	p := types.SessionParams{}
-	p.WithInputDataset(&types.Dataset{
+	id := types.Dataset{
 		Name:   "test",
 		Fields: fields,
 		Config: types.Config{
 			"files": getFileNames(csvTestFiles),
 		},
-	}).WithOutputDataset(&types.Dataset{
+	}
+	od := types.Dataset{
 		Name:   "test",
 		Fields: fields,
 		Config: types.Config{
-			"file_name": outfile,
+			"file": outfile,
 		},
-	}).WithFieldMappings([]types.FieldMapping{
-		{
-			SourceField: fields[0],
-			TargetField: fields[0],
-		},
-		{
-			SourceField: fields[1],
-			TargetField: fields[1],
-		},
-		{
-			SourceField: fields[2],
-			TargetField: fields[2],
-		},
-	})
+	}
+
 	w := wire.New()
-
-	go func(w *wire.Wire, p types.SessionParams) {
-		if err := connector.Write(p, w); err != nil {
+	go func(w *wire.Wire, d types.Dataset) {
+		if err := connector.Write(d, w); err != nil {
 			t.Error(err)
 		}
-	}(w, p)
+	}(w, od)
 
-	go func(w *wire.Wire, p types.SessionParams) {
-		if err := connector.Read(p, w); err != nil {
+	go func(w *wire.Wire, d types.Dataset) {
+		if err := connector.Read(d, w); err != nil {
 			t.Error(err)
 		}
-	}(w, p)
+	}(w, id)
 
 	expectedRecordCount := getRecordCount(csvTestFiles, true)
 	readCount := 0
