@@ -10,33 +10,28 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/types"
 )
 
-func TestNewRunner(t *testing.T) {
-	c := types.Connection{
-		ConnectionType: "dummy",
-	}
-	if _, err := New(context.Background(), &c, &c); err != nil {
-		t.Error(err)
-	}
-}
-
 func TestRunner(t *testing.T) {
 	t.Parallel()
 	wg := &sync.WaitGroup{}
 	recordCount := 6
-	connection := types.Connection{
+	connection := &types.Connection{
 		ConnectionType: "dummy",
-	}
-	runner, err := New(context.Background(), &connection, &connection)
-	if err != nil {
-		t.Error(err)
 	}
 
 	id, od := test.GetDatasets()
+	id.Connection = connection
+	od.Connection = connection
 	id.Config.SetInt("parallel", 2)
 	od.Config.SetInt("parallel", 2)
-	extraction := types.Extraction{
-		SourceDataset: &id,
-		TargetDataset: &od,
+	session := types.Session{
+		Extraction: &types.Extraction{
+			SourceDataset: &id,
+			TargetDataset: &od,
+		},
+	}
+	runner, err := New(context.Background(), session)
+	if err != nil {
+		t.Error(err)
 	}
 
 	// generate test data
@@ -50,7 +45,7 @@ func TestRunner(t *testing.T) {
 		}
 	}(wg, id)
 
-	if err := runner.Run(extraction); err != nil {
+	if err := runner.Run(); err != nil {
 		t.Error(err)
 	}
 

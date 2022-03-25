@@ -111,3 +111,9 @@ type Extraction struct {
 func (e *Extraction) GetTimeout() time.Duration {
 	return time.Duration(e.Config.GetInt("timeout", 60*30)) * time.Second
 }
+
+type Session struct {
+	ID         string      `json:"id"`
+	Extraction *Extraction `json:"extraction"`
+	Config     Config      `json:"config"`
+}
