@@ -2,6 +2,8 @@ package models
 
 import (
 	"time"
+
+	"gorm.io/datatypes"
 )
 
 type SessionStatus struct {
@@ -19,4 +21,5 @@ type Session struct {
 	StartedAt    *time.Time     `json:"startedAt"`
 	FinishedAt   *time.Time     `json:"finishedAt"`
 	WriteCount   int            `json:"writeCount"`
+	Config       datatypes.JSON `gorm:"type:text" json:"config"`
 }

@@ -6,32 +6,21 @@ import (
 	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/esync"
+	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"go.beyondstorage.io/v5/pairs"
 )
 
-func getInputCsvDelimiter(p types.SessionParams) string {
-	return p.GetInputDataset().Config.GetString(DelimiterKey, ",")
-}
-func getLazyQuotes(p types.SessionParams) bool {
-	return p.GetInputDataset().Config.GetBool(QuotesKey, true)
-}
-func getInputFiles(p types.SessionParams) []string {
-	return p.GetInputDataset().Config.GetStringArray(FilesKey, []string{})
-}
-func getHeader(p types.SessionParams) bool {
-	return p.GetInputDataset().Config.GetBool(HeaderKey, true)
-}
-func (f *CsvFormat) Work(filename string, p types.SessionParams, w *wire.Wire, wi int) (err error) {
+func (f *CsvFormat) Work(filename string, d types.Dataset, w *wire.Wire, wi int) (err error) {
 	var buf bytes.Buffer
 	size, offset := int64(1000), int64(0) // todo size from .env
 	rest := []byte{}
 	var lines []string
 	var isFirstRecord = true
-	var hasHeader = getHeader(p)
+	var hasHeader = d.Config.GetBool("header", true)
 	var readBytes int64 = -1
-	bw := wire.NewBuffered(w, p.GetInputBufferSize())
+	bw := wire.NewBuffered(w, d.GetBufferSize())
 	for {
 		if readBytes != 0 {
 			readBytes, err = f.storage.Read(filename, &buf, pairs.WithOffset(offset), pairs.WithSize(size))
@@ -49,8 +38,8 @@ func (f *CsvFormat) Work(filename string, p types.SessionParams, w *wire.Wire, w
 		}
 		lines, rest = toLinesWithRest(buf.String())
 		csvReader := csv.NewReader(strings.NewReader(strings.Join(lines, "\n")))
-		csvReader.Comma = []rune(getInputCsvDelimiter(p))[0]
-		csvReader.LazyQuotes = getLazyQuotes(p)
+		csvReader.Comma = []rune(d.Config.GetString("delimiter", ","))[0]
+		csvReader.LazyQuotes = d.Config.GetBool("quotes", true)
 		rows, err := csvReader.ReadAll()
 		if err != nil {
 			return err
@@ -60,9 +49,9 @@ func (f *CsvFormat) Work(filename string, p types.SessionParams, w *wire.Wire, w
 				isFirstRecord = false
 				continue
 			}
-			record, err := toRecord(row, p.GetInputDataset().Fields)
-			if err != nil {
-				return err
+			record := msg.Record{}
+			for _, col := range row {
+				record = append(record, col)
 			}
 			bw.Send(record)
 		}
@@ -71,7 +60,7 @@ func (f *CsvFormat) Work(filename string, p types.SessionParams, w *wire.Wire, w
 	bw.Flush()
 	return nil
 }
-func (f *CsvFormat) StartReadWorker(files []string, p types.SessionParams, w *wire.Wire, wi int) (err error) {
+func (f *CsvFormat) StartReadWorker(files []string, p types.Dataset, w *wire.Wire, wi int) (err error) {
 	for _, file := range files {
 		if err = f.Work(file, p, w, wi); err != nil {
 			return
@@ -79,8 +68,8 @@ func (f *CsvFormat) StartReadWorker(files []string, p types.SessionParams, w *wi
 	}
 	return
 }
-func (f *CsvFormat) Read(p types.SessionParams, w *wire.Wire) (err error) {
-	chunks, err := getFileChunks(getInputFiles(p), p.GetInputParallel())
+func (f *CsvFormat) Read(d types.Dataset, w *wire.Wire) (err error) {
+	chunks, err := getFileChunks(d.Config.GetStringArray("files", []string{}), d.GetParallel())
 	if err != nil {
 		return err
 	}
@@ -89,7 +78,7 @@ func (f *CsvFormat) Read(p types.SessionParams, w *wire.Wire) (err error) {
 		mwg.Add(1)
 		go func(wg *esync.WaitGroup, chunk []string, w *wire.Wire, i int) {
 			defer wg.Done()
-			if err := f.StartReadWorker(chunk, p, w, i); err != nil {
+			if err := f.StartReadWorker(chunk, d, w, i); err != nil {
 				w.SendInputError(err)
 			}
 		}(mwg, chunk, w, i)

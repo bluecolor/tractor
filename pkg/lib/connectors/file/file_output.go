@@ -5,6 +5,6 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-func (c *FileConnector) Write(p types.SessionParams, w *wire.Wire) (err error) {
-	return c.FileFormat.Write(p, w)
+func (c *FileConnector) Write(d types.Dataset, w *wire.Wire) (err error) {
+	return c.FileFormat.Write(d, w)
 }

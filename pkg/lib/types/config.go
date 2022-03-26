@@ -2,6 +2,15 @@ package types
 
 type Config map[string]interface{}
 
+func (c Config) SetInt(key string, value int) Config {
+	c[key] = value
+	return c
+}
+func (c Config) SetString(key string, value string) Config {
+	c[key] = value
+	return c
+}
+
 func (c Config) GetString(key string, def string) string {
 	if v, ok := c[key]; ok {
 		if s, ok := v.(string); ok {

@@ -13,10 +13,6 @@ func (c *MySQLConnector) GetInfo(info string, options map[string]interface{}) (i
 }
 
 func (c *MySQLConnector) getDatabases(options map[string]interface{}) (interface{}, error) {
-	if err := c.Connect(); err != nil {
-		return nil, err
-	}
-	defer c.Close()
 	query := "SHOW DATABASES"
 	rows, err := c.db.Query(query)
 	if err != nil {
@@ -34,10 +30,6 @@ func (c *MySQLConnector) getDatabases(options map[string]interface{}) (interface
 	return databases, nil
 }
 func (c *MySQLConnector) getTables(options map[string]interface{}) (interface{}, error) {
-	if err := c.Connect(); err != nil {
-		return nil, err
-	}
-	defer c.Close()
 	database := options["database"].(string)
 	query := "SHOW TABLES FROM " + database
 	rows, err := c.db.Query(query)

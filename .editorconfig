@@ -16,11 +16,9 @@ trim_trailing_whitespace = true
 [Makefile]
 indent_style = tab
 
-# [makefile]
-# indent_style = tab
-
 [*.go]
 indent_style = tab
+indent_size = 4
 
 [*.svelte, *.ts, *.js]
 indent_style = space

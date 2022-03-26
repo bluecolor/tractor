@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/esync"
@@ -11,8 +12,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (m *MySQLConnector) BuildReadQuery(p types.SessionParams, i int) (query string, err error) {
-	fields := p.GetFMInputFields()
+func (m *MySQLConnector) BuildReadQuery(d types.Dataset, i int) (query string, err error) {
+	fields := d.Fields
+	sort.Slice(fields, func(i, j int) bool {
+		return fields[i].Order < fields[i].Order
+	})
 	if len(fields) == 0 {
 		return "", fmt.Errorf("no fields specified")
 	}
@@ -21,18 +25,18 @@ func (m *MySQLConnector) BuildReadQuery(p types.SessionParams, i int) (query str
 		columns += f.GetExpressionOrName() + ","
 	}
 	columns = strings.TrimRight(columns, ",")
-	query = fmt.Sprintf("SELECT %s FROM %s", columns, p.GetInputDataset().Name)
+	query = fmt.Sprintf("SELECT %s FROM %s", columns, d.Name)
 	log.Debug().Msgf("query: %s", query)
 	return
 }
-func (m *MySQLConnector) StartReadWorker(p types.SessionParams, w *wire.Wire, i int) (err error) {
+func (m *MySQLConnector) StartReadWorker(d types.Dataset, w *wire.Wire, i int) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
 		}
 	}()
-	bw := wire.NewBuffered(w, p.GetInputBufferSize())
-	query, err := m.BuildReadQuery(p, i)
+	bw := wire.NewBuffered(w, d.GetBufferSize())
+	query, err := m.BuildReadQuery(d, i)
 	if err != nil {
 		return err
 	}
@@ -42,30 +46,22 @@ func (m *MySQLConnector) StartReadWorker(p types.SessionParams, w *wire.Wire, i 
 	}
 	defer rows.Close()
 
-	fields := p.GetFMInputFields()
 	for rows.Next() {
-		columns := make([]interface{}, len(fields))
-		columnPointers := make([]interface{}, len(fields))
-		for i := range columns {
-			columnPointers[i] = &columns[i]
+		record := make(msg.Record, len(d.Fields))
+		pointers := make(msg.Record, len(d.Fields))
+		for i := range record {
+			pointers[i] = &record[i]
 		}
-		if err := rows.Scan(columnPointers...); err != nil {
+		if err := rows.Scan(pointers...); err != nil {
 			return err
-		}
-		record := msg.Record{}
-		for i, f := range fields {
-			if f.Name == "" {
-				f.Name = fmt.Sprintf("col%d", i)
-			}
-			record[f.Name] = columns[i]
 		}
 		bw.Send(record)
 	}
 	bw.Flush()
 	return
 }
-func (m *MySQLConnector) Read(p types.SessionParams, w *wire.Wire) (err error) {
-	var parallel int = p.GetInputParallel()
+func (m *MySQLConnector) Read(d types.Dataset, w *wire.Wire) (err error) {
+	var parallel int = d.GetParallel()
 	if parallel > 1 {
 		log.Warn().Msgf("parallel read is not supported for MySQL connector. Using %d", 1)
 		parallel = 1
@@ -79,7 +75,7 @@ func (m *MySQLConnector) Read(p types.SessionParams, w *wire.Wire) (err error) {
 		wg.Add(1)
 		go func(wg *esync.WaitGroup, i int) {
 			defer wg.Done()
-			if err := m.StartReadWorker(p, w, i); err != nil {
+			if err := m.StartReadWorker(d, w, i); err != nil {
 				wg.HandleError(err)
 			}
 		}(wg, i)

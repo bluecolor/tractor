@@ -6,6 +6,6 @@ import (
 )
 
 type FileFormat interface {
-	Read(e types.SessionParams, w *wire.Wire) (err error)
-	Write(e types.SessionParams, w *wire.Wire) (err error)
+	Read(d types.Dataset, w *wire.Wire) (err error)
+	Write(d types.Dataset, w *wire.Wire) (err error)
 }

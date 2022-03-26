@@ -8,10 +8,6 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-func getInputChannel(p types.SessionParams) <-chan interface{} {
-	return p.GetInputDataset().Config.GetChannel(InputChannelKey)
-}
-
 func (c *DummyConnector) StartReadWorker(channel <-chan interface{}, w *wire.Wire) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -28,13 +24,13 @@ func (c *DummyConnector) StartReadWorker(channel <-chan interface{}, w *wire.Wir
 	}
 }
 
-func (c *DummyConnector) Read(p types.SessionParams, w *wire.Wire) error {
-	var parallel int = p.GetInputParallel()
+func (c *DummyConnector) Read(d types.Dataset, w *wire.Wire) error {
+	var parallel int = d.GetParallel()
 	var channel <-chan interface{}
 	if c.config.GenerateFakeData {
 		channel = c.Generate()
 	} else {
-		channel = getInputChannel(p)
+		channel = d.Config.GetChannel("channel")
 		if channel == nil {
 			return errors.New("no input channel")
 		}

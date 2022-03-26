@@ -29,18 +29,20 @@ type Result struct {
 	errors          types.Errors
 }
 
+type ioConnectors struct {
+	input  connectors.Input
+	output connectors.Output
+}
+
 type Runner struct {
 	ctx              context.Context
 	mu               sync.Mutex
-	inputConnection  *types.Connection
-	outputConnection *types.Connection
+	session          types.Session
 	wire             *wire.Wire
-	inputConnector   connectors.Input
-	outputConnector  connectors.Output
+	connectors       ioConnectors
 	result           *Result
 	isFeedbackClosed bool
 	isDataClosed     bool
-	sessionID        string
 	feedbackBackends []msg.FeedbackBackend
 }
 
@@ -82,64 +84,53 @@ func (r *Result) AddError(err error, es ...types.ErrorSource) {
 	r.errors.Add(err)
 }
 
-func New(
-	ctx context.Context,
-	inputConnection *types.Connection,
-	outputConnection *types.Connection,
-	options ...Option,
-) (*Runner, error) {
+func New(ctx context.Context, s types.Session) (*Runner, error) {
 	ic, err := connectors.GetConnector(
-		outputConnection.ConnectionType,
-		connectors.ConnectorConfig(inputConnection.Config),
+		s.Extraction.SourceDataset.Connection.ConnectionType,
+		connectors.ConnectorConfig(s.Extraction.SourceDataset.Connection.Config),
 	)
 	if err != nil {
 		return nil, err
 	}
 	inputConnector, ok := ic.(connectors.Input)
 	if !ok {
-		return nil, fmt.Errorf("connector %s is not an input connector", inputConnection.ConnectionType)
+		return nil, fmt.Errorf(
+			"connector %s is not an input connector",
+			s.Extraction.SourceDataset.Connection.ConnectionType,
+		)
 	}
 
 	oc, err := connectors.GetConnector(
-		outputConnection.ConnectionType,
-		connectors.ConnectorConfig(outputConnection.Config),
+		s.Extraction.TargetDataset.Connection.ConnectionType,
+		connectors.ConnectorConfig(s.Extraction.TargetDataset.Connection.Config),
 	)
 	if err != nil {
 		return nil, err
 	}
 	outputConnector, ok := oc.(connectors.Output)
 	if !ok {
-		return nil, fmt.Errorf("connector %s is not an output connector", outputConnection.ConnectionType)
+		return nil, fmt.Errorf(
+			"connector %s is not an output connector",
+			s.Extraction.TargetDataset.Connection.ConnectionType,
+		)
 	}
 	r := &Runner{
-		ctx:              ctx,
-		mu:               sync.Mutex{},
-		inputConnection:  inputConnection,
-		outputConnection: outputConnection,
-		wire:             wire.New(),
-		inputConnector:   inputConnector,
-		outputConnector:  outputConnector,
+		ctx:     ctx,
+		mu:      sync.Mutex{},
+		wire:    wire.New(),
+		session: s,
+		connectors: ioConnectors{
+			input:  inputConnector,
+			output: outputConnector,
+		},
 		feedbackBackends: make([]msg.FeedbackBackend, 0),
 		result: &Result{
 			errors: types.Errors{},
 		},
 	}
-	return r.SetOptions(options...), nil
+	return r, nil
 }
-func (r *Runner) SetOptions(options ...Option) *Runner {
-	for _, o := range options {
-		switch o.Type {
-		case SessionIDOption:
-			r.SetSessionID(o.Value.(string))
-		case FeedbackBackendOption:
-			r.feedbackBackends = append(r.feedbackBackends, o.Value.(msg.FeedbackBackend))
-		}
-	}
-	return r
-}
-func (r *Runner) SetSessionID(sessionID string) {
-	r.sessionID = sessionID
-}
+
 func (r *Runner) ProcessFeedback(f *msg.Feedback) {
 	r.result.readCount += f.InputProgress()
 	r.result.writeCount += f.OutputProgress()
@@ -159,53 +150,53 @@ func (r *Runner) ProcessFeedback(f *msg.Feedback) {
 func (r *Runner) Result() *Result {
 	return r.result
 }
-func (r *Runner) Run(p types.SessionParams, options ...Option) (err error) {
-	r.SetOptions(options...)
+func (r *Runner) Run() (err error) {
+
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
 	// supervisor
-	go func(wg *sync.WaitGroup, p types.SessionParams) {
+	go func(wg *sync.WaitGroup, s types.Session) {
 		defer wg.Done()
-		err = r.Supervise(p.GetTimeout()).Eval().Errors().Wrap()
-	}(wg, p)
+		err = r.Supervise(s.Extraction.GetTimeout()).Eval().Errors().Wrap()
+	}(wg, r.session)
 	// output
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		r.RunOutput(p)
+		r.RunOutput(*r.session.Extraction.TargetDataset)
 	}(wg)
 	// input
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		r.RunInput(p)
+		r.RunInput(*r.session.Extraction.SourceDataset)
 	}(wg)
 	wg.Wait()
 	return
 }
-func (r *Runner) RunInput(p types.SessionParams) error {
+func (r *Runner) RunInput(d types.Dataset) error {
 	defer func() {
-		if err := r.inputConnector.Close(); err != nil {
+		if err := r.connectors.input.Close(); err != nil {
 			r.wire.SendInputError(err)
 		}
 	}()
-	if err := r.inputConnector.Connect(); err != nil {
+	if err := r.connectors.output.Connect(); err != nil {
 		r.wire.SendInputError(err)
 		return err
 	}
-	return r.inputConnector.Read(p, r.wire)
+	return r.connectors.input.Read(d, r.wire)
 }
-func (r *Runner) RunOutput(p types.SessionParams) error {
+func (r *Runner) RunOutput(d types.Dataset) error {
 
-	if err := r.outputConnector.Connect(); err != nil {
+	if err := r.connectors.output.Connect(); err != nil {
 		r.wire.SendOutputError(err)
 		return err
 	}
 
-	return r.outputConnector.Write(p, r.wire)
+	return r.connectors.output.Write(d, r.wire)
 }
 func (r *Runner) ForwardFeedback(feedback *msg.Feedback) {
 	for _, backend := range r.feedbackBackends {
 		// ignore error
-		backend.Store(r.sessionID, feedback)
+		backend.Store(r.session.ID, feedback)
 	}
 }
 func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
@@ -278,8 +269,8 @@ func (r *Runner) Cancel() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.Result().AddError(fmt.Errorf("canceled"), types.SupervisorError)
-	r.inputConnector.Close()
-	r.outputConnector.Close()
+	r.connectors.input.Close()
+	r.connectors.output.Close()
 	r.isDataClosed = true
 	r.isFeedbackClosed = true
 	r.wire.CloseData()
