@@ -11,7 +11,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-const TIMEOUT = 30000 * time.Second
+const TIMEOUT = 3 * time.Second
 
 func TestNew(t *testing.T) {
 	config := connectors.ConnectorConfig{}

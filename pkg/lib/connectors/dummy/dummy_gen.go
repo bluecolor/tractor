@@ -1,12 +1,11 @@
 package dummy
 
 import (
-	"encoding/json"
+	"reflect"
 	"time"
 
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/brianvoe/gofakeit/v6"
-	"github.com/rs/zerolog/log"
 )
 
 type bar struct {
@@ -39,15 +38,10 @@ func (c *DummyConnector) Generate() <-chan interface{} {
 		for i := 0; i < c.config.FakeRecordCount; i++ {
 			fake := fakerecord{}
 			gofakeit.Struct(&fake)
-			r, err := json.Marshal(fake)
-			if err != nil {
-				log.Error().Err(err).Msg("failed to marshal fake record")
-				return
-			}
 			record := msg.Record{}
-			if err = json.Unmarshal(r, &record); err != nil {
-				log.Error().Err(err).Msg("failed to unmarshal fake record")
-				return
+			v := reflect.ValueOf(fake)
+			for i := 0; i < v.NumField(); i++ {
+				record = append(record, v.Field(i).Interface())
 			}
 			data = append(data, record)
 			channel <- data
