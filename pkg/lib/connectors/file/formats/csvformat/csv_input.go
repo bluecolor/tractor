@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/esync"
+	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"go.beyondstorage.io/v5/pairs"
@@ -48,7 +49,11 @@ func (f *CsvFormat) Work(filename string, d types.Dataset, w *wire.Wire, wi int)
 				isFirstRecord = false
 				continue
 			}
-			bw.Send(row)
+			record := msg.Record{}
+			for _, col := range row {
+				record = append(record, col)
+			}
+			bw.Send(record)
 		}
 		buf.Reset()
 	}

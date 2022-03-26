@@ -27,10 +27,10 @@ func (c *MySQLConnector) write(d types.Dataset, i int, data msg.Data) error {
 	})
 	values := make([]interface{}, data.Count()*len(fields))
 	for i, record := range data {
-		for j, _ := range record {
+		for j := range record {
 			values[i*len(fields)+j] = record[j]
 			if !ok {
-				log.Debug().Msgf("field %s not found in record %d", j, i)
+				log.Debug().Msgf("field %d not found in record %d", j, i)
 			}
 		}
 	}

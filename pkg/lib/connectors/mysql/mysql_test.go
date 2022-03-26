@@ -197,6 +197,7 @@ func TestGetDatabases(t *testing.T) {
 	dbs, err := c.getDatabases(nil)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	names := dbs.([]string)
 	if len(names) != 3 {
@@ -204,12 +205,15 @@ func TestGetDatabases(t *testing.T) {
 	}
 	if names[0] != "db1" {
 		t.Errorf("expected db1, got %s", names[0])
+		return
 	}
 	if names[1] != "db2" {
 		t.Errorf("expected db2, got %s", names[1])
+		return
 	}
 	if names[2] != "db3" {
 		t.Errorf("expected db3, got %s", names[2])
+		return
 	}
 }
 

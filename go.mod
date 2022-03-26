@@ -33,7 +33,11 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.4 // indirect
 	github.com/kevinburke/go-bindata v3.22.0+incompatible // indirect
+	github.com/kyoh86/richgo v0.3.10 // indirect
+	github.com/kyoh86/xdg v1.2.0 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
+	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/qingstor/go-mime v0.1.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
@@ -43,12 +47,13 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
+	github.com/wacul/ptr v1.0.0 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da // indirect
 	go.beyondstorage.io/credential v1.0.0 // indirect
 	go.beyondstorage.io/endpoint v1.2.0 // indirect
 	go.beyondstorage.io/services/fs/v4 v4.0.0 // indirect
 	golang.org/x/mod v0.4.2 // indirect
-	golang.org/x/sys v0.0.0-20211210111614-af8b64212486 // indirect
+	golang.org/x/sys v0.0.0-20220325203850-36772127a21f // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	golang.org/x/tools v0.1.7 // indirect

@@ -1,7 +1,7 @@
 package test
 
 import (
-	"encoding/json"
+	"reflect"
 	"time"
 
 	"github.com/bluecolor/tractor/pkg/lib/msg"
@@ -82,13 +82,10 @@ func GenerateTestData(recordCount int, ch chan<- interface{}) (err error) {
 	for i := 0; i < recordCount; i++ {
 		fake := testrecord{}
 		gofakeit.Struct(&fake)
-		r, err := json.Marshal(fake)
-		if err != nil {
-			return err
-		}
 		record := msg.Record{}
-		if err = json.Unmarshal(r, &record); err != nil {
-			return err
+		v := reflect.ValueOf(fake)
+		for i := 0; i < v.NumField(); i++ {
+			record = append(record, v.Field(i).Interface())
 		}
 		data = append(data, record)
 		ch <- data
@@ -100,14 +97,10 @@ func GenerateTestData(recordCount int, ch chan<- interface{}) (err error) {
 func getOneRecord() (record msg.Record, err error) {
 	fake := testrecord{}
 	gofakeit.Struct(&fake)
-
-	r, err := json.Marshal(fake)
-	if err != nil {
-		return nil, err
-	}
 	record = msg.Record{}
-	if err = json.Unmarshal(r, &record); err != nil {
-		return nil, err
+	v := reflect.ValueOf(fake)
+	for i := 0; i < v.NumField(); i++ {
+		record = append(record, v.Field(i).Interface())
 	}
 	return record, nil
 }

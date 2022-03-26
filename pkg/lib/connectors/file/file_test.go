@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const TIMEOUT = 3 * time.Second
+const TIMEOUT = 3000 * time.Second
 
 var csvTestFiles = []map[string]string{
 	{
