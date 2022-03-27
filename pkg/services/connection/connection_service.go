@@ -135,6 +135,12 @@ func (s *Service) GetInfo(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
+	if err := connector.Connect(); err != nil {
+		log.Error().Err(err).Msg("error connecting")
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer connector.Close()
 	result, err := connector.GetInfo(payload.Info, payload.Options)
 	if err != nil {
 		log.Error().Err(err).Msg("error getting info")
