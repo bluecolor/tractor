@@ -6,5 +6,5 @@ import (
 )
 
 func runWorkerStartCmd(c *cli.Context) error {
-	return tasks.NewWorker(config.Tasks).Run()
+	return tasks.NewWorker(config.Worker).Start()
 }

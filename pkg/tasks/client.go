@@ -6,23 +6,12 @@ import (
 )
 
 type Client struct {
-	config *conf.Tasks
-	client *asynq.Client
+	*asynq.Client
 }
 
-func NewClient(c conf.Tasks) *Client {
+func NewClient(c conf.Worker) *Client {
 	client := asynq.NewClient(asynq.RedisClientOpt{Addr: c.Addr})
 	return &Client{
-		config: &c,
-		client: client,
+		Client: client,
 	}
-}
-func (c *Client) Close() error {
-	return c.client.Close()
-}
-func (c *Client) Client() *asynq.Client {
-	return c.client
-}
-func (c *Client) Enqueue(task *asynq.Task, opts ...asynq.Option) (*asynq.TaskInfo, error) {
-	return c.client.Enqueue(task, opts...)
 }

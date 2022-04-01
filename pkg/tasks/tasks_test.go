@@ -11,12 +11,12 @@ import (
 func TestWorker(t *testing.T) {
 	t.Parallel()
 	mr := miniredis.RunT(t)
-	c := conf.Tasks{
+	c := conf.Worker{
 		Addr: mr.Addr(),
 	}
 	w := NewWorker(c)
-	go func(s *Server, t *testing.T) {
-		if err := s.Run(); err != nil {
+	go func(s *Worker, t *testing.T) {
+		if err := s.Start(); err != nil {
 			t.Error(err)
 		}
 	}(w, t)

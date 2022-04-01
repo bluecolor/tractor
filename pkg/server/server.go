@@ -7,6 +7,7 @@ import (
 	_ "github.com/bluecolor/tractor/pkg/lib/connectors/all"
 	"github.com/bluecolor/tractor/pkg/repo"
 	"github.com/bluecolor/tractor/pkg/routes"
+	"github.com/bluecolor/tractor/pkg/tasks"
 )
 
 func Start(config conf.Config) error {
@@ -14,6 +15,8 @@ func Start(config conf.Config) error {
 	if err != nil {
 		return err
 	}
-	http.Handle("/", routes.BuildRoutes(repository))
+	client := tasks.NewClient(config.Worker)
+
+	http.Handle("/", routes.BuildRoutes(repository, client))
 	return http.ListenAndServe(":3000", nil)
 }

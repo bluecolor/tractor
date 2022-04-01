@@ -6,17 +6,20 @@ import (
 
 	"github.com/bluecolor/tractor/pkg/models"
 	"github.com/bluecolor/tractor/pkg/repo"
+	"github.com/bluecolor/tractor/pkg/tasks"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/go-chi/chi"
 )
 
 type Service struct {
-	repo *repo.Repository
+	repo   *repo.Repository
+	client *tasks.Client
 }
 
-func NewService(repo *repo.Repository) *Service {
+func NewService(repo *repo.Repository, client *tasks.Client) *Service {
 	return &Service{
-		repo: repo,
+		repo:   repo,
+		client: client,
 	}
 }
 
@@ -30,7 +33,12 @@ func (s *Service) OneExtraction(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Service) FindExtractions(w http.ResponseWriter, r *http.Request) {
 	exts := []models.Extraction{}
-	result := s.repo.Find(&exts)
+	result := s.repo.
+		Preload("SourceDataset").
+		Preload("SourceDataset.Connection").
+		Preload("TargetDataset.Connection").
+		Preload("TargetDataset").
+		Find(&exts)
 	if result.Error != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, result.Error)
 	}
@@ -60,4 +68,30 @@ func (s *Service) CreateExtraction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.RespondwithJSON(w, http.StatusOK, extraction)
+}
+func (s *Service) RunExtraction(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	extraction := models.Extraction{}
+	if err := s.repo.First(&extraction, id).Error; err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+	}
+	session := extraction.NewSession()
+	if err := s.repo.Create(session).Error; err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+	}
+	ses, err := tasks.GetSession(session)
+	if err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	task, err := tasks.NewSessionRunTask(ses)
+	if err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	if _, err := s.client.Enqueue(task); err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	utils.RespondwithJSON(w, http.StatusOK, session)
 }

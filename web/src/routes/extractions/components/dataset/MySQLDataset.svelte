@@ -3,44 +3,20 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/utils';
 	import ExtractionMode from './ExtractionMode.svelte';
-	export let connection, config;
-	export let usedIn = 'source';
-
-	console.log(usedIn);
+	export let dataset;
+	export let type = 'source';
 
 	let databases = [];
 	let tables = [];
 	let editTable = false;
-	let modes = [
-		{
-			label: 'Append',
-			value: 'append'
-		},
-		{
-			label: 'Replace',
-			value: 'replace'
-		},
-		{
-			label: 'Merge',
-			value: 'merge'
-		}
-	];
-	if (usedIn == 'source') {
-		modes = [
-			{
-				label: 'Full',
-				value: 'full'
-			},
-			{
-				label: 'Incremental',
-				value: 'incremental'
-			}
-		];
+
+	$: {
+		dataset.name = `${dataset.config.database}.${dataset.config.table}`;
 	}
 
 	onMount(async () => {
 		api('POST', 'connections/info', {
-			connection: connection,
+			connection: dataset.connection,
 			info: 'databases'
 		}).then(async (response) => {
 			if (response.ok) {
@@ -56,16 +32,16 @@
 	}
 	function onDatabaseChange() {
 		api('POST', 'connections/info', {
-			connection: connection,
+			connection: dataset.connection,
 			info: 'tables',
-			options: { database: config.database }
+			options: { database: dataset.config.database }
 		}).then(async (response) => {
 			if (response.ok) {
 				tables = await response.json();
-				config.table = null;
+				dataset.config.table = null;
 			} else {
 				tables = [];
-				config.table = null;
+				dataset.config.table = null;
 			}
 		});
 	}
@@ -75,23 +51,23 @@
 <template lang="pug">
 .form-item
   label(for="database") Database
-  select(name='database', bind:value='{config.database}' on:change='{onDatabaseChange}')
+  select(name='database', bind:value='{dataset.config.database}' on:change='{onDatabaseChange}')
     +each('databases as d')
-      option(value='{d}' selected='{d === config.database}') {d}
+      option(value='{d}' selected='{d === dataset.config.database}') {d}
 
 .form-item
   label(for="table") Table
   .flex.justify-between.items-center
     +if('!editTable')
-      select(name='table', bind:value='{config.table}' on:change='{onTableChange}')
+      select(name='table', bind:value='{dataset.config.table}' on:change='{onTableChange}')
         +each('tables as t')
-          option(value='{t}' selected='{t === config.table}') {t}
+          option(value='{t}' selected='{t === dataset.config.table}') {t}
     +if('editTable')
-      input.input(type='text', name='table', bind:value='{config.table}' placeholder='Table name')
-    +if('usedIn == "target"')
+      input.input(type='text', name='table', bind:value='{dataset.config.table}' placeholder='Table name')
+    +if('type == "target"')
       .icon-btn(on:click='{toggleEditTable}')
         EditIcon
 
-ExtractionMode(bind:mode='{config.mode}' modes='{modes}')
+ExtractionMode(bind:value='{dataset.config.mode}' type='{type}')
 
 </template>

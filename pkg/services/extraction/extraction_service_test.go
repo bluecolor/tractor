@@ -22,7 +22,7 @@ func TestOneExtraction(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "name 1")
 	mock.ExpectQuery("^SELECT(.+?)FROM `extractions` WHERE").WillReturnRows(rows)
 
-	service := NewService(repository)
+	service := NewService(repository, nil)
 
 	ts := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +64,7 @@ func TestFindExtractions(t *testing.T) {
 	rows := sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "name 1").AddRow(2, "name 2")
 	mock.ExpectQuery("^SELECT(.+?)FROM `extractions`").WillReturnRows(rows)
 
-	service := NewService(repository)
+	service := NewService(repository, nil)
 
 	ts := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +114,7 @@ func TestDeleteExtraction(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	service := NewService(repository)
+	service := NewService(repository, nil)
 
 	ts := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

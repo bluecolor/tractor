@@ -2,13 +2,12 @@
 	import { api } from '$lib/utils';
 	import Dropdown from '@components/Dropdown.svelte';
 	import TrashIcon from '@icons/trash.svg';
-	import MenuIcon from '@icons/menu.svg';
+	import MoreIcon from '@icons/more.svg';
 	import PlusIcon from '@icons/plus.svg';
 	import GreaterThanIcon from '@icons/greater-than.svg';
 
-	export let sourceConnection, targetConnection, sourceDataset, targetDataset;
-
-	export let mappings = [];
+	export let source = { fields: [] };
+	export let target = { fields: [] };
 
 	let options = [
 		{
@@ -16,27 +15,19 @@
 			value: 'fetch'
 		},
 		{
-			label: 'Fetch source',
-			value: 'fetchesource'
-		},
-		{
-			label: 'Fetch target',
-			value: 'fetchetarget'
-		},
-		{
 			label: 'Clear',
 			value: 'clear'
 		}
 	];
+	export let mappings = [];
+	$: {
+		source.fields = mappings.map((m, i) => ({ ...m.source, order: i }));
+		target.fields = mappings.map((m, i) => ({ ...m.target, order: i }));
+	}
+
 	function onDropdown(e) {
 		const { value } = e.detail;
 		switch (value) {
-			case 'fetchesource':
-				onFetchSource();
-				break;
-			case 'fetchetarget':
-				onFetchTarget();
-				break;
 			case 'fetch':
 				onFetch();
 				break;
@@ -45,65 +36,45 @@
 				break;
 		}
 	}
-	function mapFields({ sources, targets }) {
-		sources = sources ?? mappings.map((m) => m.source);
-		targets = targets ?? mappings.map((m) => m.target);
-		while (sources.length < targets.length) {
-			sources.push({});
-		}
-		while (targets.length < sources.length) {
-			targets.push({});
-		}
-		mappings = sources.map((source, i) => {
-			let m = {
-				source: source
+	function mapFields({ sf, tf }) {
+		let sourceFields = (sf ?? source.fields).map((s, i) => {
+			return {
+				order: i,
+				...s
 			};
-			let ti = targets.findIndex((t) => t.name === source.name);
-			if (ti > -1) {
-				m.target = targets[ti];
-				targets.splice(ti, 1);
-				return m;
-			}
-			m.target = targets.shift();
-			return m;
+		});
+		let targetFields = (tf ?? target.fields).map((t, i) => {
+			return {
+				order: i,
+				...t
+			};
+		});
+
+		while (sourceFields.length < targetFields.length) {
+			sourceFields.push({ order: sourceFields.length });
+		}
+		while (targetFields.length < sourceFields.length) {
+			targetFields.push({ order: targetFields.length });
+		}
+		sourceFields = sourceFields.sort((a, b) => a.order - b.order) || [];
+		targetFields = targetFields.sort((a, b) => a.order - b.order) || [];
+		mappings = sourceFields.map((sf, i) => {
+			return {
+				source: sf,
+				target: targetFields[i]
+			};
 		});
 		mappings = [...mappings];
 	}
-	function onFetchSource() {
-		api('POST', `connections/${sourceConnection.id}/dataset`, sourceDataset).then(
-			async (response) => {
-				if (response.ok) {
-					let source = await response.json();
-					mapFields({ sources: source.fields, targets: undefined });
-				} else {
-					let errm = await response.text();
-					alert('Failed to load source fields\n' + errm);
-				}
-			}
-		);
-	}
-	function onFetchTarget() {
-		api('POST', `connections/${targetConnection.id}/dataset`, targetDataset).then(
-			async (response) => {
-				if (response.ok) {
-					let target = await response.json();
-					mapFields({ sources: undefined, targets: target.fields });
-				} else {
-					let errm = await response.text();
-					alert('Failed to load target fields\n' + errm);
-				}
-			}
-		);
-	}
 	function onFetch() {
 		Promise.all([
-			api('POST', `connections/${sourceConnection.id}/dataset`, sourceDataset),
-			api('POST', `connections/${targetConnection.id}/dataset`, targetDataset)
+			api('POST', `connections/${source.connectionId}/dataset`, source.config),
+			api('POST', `connections/${target.connectionId}/dataset`, target.config)
 		]).then(async (responses) => {
 			if (responses.every((r) => r.ok)) {
-				let sources = await responses[0].json();
-				let targets = await responses[1].json();
-				mapFields({ sources: sources.fields, targets: targets.fields });
+				let s = await responses[0].json();
+				let t = await responses[1].json();
+				mapFields({ sf: s.fields, tf: t.fields });
 			} else {
 				let errms = await Promise.all(responses.map((r) => r.text()));
 				alert('Failed to load fields\n' + errms.join('\n'));
@@ -115,16 +86,14 @@
 		mappings = [...mappings];
 	}
 	function onAddMapping() {
-		mappings = [
-			...mappings,
-			{
-				source: {},
-				target: {}
-			}
-		];
+		mappings.push({
+			source: { order: mappings.length },
+			target: { order: mappings.length }
+		});
 	}
 	function onClear() {
-		mappings = [];
+		source.fields = [];
+		target.fields = [];
 	}
 </script>
 
@@ -147,7 +116,7 @@
               PlusIcon()
             Dropdown(label="Options" bind:options='{options}' on:select='{onDropdown}') Reset
               div(slot="button")
-                MenuIcon.icon-btn()
+                MoreIcon.icon-btn()
       tbody
         +each('mappings as m, i')
           tr(class="last:border-b-0  hover:bg-blue-50")
@@ -167,10 +136,12 @@
                 option(value="date") date
             td
               div.flex.justify-end.items-center
-                span.cursor-pointer(on:click='{onDeleteMapping(m, i)}')
+                <span class="cursor-pointer" on:click='{() => onDeleteMapping(i)}'>
                   GreaterThanIcon(class="fill-current text-gray-200 hover:text-blue-500")
-                span(on:click='{onDeleteMapping(m, i)}')
+                </span>
+                <span class="cursor-pointer" on:click='{() => onDeleteMapping(i)}'>
                   TrashIcon(class="trash")
+                </span>
 
 </template>
 
