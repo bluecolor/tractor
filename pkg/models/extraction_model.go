@@ -37,6 +37,7 @@ type Field struct {
 func (e *Extraction) NewSession() *Session {
 	return &Session{
 		ExtractionID: e.ID,
+		Extraction:   e,
 		Status:       "pending",
 	}
 }

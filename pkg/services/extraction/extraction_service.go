@@ -9,6 +9,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/tasks"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/go-chi/chi"
+	"github.com/hibiken/asynq"
 )
 
 type Service struct {
@@ -79,17 +80,32 @@ func (s *Service) RunExtraction(w http.ResponseWriter, r *http.Request) {
 	if err := s.repo.Create(session).Error; err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 	}
+	if err := s.repo.
+		Preload("Extraction").
+		Preload("Extraction.SourceDataset").
+		Preload("Extraction.SourceDataset.Connection").
+		Preload("Extraction.SourceDataset.Connection.ConnectionType").
+		Preload("Extraction.SourceDataset.Fields").
+		Preload("Extraction.TargetDataset").
+		Preload("Extraction.TargetDataset.Connection").
+		Preload("Extraction.TargetDataset.Connection.ConnectionType").
+		Preload("Extraction.TargetDataset.Fields").
+		First(session, session.ID).Error; err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+	}
+
 	ses, err := tasks.GetSession(session)
 	if err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
+
 	task, err := tasks.NewSessionRunTask(ses)
 	if err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
-	if _, err := s.client.Enqueue(task); err != nil {
+	if _, err := s.client.Enqueue(task, asynq.MaxRetry(0)); err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}

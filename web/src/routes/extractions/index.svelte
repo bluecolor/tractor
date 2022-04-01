@@ -11,6 +11,19 @@
 		extractions = await response.json();
 	});
 
+	function onRunExtraction(id) {
+		console.log(id);
+		api('POST', `extractions/${id}/run`).then((response) => {
+			console.log(response);
+			if (response.ok) {
+				console.log('Extraction run');
+			} else {
+				response.text().then((text) => {
+					alert('Failed to run extraction\n' + text);
+				});
+			}
+		});
+	}
 	function onDeleteExtraction(id) {
 		let extraction = extractions.find((e) => e.id === id);
 		let ok = confirm('Are you sure you want to delete this extraction? ' + extraction.name);
@@ -68,7 +81,7 @@
 
               td.actions
                 div.flex.justify-end.items-center
-                  span(on:click='{onDeleteExtraction(e.id)}')
+                  span(on:click='{onRunExtraction(e.id)}')
                     PlayIcon(class="icon-btn")
                   span(on:click='{onDeleteExtraction(e.id)}')
                     MoreIcon(class="trash")

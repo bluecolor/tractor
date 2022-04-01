@@ -11,6 +11,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
+	"github.com/rs/zerolog/log"
 )
 
 type Result struct {
@@ -136,14 +137,19 @@ func (r *Runner) ProcessFeedback(f *msg.Feedback) {
 	r.result.writeCount += f.OutputProgress()
 	switch {
 	case f.IsInputSuccess():
+		log.Info().Msgf("input success")
 		r.result.isInputSuccess = true
 	case f.IsInputError(), f.IsOutputError():
+		log.Info().Msgf("input error %s", f.Error())
 		r.result.AddError(f.Error(), f.ErrorSource())
 	case f.IsInputDone():
+		log.Info().Msgf("input done")
 		r.result.isInputDone = true
 	case f.IsOutputSuccess():
+		log.Info().Msgf("output success")
 		r.result.isOutputSuccess = true
 	case f.IsOutputDone():
+		log.Info().Msgf("output done")
 		r.result.isOutputDone = true
 	}
 }
@@ -151,7 +157,7 @@ func (r *Runner) Result() *Result {
 	return r.result
 }
 func (r *Runner) Run() (err error) {
-
+	log.Info().Msgf("runner started")
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
 	// supervisor
@@ -178,14 +184,19 @@ func (r *Runner) RunInput(d types.Dataset) error {
 			r.wire.SendInputError(err)
 		}
 	}()
-	if err := r.connectors.output.Connect(); err != nil {
+	if err := r.connectors.input.Connect(); err != nil {
+		log.Error().Msgf("input connect error %s", err)
 		r.wire.SendInputError(err)
 		return err
 	}
 	return r.connectors.input.Read(d, r.wire)
 }
 func (r *Runner) RunOutput(d types.Dataset) error {
-
+	defer func() {
+		if err := r.connectors.output.Close(); err != nil {
+			r.wire.SendOutputError(err)
+		}
+	}()
 	if err := r.connectors.output.Connect(); err != nil {
 		r.wire.SendOutputError(err)
 		return err

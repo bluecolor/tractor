@@ -7,6 +7,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/runner"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/hibiken/asynq"
+	"github.com/rs/zerolog/log"
 )
 
 func HandleExtractionTask(ctx context.Context, t *asynq.Task) error {
@@ -14,9 +15,15 @@ func HandleExtractionTask(ctx context.Context, t *asynq.Task) error {
 	if err := json.Unmarshal(t.Payload(), &s); err != nil {
 		return err
 	}
+	log.Info().Msgf("Running extraction %s", s.Extraction.Name)
 	r, err := runner.New(ctx, s)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to create runner")
 		return err
 	}
-	return r.Run()
+	if err := r.Run(); err != nil {
+		log.Error().Err(err).Msgf("failed to run extraction %s", s.Extraction.Name)
+		return err
+	}
+	return nil
 }

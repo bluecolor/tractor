@@ -1,19 +1,39 @@
-version: '3.7'
+version: "3.7"
 
 services:
   db:
     image: mysql:8.0
     environment:
-      MYSQL_DATABASE: 'db'
-      MYSQL_USER: 'user'
-      MYSQL_PASSWORD: 'password'
-      MYSQL_ROOT_PASSWORD: 'password'
+      MYSQL_DATABASE: "db"
+      MYSQL_USER: "user"
+      MYSQL_PASSWORD: "password"
+      MYSQL_ROOT_PASSWORD: "password"
     ports:
-      - '3306:3306'
+      - "3306:3306"
     expose:
-      - '3306'
+      - "3306"
     volumes:
       - db_data:/var/lib/mysql
+  cache:
+    image: redis:6.2-alpine
+    container_name: cache
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning
+    volumes:
+      - cache:/data
 
+  cachemon:
+    image: hibiken/asynqmon
+    depends_on:
+      - cache
+    ports:
+      - "8080:8080"
+    environment:
+      REDIS_URL: redis://cache:6379
+      REDIS_ADDR: cache
+      PORT: 8080
 volumes:
   db_data: null
+  cache:
+    driver: local

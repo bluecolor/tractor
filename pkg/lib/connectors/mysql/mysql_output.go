@@ -15,6 +15,7 @@ import (
 )
 
 func (c *MySQLConnector) write(d types.Dataset, i int, data msg.Data) error {
+	log.Info().Msgf("writing %d records to %s", data.Count(), d.Name)
 	ok := true
 	query, err := c.BuildBatchInsertQuery(d, data.Count())
 	if err != nil {
@@ -34,13 +35,18 @@ func (c *MySQLConnector) write(d types.Dataset, i int, data msg.Data) error {
 			}
 		}
 	}
+	log.Info().Msgf("executing query: %s", query)
 	_, err = c.db.Exec(query, values...)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to execute batch insert query")
+	}
 	return err
 }
 
 // todo add batch size, buffer
 // todo add timeout
 func (m *MySQLConnector) StartWriteWorker(ctx context.Context, d types.Dataset, w *wire.Wire, i int) error {
+	log.Info().Msgf("starting write worker %d", i)
 	for {
 		select {
 		case data, ok := <-w.ReceiveData():
