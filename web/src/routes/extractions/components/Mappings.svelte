@@ -2,7 +2,7 @@
 	import { api } from '$lib/utils';
 	import Dropdown from '@components/Dropdown.svelte';
 	import TrashIcon from '@icons/trash.svg';
-	import MenuIcon from '@icons/menu.svg';
+	import MoreIcon from '@icons/more.svg';
 	import PlusIcon from '@icons/plus.svg';
 	import GreaterThanIcon from '@icons/greater-than.svg';
 
@@ -15,31 +15,16 @@
 			value: 'fetch'
 		},
 		{
-			label: 'Fetch source',
-			value: 'fetchesource'
-		},
-		{
-			label: 'Fetch target',
-			value: 'fetchetarget'
-		},
-		{
 			label: 'Clear',
 			value: 'clear'
 		}
 	];
-
-	$: source.fields = source.fields?.sort((a, b) => a.order - b.order) || [];
-	$: target.fields = target.fields?.sort((a, b) => a.order - b.order) || [];
+	let sourcef = [];
+	let targetf = [];
 
 	function onDropdown(e) {
 		const { value } = e.detail;
 		switch (value) {
-			case 'fetchesource':
-				onFetchSource();
-				break;
-			case 'fetchetarget':
-				onFetchTarget();
-				break;
 			case 'fetch':
 				onFetch();
 				break;
@@ -49,50 +34,29 @@
 		}
 	}
 	function mapFields({ sf, tf }) {
-		source.fields = (sf ?? source.fields).map((s, i) => {
+		let sourceFields = (sf ?? source.fields).map((s, i) => {
 			return {
 				order: i,
 				...s
 			};
 		});
-		target.fields = (tf ?? target.fields).map((t, i) => {
+		let targetFields = (tf ?? target.fields).map((t, i) => {
 			return {
 				order: i,
 				...t
 			};
 		});
 
-		while (source.fields.length < target.fields.length) {
-			source.fields.push({ order: source.fields.length });
+		while (sourceFields.length < targetFields.length) {
+			sourceFields.push({ order: sourceFields.length });
 		}
-		while (target.fields.length < source.fields.length) {
-			target.fields.push({ order: target.fields.length });
+		while (targetFields.length < sourceFields.length) {
+			targetFields.push({ order: targetFields.length });
 		}
-		source.fields = [...source.fields];
-		target.fields = [...target.fields];
-		console.log(source.fields);
-	}
-	function onFetchSource() {
-		api('POST', `connections/${source.connectionId}/dataset`, source).then(async (response) => {
-			if (response.ok) {
-				let dataset = await response.json();
-				mapFields({ sf: dataset.fields, tf: undefined });
-			} else {
-				let errm = await response.text();
-				alert('Failed to load source fields\n' + errm);
-			}
-		});
-	}
-	function onFetchTarget() {
-		api('POST', `connections/${target.connectionId}/dataset`, target).then(async (response) => {
-			if (response.ok) {
-				let dataset = await response.json();
-				mapFields({ sf: undefined, tf: dataset.fields });
-			} else {
-				let errm = await response.text();
-				alert('Failed to load target fields\n' + errm);
-			}
-		});
+		sourceFields = sourceFields.sort((a, b) => a.order - b.order) || [];
+		targetFields = targetFields.sort((a, b) => a.order - b.order) || [];
+		sourcef = [...sourceFields];
+		targetf = [...targetFields];
 	}
 	function onFetch() {
 		Promise.all([
@@ -144,9 +108,9 @@
               PlusIcon()
             Dropdown(label="Options" bind:options='{options}' on:select='{onDropdown}') Reset
               div(slot="button")
-                MenuIcon.icon-btn()
+                MoreIcon.icon-btn()
       tbody
-        +each('source.fields as sf, i')
+        +each('sourcef as sf, i')
           tr(class="last:border-b-0  hover:bg-blue-50")
             td
               input.input(placeholder="Source column", bind:value='{sf.name}')
@@ -154,7 +118,7 @@
               span.text-gray-600
                 | {sf.type}
             td
-              input.input(placeholder="Target column", bind:value='{target.fields[i].name}')
+              input.input(placeholder="Target column", bind:value='{targetf[i].name}')
             td
               select.cursor-pointer()
                 option(value="string") string
