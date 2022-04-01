@@ -93,7 +93,6 @@ func (r *Repository) Seed(basePath string, reset bool) (err error) {
 		r.SeedFileTypes,
 		r.SeedProviderTypes,
 		r.SeedConnectionTypes,
-		r.SeedSessionStatuses,
 	}
 	for _, f := range functions {
 		err = f(basePath)

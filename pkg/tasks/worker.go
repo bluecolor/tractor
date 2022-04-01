@@ -5,33 +5,27 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-type Server struct {
-	config *conf.Tasks
-	server *asynq.Server
+type Worker struct {
+	*asynq.Server
 }
 
-func NewWorker(c conf.Tasks) *Server {
-	server := asynq.NewServer(
+func NewWorker(c conf.Worker) *Worker {
+	worker := asynq.NewServer(
 		asynq.RedisClientOpt{Addr: c.Addr},
 		asynq.Config{
 			Concurrency: c.Concurrency,
 		},
 	)
-	return &Server{
-		config: &c,
-		server: server,
+	return &Worker{
+		Server: worker,
 	}
 }
 
-func (s *Server) Run() error {
+func (w *Worker) Start() error {
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(TypeSessionRun, HandleExtractionTask)
-	if err := s.server.Run(mux); err != nil {
+	if err := w.Run(mux); err != nil {
 		return err
 	}
 	return nil
-}
-
-func (s *Server) Shutdown() {
-	s.server.Shutdown()
 }

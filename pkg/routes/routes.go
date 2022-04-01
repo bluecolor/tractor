@@ -4,13 +4,14 @@ import (
 	"github.com/bluecolor/tractor/pkg/repo"
 	"github.com/bluecolor/tractor/pkg/routes/connection"
 	"github.com/bluecolor/tractor/pkg/routes/extraction"
+	"github.com/bluecolor/tractor/pkg/tasks"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
 )
 
-func BuildRoutes(repository *repo.Repository) *chi.Mux {
+func BuildRoutes(repository *repo.Repository, client *tasks.Client) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{
 		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
@@ -30,7 +31,7 @@ func BuildRoutes(repository *repo.Repository) *chi.Mux {
 
 	r.Route("/api/v1", func(rt chi.Router) {
 		rt.Mount("/connections", connection.BuildRoutes(repository))
-		rt.Mount("/extractions", extraction.BuildRoutes(repository))
+		rt.Mount("/extractions", extraction.BuildRoutes(repository, client))
 	})
 	return r
 }

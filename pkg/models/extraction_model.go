@@ -33,3 +33,10 @@ type Field struct {
 	DatasetID  uint           `json:"datasetId"`
 	Dataset    *Dataset       `gorm:"foreignkey:DatasetID" json:"dataset"`
 }
+
+func (e *Extraction) NewSession() *Session {
+	return &Session{
+		ExtractionID: e.ID,
+		Status:       "pending",
+	}
+}

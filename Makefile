@@ -24,6 +24,9 @@ db-seed:
 db-reset:
 	go run cmd/tractor/main.go db reset
 
+worker-start:
+	go run cmd/tractor/main.go worker start
+
 server-start:
 	go run cmd/tractor/main.go server start
 

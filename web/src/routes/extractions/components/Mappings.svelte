@@ -19,8 +19,11 @@
 			value: 'clear'
 		}
 	];
-	let sourcef = [];
-	let targetf = [];
+	export let mappings = [];
+	$: {
+		source.fields = mappings.map((m, i) => ({ ...m.source, order: i }));
+		target.fields = mappings.map((m, i) => ({ ...m.target, order: i }));
+	}
 
 	function onDropdown(e) {
 		const { value } = e.detail;
@@ -55,8 +58,13 @@
 		}
 		sourceFields = sourceFields.sort((a, b) => a.order - b.order) || [];
 		targetFields = targetFields.sort((a, b) => a.order - b.order) || [];
-		sourcef = [...sourceFields];
-		targetf = [...targetFields];
+		mappings = sourceFields.map((sf, i) => {
+			return {
+				source: sf,
+				target: targetFields[i]
+			};
+		});
+		mappings = [...mappings];
 	}
 	function onFetch() {
 		Promise.all([
@@ -74,14 +82,14 @@
 		});
 	}
 	function onDeleteMapping(i) {
-		source.fields.splice(i, 1);
-		target.fields.splice(i, 1);
-		source.fields = [...source.fields];
-		target.fields = [...target.fields];
+		mappings.splice(i, 1);
+		mappings = [...mappings];
 	}
 	function onAddMapping() {
-		source.fields.push({});
-		target.fields.push({});
+		mappings.push({
+			source: { order: mappings.length },
+			target: { order: mappings.length }
+		});
 	}
 	function onClear() {
 		source.fields = [];
@@ -110,15 +118,15 @@
               div(slot="button")
                 MoreIcon.icon-btn()
       tbody
-        +each('sourcef as sf, i')
+        +each('mappings as m, i')
           tr(class="last:border-b-0  hover:bg-blue-50")
             td
-              input.input(placeholder="Source column", bind:value='{sf.name}')
+              input.input(placeholder="Source column", bind:value='{m.source.name}')
             td
               span.text-gray-600
-                | {sf.type}
+                | {m.source.type}
             td
-              input.input(placeholder="Target column", bind:value='{targetf[i].name}')
+              input.input(placeholder="Target column", bind:value='{m.target.name}')
             td
               select.cursor-pointer()
                 option(value="string") string
@@ -128,10 +136,12 @@
                 option(value="date") date
             td
               div.flex.justify-end.items-center
-                span.cursor-pointer(on:click='{onDeleteMapping(i)}')
+                <span class="cursor-pointer" on:click='{() => onDeleteMapping(i)}'>
                   GreaterThanIcon(class="fill-current text-gray-200 hover:text-blue-500")
-                span(on:click='{onDeleteMapping(i)}')
+                </span>
+                <span class="cursor-pointer" on:click='{() => onDeleteMapping(i)}'>
                   TrashIcon(class="trash")
+                </span>
 
 </template>
 

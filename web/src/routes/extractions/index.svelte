@@ -1,5 +1,6 @@
 <script>
-	import Trash from '../../assets/icons/trash.svg';
+	import PlayIcon from '@icons/play.svg';
+	import MoreIcon from '@icons/more.svg';
 
 	import { onMount } from 'svelte';
 	import { api } from '$lib/utils';
@@ -42,10 +43,14 @@
       table.min-w-full
         thead
           tr
-            th(scope="col")
+            th(scope="col" align="left")
               | Name
-            th(scope="col")
-              | Type
+            th(scope="col" align="left")
+              | Source
+            th(scope="col" align="left")
+              | Target
+            th(scope="col" align="left")
+              | Status
             th.actions
         tbody
           +each('extractions as e')
@@ -54,9 +59,28 @@
                 a(href="/extractions/{e.id}")
                   | {e.name}
               td
-                | {e.name}
+                | {e.sourceDataset.name}<span class="text-gray-400">@{e.sourceDataset.connection.name} </span>
+              td
+                | {e.targetDataset.name}<span class="text-gray-400">@{e.targetDataset.connection.name} </span>
+              td
+                .flex.justify-center.items-center.m-1.font-medium.py-1.px-2.bg-white.rounded-full.text-gray-700.bg-gray-100.border.border-gray-300
+                  .text-xs.font-normal.leading-none.max-w-full.flex-initial Idle
+
               td.actions
-                span(on:click='{onDeleteExtraction(e.id)}')
-                  Trash(class="trash")
+                div.flex.justify-end.items-center
+                  span(on:click='{onDeleteExtraction(e.id)}')
+                    PlayIcon(class="icon-btn")
+                  span(on:click='{onDeleteExtraction(e.id)}')
+                    MoreIcon(class="trash")
+
 
 </template>
+
+<style lang="postcss">
+	table thead tr th {
+		@apply font-normal text-base text-gray-500 pl-4 pr-4 pb-2 pt-2;
+	}
+	table tbody tr td {
+		@apply font-normal text-base text-gray-700 pl-4 pr-4 pb-2 pt-2;
+	}
+</style>

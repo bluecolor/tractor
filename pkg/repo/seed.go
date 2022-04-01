@@ -111,37 +111,3 @@ func (r *Repository) SeedConnectionTypes(basePath string) (err error) {
 	}
 	return
 }
-func (r *Repository) SeedSessionStatuses(basePath string) (err error) {
-	filename := path.Join(basePath, "session_status.csv")
-	log.Info().Msg("seeding session statuses from " + filename)
-	f, err := os.Open(filename)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to open " + filename)
-	}
-	defer f.Close()
-	csvReader := csv.NewReader(f)
-	csvReader.Comma = ';'
-	csvReader.LazyQuotes = true
-	data, err := csvReader.ReadAll()
-	if err != nil {
-		log.Error().Err(err).Msg("failed to read " + filename)
-	}
-
-	records := []models.SessionStatus{}
-	for i, row := range data {
-		if i == 0 {
-			continue
-		}
-		record := models.SessionStatus{
-			Name: row[0],
-			Code: row[1],
-		}
-		records = append(records, record)
-	}
-	err = r.Save(&records).Error
-	if err != nil {
-		log.Error().Err(err).Msg("failed to seed session statuses")
-		return
-	}
-	return
-}

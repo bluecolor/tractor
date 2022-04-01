@@ -10,6 +10,10 @@
 	let tables = [];
 	let editTable = false;
 
+	$: {
+		dataset.name = `${dataset.config.database}.${dataset.config.table}`;
+	}
+
 	onMount(async () => {
 		api('POST', 'connections/info', {
 			connection: dataset.connection,

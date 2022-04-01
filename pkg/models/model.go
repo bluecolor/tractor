@@ -18,11 +18,11 @@ func init() {
 		&ConnectionType{},
 		&Extraction{},
 		&Dataset{},
+		&Field{},
 		&FileType{},
 		&Provider{},
 		&ProviderType{},
 		&Param{},
-		&SessionStatus{},
 		&Session{},
 	)
 }

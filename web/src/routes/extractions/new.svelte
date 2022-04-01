@@ -19,7 +19,21 @@
 		});
 	});
 	function onSave() {
-		let payload = {};
+		let payload = {
+			name: name,
+			sourceDataset: sourceDataset,
+			targetDataset: targetDataset
+		};
+		console.log(payload);
+		api('POST', 'extractions', payload).then(async (response) => {
+			if (response.ok) {
+				let extraction = await response.json();
+				console.log(extraction);
+			} else {
+				let errm = await response.text();
+				alert('Failed to save extraction\n' + errm);
+			}
+		});
 	}
 </script>
 

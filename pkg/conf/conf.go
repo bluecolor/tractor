@@ -13,7 +13,7 @@ type DB struct {
 	Options  string `mapstructure:"db_options"`
 }
 
-type Tasks struct {
+type Worker struct {
 	Addr        string `mapstructure:"tasks_addr" default:"localhost:6379"`
 	Concurrency int    `mapstructure:"tasks_concurrency" validate:"min=1" default:"50"`
 }
@@ -37,7 +37,7 @@ type FeedbackBackeds struct {
 
 type Config struct {
 	DB               DB              `mapstructure:",squash"`
-	Tasks            Tasks           `mapstructure:",squash"`
+	Worker           Worker          `mapstructure:",squash"`
 	Log              Log             `mapstructure:",squash"`
 	App              App             `mapstructure:",squash"`
 	FeedbackBackends FeedbackBackeds `mapstructure:",squash"`
