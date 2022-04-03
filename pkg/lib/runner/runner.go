@@ -44,7 +44,7 @@ type Runner struct {
 	result           *Result
 	isFeedbackClosed bool
 	isDataClosed     bool
-	feedbackBackends []msg.FeedbackBackend
+	feedBackends     []msg.FeedBackend
 }
 
 func (r *Result) Eval() *Result {
@@ -85,7 +85,7 @@ func (r *Result) AddError(err error, es ...types.ErrorSource) {
 	r.errors.Add(err)
 }
 
-func New(ctx context.Context, s types.Session) (*Runner, error) {
+func New(ctx context.Context, s types.Session, options ...Option) (*Runner, error) {
 	ic, err := connectors.GetConnector(
 		s.Extraction.SourceDataset.Connection.ConnectionType,
 		connectors.ConnectorConfig(s.Extraction.SourceDataset.Connection.Config),
@@ -124,7 +124,7 @@ func New(ctx context.Context, s types.Session) (*Runner, error) {
 			input:  inputConnector,
 			output: outputConnector,
 		},
-		feedbackBackends: make([]msg.FeedbackBackend, 0),
+		feedBackends: GetFeedBackends(options...),
 		result: &Result{
 			errors: types.Errors{},
 		},
@@ -158,6 +158,7 @@ func (r *Runner) Result() *Result {
 }
 func (r *Runner) Run() (err error) {
 	log.Info().Msgf("runner started")
+	r.wire.SendFeedback(msg.NewRunning())
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
 	// supervisor
@@ -205,7 +206,7 @@ func (r *Runner) RunOutput(d types.Dataset) error {
 	return r.connectors.output.Write(d, r.wire)
 }
 func (r *Runner) ForwardFeedback(feedback *msg.Feedback) {
-	for _, backend := range r.feedbackBackends {
+	for _, backend := range r.feedBackends {
 		// ignore error
 		backend.Store(r.session.ID, feedback)
 	}

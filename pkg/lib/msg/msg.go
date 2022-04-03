@@ -18,9 +18,11 @@ const (
 	InputConnector
 	OutputConnector
 	Supervisor
+	Driver
 )
 const (
 	Progress FeedbackType = iota
+	Running
 	Success
 	Error
 	Info
@@ -208,6 +210,11 @@ func NewInfo(sender Sender, content interface{}) *Feedback {
 		Type:    Info,
 		Sender:  sender,
 		Content: content,
+	}
+}
+func NewRunning() *Feedback {
+	return &Feedback{
+		Type: Running,
 	}
 }
 func NewWarning(sender Sender, content interface{}) *Feedback {

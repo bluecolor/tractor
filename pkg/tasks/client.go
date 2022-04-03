@@ -10,7 +10,7 @@ type Client struct {
 }
 
 func NewClient(c conf.Worker) *Client {
-	client := asynq.NewClient(asynq.RedisClientOpt{Addr: c.Addr})
+	client := asynq.NewClient(asynq.RedisClientOpt{Addr: c.BackendAddr})
 	return &Client{
 		Client: client,
 	}

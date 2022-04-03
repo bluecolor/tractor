@@ -12,7 +12,7 @@ func TestWorker(t *testing.T) {
 	t.Parallel()
 	mr := miniredis.RunT(t)
 	c := conf.Worker{
-		Addr: mr.Addr(),
+		BackendAddr: mr.Addr(),
 	}
 	w := NewWorker(c)
 	go func(s *Worker, t *testing.T) {

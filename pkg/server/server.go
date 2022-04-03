@@ -15,8 +15,8 @@ func Start(config conf.Config) error {
 	if err != nil {
 		return err
 	}
-	client := tasks.NewClient(config.Worker)
+	workerClient := tasks.NewClient(config.Worker)
 
-	http.Handle("/", routes.BuildRoutes(repository, client))
+	http.Handle("/", routes.BuildRoutes(repository, workerClient))
 	return http.ListenAndServe(":3000", nil)
 }

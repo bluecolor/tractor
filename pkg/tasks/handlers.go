@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/lib/runner"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/hibiken/asynq"
@@ -16,7 +17,13 @@ func HandleExtractionTask(ctx context.Context, t *asynq.Task) error {
 		return err
 	}
 	log.Info().Msgf("Running extraction %s", s.Extraction.Name)
-	r, err := runner.New(ctx, s)
+
+	backends := ctx.Value("backends").([]msg.FeedBackend)
+	options := []runner.Option{}
+	for _, backend := range backends {
+		options = append(options, runner.WithFeedbackBackendOption(backend))
+	}
+	r, err := runner.New(ctx, s, options...)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create runner")
 		return err
