@@ -11,7 +11,7 @@ import (
 	"github.com/go-chi/render"
 )
 
-func BuildRoutes(repository *repo.Repository, client *tasks.Client) *chi.Mux {
+func BuildRoutes(repository *repo.Repository, workerClient *tasks.Client) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{
 		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
@@ -31,7 +31,7 @@ func BuildRoutes(repository *repo.Repository, client *tasks.Client) *chi.Mux {
 
 	r.Route("/api/v1", func(rt chi.Router) {
 		rt.Mount("/connections", connection.BuildRoutes(repository))
-		rt.Mount("/extractions", extraction.BuildRoutes(repository, client))
+		rt.Mount("/extractions", extraction.BuildRoutes(repository, workerClient))
 	})
 	return r
 }

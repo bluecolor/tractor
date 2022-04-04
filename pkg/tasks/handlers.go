@@ -3,10 +3,13 @@ package tasks
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
+	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/lib/runner"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/hibiken/asynq"
+	"github.com/rs/zerolog/log"
 )
 
 func HandleExtractionTask(ctx context.Context, t *asynq.Task) error {
@@ -14,9 +17,24 @@ func HandleExtractionTask(ctx context.Context, t *asynq.Task) error {
 	if err := json.Unmarshal(t.Payload(), &s); err != nil {
 		return err
 	}
-	r, err := runner.New(ctx, s)
+	log.Debug().Msgf("Running extraction %s", s.Extraction.Name)
+
+	if ctx.Value("feedBackends") == nil {
+		return fmt.Errorf("feedBackends is not set")
+	}
+	backends := ctx.Value("feedBackends").([]msg.FeedBackend)
+	options := []runner.Option{}
+	for _, backend := range backends {
+		options = append(options, runner.WithFeedbackBackendOption(backend))
+	}
+	r, err := runner.New(ctx, s, options...)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to create runner")
 		return err
 	}
-	return r.Run()
+	if err := r.Run(); err != nil {
+		log.Error().Err(err).Msgf("failed to run extraction %s", s.Extraction.Name)
+		return err
+	}
+	return nil
 }

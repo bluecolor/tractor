@@ -1,4 +1,4 @@
-package redis
+package pubsub
 
 import (
 	"errors"
@@ -14,10 +14,7 @@ import (
 func TestNew(t *testing.T) {
 	t.Parallel()
 	mr := miniredis.RunT(t)
-	config := map[string]interface{}{
-		"addr": mr.Addr(),
-	}
-	if _, err := New(config); err != nil {
+	if _, err := New(mr.Addr()); err != nil {
 		t.Error(err)
 	}
 }
@@ -25,10 +22,7 @@ func TestNew(t *testing.T) {
 func TestClose(t *testing.T) {
 	t.Parallel()
 	mr := miniredis.RunT(t)
-	config := map[string]interface{}{
-		"addr": mr.Addr(),
-	}
-	r, err := New(config)
+	r, err := New(mr.Addr())
 	if err != nil {
 		t.Error(err)
 	}
@@ -40,10 +34,7 @@ func TestClose(t *testing.T) {
 func TestStore(t *testing.T) {
 	t.Parallel()
 	mr := miniredis.RunT(t)
-	config := map[string]interface{}{
-		"addr": mr.Addr(),
-	}
-	r, err := New(config)
+	r, err := New(mr.Addr())
 	if err != nil {
 		t.Error(err)
 	}
@@ -54,7 +45,7 @@ func TestStore(t *testing.T) {
 		msg.NewError(msg.InputConnector, errors.New("error")),
 	}
 	for _, f := range feedbacks {
-		if err := r.Store(sessionID, f); err != nil {
+		if err := r.Process(sessionID, f); err != nil {
 			t.Error(err)
 		}
 	}
@@ -76,10 +67,7 @@ func TestStore(t *testing.T) {
 func TestPubsub(t *testing.T) {
 	t.Parallel()
 	mr := miniredis.RunT(t)
-	config := map[string]interface{}{
-		"addr": mr.Addr(),
-	}
-	r, err := New(config)
+	r, err := New(mr.Addr())
 	if err != nil {
 		t.Error(err)
 	}

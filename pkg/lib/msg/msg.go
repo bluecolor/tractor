@@ -7,10 +7,11 @@ import (
 )
 
 type (
-	FeedbackType int
-	Sender       int
-	Record       []interface{}
-	Data         []Record
+	SessionStatusType int
+	FeedbackType      int
+	Sender            int
+	Record            []interface{}
+	Data              []Record
 )
 
 const (
@@ -18,9 +19,14 @@ const (
 	InputConnector
 	OutputConnector
 	Supervisor
+	Driver
 )
 const (
 	Progress FeedbackType = iota
+	SessionRunning
+	SessionDone
+	SessionError
+	SessionSuccess
 	Success
 	Error
 	Info
@@ -148,6 +154,18 @@ func (f *Feedback) IsError() bool {
 func (f *Feedback) IsSuccess() bool {
 	return f.Type == Success
 }
+func (f *Feedback) IsSessionRunning() bool {
+	return f.Type == SessionRunning
+}
+func (f *Feedback) IsSessionDone() bool {
+	return f.Type == SessionDone
+}
+func (f *Feedback) IsSessionError() bool {
+	return f.Type == SessionError
+}
+func (f *Feedback) IsSessionSuccess() bool {
+	return f.Type == SessionSuccess
+}
 func (f *Feedback) IsCancelled() bool {
 	return f.Type == Cancelled
 }
@@ -208,6 +226,26 @@ func NewInfo(sender Sender, content interface{}) *Feedback {
 		Type:    Info,
 		Sender:  sender,
 		Content: content,
+	}
+}
+func NewSessionRunning() *Feedback {
+	return &Feedback{
+		Type: SessionRunning,
+	}
+}
+func NewSessionError() *Feedback {
+	return &Feedback{
+		Type: SessionError,
+	}
+}
+func NewSessionDone() *Feedback {
+	return &Feedback{
+		Type: SessionDone,
+	}
+}
+func NewSessionSuccess() *Feedback {
+	return &Feedback{
+		Type: SessionSuccess,
 	}
 }
 func NewWarning(sender Sender, content interface{}) *Feedback {

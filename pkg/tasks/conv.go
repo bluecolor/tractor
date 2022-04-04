@@ -41,8 +41,9 @@ func getConnection(connection *models.Connection) (*types.Connection, error) {
 		return nil, err
 	}
 	return &types.Connection{
-		Name:   connection.Name,
-		Config: config,
+		Name:           connection.Name,
+		Config:         config,
+		ConnectionType: connection.ConnectionType.Code,
 	}, nil
 }
 func getDataset(dataset *models.Dataset) (*types.Dataset, error) {

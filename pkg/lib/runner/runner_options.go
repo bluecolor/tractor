@@ -5,8 +5,7 @@ import "github.com/bluecolor/tractor/pkg/lib/msg"
 type OptionType int
 
 const (
-	SessionIDOption OptionType = iota
-	FeedbackBackendOption
+	FeedBackendOption OptionType = iota
 )
 
 type Option struct {
@@ -14,15 +13,19 @@ type Option struct {
 	Value interface{}
 }
 
-func WithSessionIDOption(sessionID string) Option {
+func WithFeedbackBackendOption(backend msg.FeedBackend) Option {
 	return Option{
-		Type:  SessionIDOption,
-		Value: sessionID,
-	}
-}
-func WithFeedbackBackendOption(backend msg.FeedbackBackend) Option {
-	return Option{
-		Type:  FeedbackBackendOption,
+		Type:  FeedBackendOption,
 		Value: backend,
 	}
+}
+
+func GetFeedBackends(options ...Option) []msg.FeedBackend {
+	var backends []msg.FeedBackend
+	for _, opt := range options {
+		if opt.Type == FeedBackendOption {
+			backends = append(backends, opt.Value.(msg.FeedBackend))
+		}
+	}
+	return backends
 }

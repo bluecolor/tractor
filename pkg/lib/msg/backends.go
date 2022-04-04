@@ -1,5 +1,5 @@
 package msg
 
-type FeedbackBackend interface {
-	Store(sessionID string, feedback *Feedback) error
+type FeedBackend interface {
+	Process(sessionID string, feedback *Feedback) error
 }

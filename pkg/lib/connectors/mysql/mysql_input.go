@@ -30,6 +30,7 @@ func (m *MySQLConnector) BuildReadQuery(d types.Dataset, i int) (query string, e
 	return
 }
 func (m *MySQLConnector) StartReadWorker(d types.Dataset, w *wire.Wire, i int) (err error) {
+	log.Debug().Msgf("starting mysql read worker %d", i)
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
@@ -38,10 +39,17 @@ func (m *MySQLConnector) StartReadWorker(d types.Dataset, w *wire.Wire, i int) (
 	bw := wire.NewBuffered(w, d.GetBufferSize())
 	query, err := m.BuildReadQuery(d, i)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to build read query")
 		return err
+	}
+	log.Debug().Msgf("mysql select query: %s", query)
+	if m.db == nil {
+		log.Error().Msg("database connection is not initialized")
+		return fmt.Errorf("database connection is not initialized")
 	}
 	rows, err := m.db.Query(query)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to execute query")
 		return err
 	}
 	defer rows.Close()
@@ -53,6 +61,7 @@ func (m *MySQLConnector) StartReadWorker(d types.Dataset, w *wire.Wire, i int) (
 			pointers[i] = &record[i]
 		}
 		if err := rows.Scan(pointers...); err != nil {
+			log.Error().Err(err).Msg("failed to scan row")
 			return err
 		}
 		bw.Send(record)
@@ -61,6 +70,7 @@ func (m *MySQLConnector) StartReadWorker(d types.Dataset, w *wire.Wire, i int) (
 	return
 }
 func (m *MySQLConnector) Read(d types.Dataset, w *wire.Wire) (err error) {
+	log.Debug().Msg("starting mysql read")
 	var parallel int = d.GetParallel()
 	if parallel > 1 {
 		log.Warn().Msgf("parallel read is not supported for MySQL connector. Using %d", 1)
@@ -76,6 +86,7 @@ func (m *MySQLConnector) Read(d types.Dataset, w *wire.Wire) (err error) {
 		go func(wg *esync.WaitGroup, i int) {
 			defer wg.Done()
 			if err := m.StartReadWorker(d, w, i); err != nil {
+				log.Error().Err(err).Msg("read worker failed")
 				wg.HandleError(err)
 			}
 		}(wg, i)

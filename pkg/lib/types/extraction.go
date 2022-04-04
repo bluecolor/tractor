@@ -65,12 +65,21 @@ type Dataset struct {
 }
 
 func (d *Dataset) GetParallel() int {
+	if d.Config == nil {
+		return 1
+	}
 	return d.Config.GetInt("parallel", 1)
 }
 func (d *Dataset) GetBufferSize() int {
+	if d.Config == nil {
+		return 1000
+	}
 	return d.Config.GetInt("bufferSize", 1000)
 }
 func (d *Dataset) GetExtractionMode(def ...string) string {
+	if d.Config == nil {
+		return ""
+	}
 	if len(def) > 0 {
 		return d.Config.GetString("extractionMode", def[0])
 	}

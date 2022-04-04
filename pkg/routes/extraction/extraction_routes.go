@@ -7,8 +7,8 @@ import (
 	"github.com/go-chi/chi"
 )
 
-func BuildRoutes(repository *repo.Repository, client *tasks.Client) *chi.Mux {
-	service := extraction.NewService(repository, client)
+func BuildRoutes(repository *repo.Repository, workerClient *tasks.Client) *chi.Mux {
+	service := extraction.NewService(repository, workerClient)
 	router := chi.NewRouter()
 	router.Get("/", service.FindExtractions)
 	router.Get("/{id}", service.OneExtraction)

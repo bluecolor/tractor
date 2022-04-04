@@ -14,8 +14,9 @@ type DB struct {
 }
 
 type Worker struct {
-	Addr        string `mapstructure:"tasks_addr" default:"localhost:6379"`
-	Concurrency int    `mapstructure:"tasks_concurrency" validate:"min=1" default:"50"`
+	BackendAddr string `mapstructure:"backendAddr" default:"localhost:6379"`
+	Concurrency int    `mapstructure:"workerConcurrency" validate:"min=1" default:"50"`
+	DB          DB     `mapstructure:",squash"`
 }
 
 type App struct {
@@ -27,20 +28,11 @@ type Log struct {
 	Level string `mapstructure:"log_level"`
 }
 
-type RedisBackend struct {
-	Addr string `mapstructure:"feedback_backend__redis__addr"`
-}
-
-type FeedbackBackeds struct {
-	Redis RedisBackend `mapstructure:",squash"`
-}
-
 type Config struct {
-	DB               DB              `mapstructure:",squash"`
-	Worker           Worker          `mapstructure:",squash"`
-	Log              Log             `mapstructure:",squash"`
-	App              App             `mapstructure:",squash"`
-	FeedbackBackends FeedbackBackeds `mapstructure:",squash"`
+	DB     DB     `mapstructure:",squash"`
+	Worker Worker `mapstructure:",squash"`
+	Log    Log    `mapstructure:",squash"`
+	App    App    `mapstructure:",squash"`
 }
 
 func LoadConfig(args ...string) (config Config, err error) {

@@ -53,7 +53,10 @@ func (c *MySQLConnector) Connect() error {
 	return nil
 }
 func (c *MySQLConnector) Close() error {
-	return c.db.Close()
+	if c.db != nil {
+		return c.db.Close()
+	}
+	return nil
 }
 func (c *MySQLConnector) Validate(config connectors.ConnectorConfig) error {
 	fields := reflect.VisibleFields(reflect.TypeOf(c.config))
