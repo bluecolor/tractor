@@ -6,6 +6,12 @@ import (
 	"gorm.io/datatypes"
 )
 
+const (
+	SessionStatusRunning = "running"
+	SessionStatusError   = "error"
+	SessionStatusSuccess = "success"
+)
+
 type Session struct {
 	Model
 	Extraction   *Extraction    `gorm:"foreignkey:ExtractionID" json:"extraction"`

@@ -2,6 +2,7 @@ package wire
 
 import (
 	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/rs/zerolog/log"
 )
 
 type Wire struct {
@@ -24,7 +25,9 @@ func (w *Wire) CloseFeedback() {
 	close(w.feedback)
 }
 func (w *Wire) CloseData() {
+	log.Debug().Msg("closing data channel....")
 	close(w.data)
+	log.Debug().Msg("data channel closed")
 }
 func (w *Wire) SendData(data interface{}, args ...interface{}) {
 	var sendProgress bool = true

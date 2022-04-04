@@ -5,7 +5,9 @@ import (
 
 	"github.com/bluecolor/tractor/pkg/conf"
 	"github.com/bluecolor/tractor/pkg/lib/msg"
-	"github.com/bluecolor/tractor/pkg/tasks/middleware/pubsub"
+	"github.com/bluecolor/tractor/pkg/repo"
+	"github.com/bluecolor/tractor/pkg/tasks/middleware/feed/pubsub"
+	"github.com/bluecolor/tractor/pkg/tasks/middleware/feed/repository"
 	"github.com/hibiken/asynq"
 )
 
@@ -16,19 +18,23 @@ type Worker struct {
 
 func NewWorker(c conf.Worker) *Worker {
 
-	pubsub, err := pubsub.New(c.BackendAddr)
-	if err != nil {
-		panic(err)
-	}
 	worker := asynq.NewServer(
 		asynq.RedisClientOpt{Addr: c.BackendAddr},
 		asynq.Config{
 			Concurrency: c.Concurrency,
 		},
 	)
+	pubsub, err := pubsub.New(c.BackendAddr)
+	if err != nil {
+		panic(err)
+	}
+	r, err := repo.New(c.DB)
+	if err != nil {
+		panic(err)
+	}
 	return &Worker{
 		Server:       worker,
-		feedBackends: []msg.FeedBackend{pubsub},
+		feedBackends: []msg.FeedBackend{pubsub, repository.New(r)},
 	}
 }
 

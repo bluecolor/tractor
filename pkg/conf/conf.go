@@ -16,6 +16,7 @@ type DB struct {
 type Worker struct {
 	BackendAddr string `mapstructure:"backendAddr" default:"localhost:6379"`
 	Concurrency int    `mapstructure:"workerConcurrency" validate:"min=1" default:"50"`
+	DB          DB     `mapstructure:",squash"`
 }
 
 type App struct {

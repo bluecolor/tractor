@@ -25,6 +25,7 @@ type Result struct {
 	isOutputError   bool
 	outputError     error
 	isOutputDone    bool
+	isDriverDone    bool
 	isTimeout       bool
 	isDone          bool
 	errors          types.Errors
@@ -47,22 +48,14 @@ type Runner struct {
 	feedBackends     []msg.FeedBackend
 }
 
-func (r *Result) Eval() *Result {
-	// TODO: add other validations
-	errs := types.Errors{}
-	if r.isInputSuccess && r.isOutputSuccess && r.readCount != r.writeCount {
-		errs.Add(fmt.Errorf("read count %d != write count %d", r.readCount, r.writeCount))
-	}
-	if errs.Count() > 0 {
-		r.errors.Add(errs)
-	}
-	return r
-}
 func (r *Result) Errors() types.Errors {
-	errs := types.Errors{}
-	errs.Add(r.inputError)
-	errs.Add(r.outputError)
-	return errs
+	r.errors = types.Errors{}
+	if r.isInputSuccess && r.isOutputSuccess && r.readCount != r.writeCount {
+		r.errors.Add(fmt.Errorf("read count %d != write count %d", r.readCount, r.writeCount))
+	}
+	r.errors.Add(r.inputError)
+	r.errors.Add(r.outputError)
+	return r.errors
 }
 
 func (r *Result) AddError(err error, es ...types.ErrorSource) {
@@ -83,6 +76,21 @@ func (r *Result) AddError(err error, es ...types.ErrorSource) {
 		r.outputError = err
 	}
 	r.errors.Add(err)
+}
+func (r *Result) IsSuccess() bool {
+	if r.Errors().Count() > 0 {
+		return false
+	}
+	if !r.isInputSuccess || !r.isOutputSuccess {
+		return false
+	}
+	return true
+}
+func (r *Result) IsDone() bool {
+	return r.isDone
+}
+func (r *Result) IsIODone() bool {
+	return r.isInputDone && r.isOutputDone
 }
 
 func New(ctx context.Context, s types.Session, options ...Option) (*Runner, error) {
@@ -137,35 +145,46 @@ func (r *Runner) ProcessFeedback(f *msg.Feedback) {
 	r.result.writeCount += f.OutputProgress()
 	switch {
 	case f.IsInputSuccess():
-		log.Info().Msgf("input success")
 		r.result.isInputSuccess = true
 	case f.IsInputError(), f.IsOutputError():
-		log.Info().Msgf("input error %s", f.Error())
 		r.result.AddError(f.Error(), f.ErrorSource())
 	case f.IsInputDone():
-		log.Info().Msgf("input done")
 		r.result.isInputDone = true
 	case f.IsOutputSuccess():
-		log.Info().Msgf("output success")
 		r.result.isOutputSuccess = true
 	case f.IsOutputDone():
-		log.Info().Msgf("output done")
 		r.result.isOutputDone = true
 	}
 }
 func (r *Runner) Result() *Result {
 	return r.result
 }
+func (r *Runner) ProcessResult() *Result {
+	log.Debug().Msgf("processing result ...")
+	if !r.result.IsIODone() {
+		log.Debug().Msgf("IO is not done yet")
+		return r.result
+	}
+	if r.result.IsSuccess() {
+		r.wire.SendSuccess(msg.Driver)
+		r.wire.SendFeedback(msg.NewSessionSuccess())
+	}
+	if r.result.Errors().Count() > 0 {
+		r.wire.SendFeedback(msg.NewSessionError())
+		r.wire.SendFeedback(msg.NewSessionDone())
+	}
+	return r.result
+}
 func (r *Runner) Run() (err error) {
-	log.Info().Msgf("runner started")
-	r.wire.SendFeedback(msg.NewRunning())
+	log.Debug().Msgf("runner started")
+	r.wire.SendFeedback(msg.NewSessionRunning())
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
 	// supervisor
-	go func(wg *sync.WaitGroup, s types.Session) {
+	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
-		err = r.Supervise(s.Extraction.GetTimeout()).Eval().Errors().Wrap()
-	}(wg, r.session)
+		err = r.Supervise(r.session.Extraction.GetTimeout()).Errors().Wrap()
+	}(wg)
 	// output
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -208,7 +227,7 @@ func (r *Runner) RunOutput(d types.Dataset) error {
 func (r *Runner) ForwardFeedback(feedback *msg.Feedback) {
 	for _, backend := range r.feedBackends {
 		// ignore error
-		backend.Store(r.session.ID, feedback)
+		backend.Process(r.session.ID, feedback)
 	}
 }
 func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
@@ -222,6 +241,7 @@ func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
 	for {
 		select {
 		case f, ok := <-r.wire.ReceiveFeedback():
+			log.Debug().Msgf("received feedback %s", f)
 			if !ok {
 				err := fmt.Errorf("feedback channel closed unexpectedly")
 				r.result.AddError(err, types.SupervisorError)
@@ -231,14 +251,19 @@ func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
 			r.ForwardFeedback(f)
 			r.ProcessFeedback(f)
 			r.TryCloseData()
-			r.TryCloseFeedback()
-			if r.IsDone() {
-				result = r.Result()
-				return
+			if r.IsIODone() {
+				r.ProcessResult()
+				if r.IsDone() {
+					result = r.Result()
+					r.TryCloseFeedback()
+					return
+				}
 			}
 		case <-r.ctx.Done():
+			log.Debug().Msg("supervisor context done")
 			r.Cancel()
 		case <-time.After(timeout):
+			log.Error().Msg("supervisor timeout")
 			if !r.result.isTimeout {
 				r.result.isTimeout = true
 				r.TryCloseData()
@@ -259,7 +284,7 @@ func (r *Runner) TryCloseFeedback() bool {
 func (r *Runner) TryDone() bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.result.isInputDone && r.result.isOutputDone {
+	if r.result.isInputDone && r.result.isOutputDone && r.result.isDriverDone {
 		r.result.isDone = true
 		return true
 	}
@@ -270,12 +295,16 @@ func (r *Runner) TryCloseData() bool {
 	defer r.mu.Unlock()
 	if r.result.isInputDone && !r.isDataClosed {
 		r.wire.CloseData()
+		r.isDataClosed = true
 		return true
 	}
 	return r.isDataClosed
 }
 func (r *Runner) IsDone() bool {
 	return r.TryDone()
+}
+func (r *Runner) IsIODone() bool {
+	return r.result.IsIODone()
 }
 func (r *Runner) Cancel() {
 	r.mu.Lock()

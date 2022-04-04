@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/lib/runner"
@@ -16,9 +17,12 @@ func HandleExtractionTask(ctx context.Context, t *asynq.Task) error {
 	if err := json.Unmarshal(t.Payload(), &s); err != nil {
 		return err
 	}
-	log.Info().Msgf("Running extraction %s", s.Extraction.Name)
+	log.Debug().Msgf("Running extraction %s", s.Extraction.Name)
 
-	backends := ctx.Value("backends").([]msg.FeedBackend)
+	if ctx.Value("feedBackends") == nil {
+		return fmt.Errorf("feedBackends is not set")
+	}
+	backends := ctx.Value("feedBackends").([]msg.FeedBackend)
 	options := []runner.Option{}
 	for _, backend := range backends {
 		options = append(options, runner.WithFeedbackBackendOption(backend))

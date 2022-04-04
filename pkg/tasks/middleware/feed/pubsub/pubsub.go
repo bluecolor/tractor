@@ -56,7 +56,7 @@ func (ps *PubSub) SetWarning(sessionID string, warning string) error {
 	key := getSessionKey(sessionID)
 	return ps.client.HSet(key, WarningKey, warning).Err()
 }
-func (ps *PubSub) Store(sessionID string, feedback *msg.Feedback) error {
+func (ps *PubSub) Process(sessionID string, feedback *msg.Feedback) error {
 	if err := ps.TrySetRunning(sessionID); err != nil {
 		return err
 	}

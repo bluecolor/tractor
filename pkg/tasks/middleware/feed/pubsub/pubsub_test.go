@@ -45,7 +45,7 @@ func TestStore(t *testing.T) {
 		msg.NewError(msg.InputConnector, errors.New("error")),
 	}
 	for _, f := range feedbacks {
-		if err := r.Store(sessionID, f); err != nil {
+		if err := r.Process(sessionID, f); err != nil {
 			t.Error(err)
 		}
 	}
