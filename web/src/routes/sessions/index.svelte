@@ -1,11 +1,14 @@
 <script>
 	import PlayIcon from '@icons/play.svg';
 	import MoreIcon from '@icons/more.svg';
+	import FilterIcon from '@icons/filter.svg';
 	import Dropdown from '@components/Dropdown.svelte';
 	import { onMount } from 'svelte';
 	import { api } from '$lib/utils';
 
+	let extraction;
 	let extractions = [];
+	let filtersOpen = false;
 	let options = [
 		{
 			label: 'Delete',
@@ -33,7 +36,6 @@
 	function onRunExtraction(id) {
 		console.log(id);
 		api('POST', `extractions/${id}/run`).then((response) => {
-			console.log(response);
 			if (response.ok) {
 				console.log('Extraction run');
 			} else {
@@ -70,12 +72,29 @@
   .w-full.h-full.flex.flex-col.pt-4
     .flex.justify-between.items-center
       .title
-        | Extractions
+        | Sessions
       .search.space-x-2.inline-flex.items-center()
-        .action
-          input.input(type="text" placeholder="Search")
-        a.action(href="/extractions/new")
-          button.btn Add
+        <span class="action" on:click='{() => filtersOpen = !filtersOpen}'>
+          FilterIcon(class="icon-btn")
+        </span>
+    +if('filtersOpen')
+      .bg-white.mt-4.p-2.rounded-md
+        .form-item
+          label(for="extractions") Extraction
+          select(name='extractions', bind:value='{extraction}')
+            +each('extractions as e')
+              option(value='{e}') {e.name}
+        .form-item
+          label(for="status") Status
+          .flex.items-center.h-5.gap-x-3(name="status")
+            +each('["Success", "Pending", "Failed", "Cancelled"] as s')
+              .flex
+                input(id="{s + '-status'}" aria-describedby="remember" type="checkbox" class="w-4 h-4 bg-gray-50 rounded border border-gray-300 focus:ring-2 focus:ring-blue-200")
+                .ml-3.text-sm
+                  label(for="{s + '-status'}" class="font-medium text-gray-700") {s}
+        .actions.flex.justify-start.gap-x-3
+          button.btn Apply
+          button.btn.danger Clear
 
     .bg-white.mt-4.p-2.rounded-md
       table.min-w-full

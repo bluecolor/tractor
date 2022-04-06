@@ -114,7 +114,7 @@
           th.actions.flex.justify-end.items-center(align="right")
             .action.icon-btn.mr-3(on:click='{onAddMapping}')
               PlusIcon()
-            Dropdown(label="Options" bind:options='{options}' on:select='{onDropdown}') Reset
+            Dropdown(label="Options" bind:options='{options}' on:select='{onDropdown}')
               div(slot="button")
                 MoreIcon.icon-btn()
       tbody
