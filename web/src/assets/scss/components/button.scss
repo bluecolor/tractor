@@ -19,5 +19,12 @@ button {
             focus:ring-yellow-200
             focus:ring-offset-yellow-200;
 		}
+    &.danger {
+			@apply focus:ring-offset-red-200
+            bg-red-400
+            hover:bg-red-500
+            focus:ring-red-200
+            focus:ring-offset-red-200;
+		}
 	}
 }

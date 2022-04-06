@@ -22,11 +22,11 @@ const (
 	Driver
 )
 const (
-	Progress FeedbackType = iota
-	SessionRunning
+	SessionRunning FeedbackType = iota
 	SessionDone
 	SessionError
 	SessionSuccess
+	Progress
 	Success
 	Error
 	Info
@@ -49,6 +49,14 @@ func SenderFromConnectorType(ct types.ConnectorType) Sender {
 
 func (ft FeedbackType) String() string {
 	switch ft {
+	case SessionRunning:
+		return "SessionRunning"
+	case SessionDone:
+		return "SessionDone"
+	case SessionError:
+		return "SessionError"
+	case SessionSuccess:
+		return "SessionSuccess"
 	case Progress:
 		return "Progress"
 	case Success:
@@ -230,22 +238,26 @@ func NewInfo(sender Sender, content interface{}) *Feedback {
 }
 func NewSessionRunning() *Feedback {
 	return &Feedback{
-		Type: SessionRunning,
+		Sender: Driver,
+		Type:   SessionRunning,
 	}
 }
 func NewSessionError() *Feedback {
 	return &Feedback{
-		Type: SessionError,
+		Sender: Driver,
+		Type:   SessionError,
 	}
 }
 func NewSessionDone() *Feedback {
 	return &Feedback{
-		Type: SessionDone,
+		Sender: Driver,
+		Type:   SessionDone,
 	}
 }
 func NewSessionSuccess() *Feedback {
 	return &Feedback{
-		Type: SessionSuccess,
+		Sender: Driver,
+		Type:   SessionSuccess,
 	}
 }
 func NewWarning(sender Sender, content interface{}) *Feedback {

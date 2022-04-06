@@ -1,14 +1,33 @@
 <script>
 	import PlayIcon from '@icons/play.svg';
 	import MoreIcon from '@icons/more.svg';
-
+	import Dropdown from '@components/Dropdown.svelte';
 	import { onMount } from 'svelte';
 	import { api } from '$lib/utils';
 
 	let extractions = [];
+	let options = [
+		{
+			label: 'Delete',
+			value: 'delete'
+		},
+		{
+			label: 'Sessions',
+			value: 'sessions'
+		}
+	];
+
 	onMount(async () => {
 		const response = await api('GET', 'extractions');
-		extractions = await response.json();
+		const result = await response.json();
+		extractions = result.map((r) => {
+			if (r.sessions.length > 0) {
+				r.status = r.sessions[0].status;
+			} else {
+				r.status = 'pending';
+			}
+			return r;
+		});
 	});
 
 	function onRunExtraction(id) {
@@ -37,6 +56,12 @@
 					});
 				}
 			});
+		}
+	}
+	function onDropdown(e, id) {
+		switch (e.detail.value) {
+			case 'delete':
+				onDeleteExtraction(id);
 		}
 	}
 </script>
@@ -76,15 +101,21 @@
               td
                 | {e.targetDataset.name}<span class="text-gray-400">@{e.targetDataset.connection.name} </span>
               td
-                .flex.justify-center.items-center.m-1.font-medium.py-1.px-2.bg-white.rounded-full.text-gray-700.bg-gray-100.border.border-gray-300
-                  .text-xs.font-normal.leading-none.max-w-full.flex-initial Idle
+                +if('e.status === "success"')
+                  .flex.justify-center.items-center.m-1.font-medium.py-1.px-2.bg-white.rounded-full.text-green-700.bg-green-100.border.border-green-300
+                    .text-xs.font-normal.leading-none.max-w-full.flex-initial { e.status }
+                  +else
+                    .flex.justify-center.items-center.m-1.font-medium.py-1.px-2.bg-white.rounded-full.text-gray-700.bg-gray-100.border.border-gray-300
+                      .text-xs.font-normal.leading-none.max-w-full.flex-initial { e.status }
 
               td.actions
                 div.flex.justify-end.items-center
                   span(on:click='{onRunExtraction(e.id)}')
                     PlayIcon(class="icon-btn")
-                  span(on:click='{onDeleteExtraction(e.id)}')
-                    MoreIcon(class="trash")
+                  <Dropdown label="Options" bind:options='{options}' on:select='{(x) => onDropdown(x, e.id)}'>
+                    div(slot="button")
+                      MoreIcon.icon-btn()
+                  </Dropdown>
 
 
 </template>

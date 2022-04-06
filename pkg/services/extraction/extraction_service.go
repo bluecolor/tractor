@@ -10,6 +10,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/go-chi/chi"
 	"github.com/hibiken/asynq"
+	"gorm.io/gorm"
 )
 
 type Service struct {
@@ -33,17 +34,20 @@ func (s *Service) OneExtraction(w http.ResponseWriter, r *http.Request) {
 	utils.RespondwithJSON(w, http.StatusOK, ext)
 }
 func (s *Service) FindExtractions(w http.ResponseWriter, r *http.Request) {
-	exts := []models.Extraction{}
+	extractions := []models.Extraction{}
 	result := s.repo.
 		Preload("SourceDataset").
 		Preload("SourceDataset.Connection").
 		Preload("TargetDataset.Connection").
 		Preload("TargetDataset").
-		Find(&exts)
+		Preload("Sessions", func(db *gorm.DB) *gorm.DB {
+			return db.Order("sessions.created_at desc").Limit(1)
+		}).
+		Find(&extractions)
 	if result.Error != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, result.Error)
 	}
-	utils.RespondwithJSON(w, http.StatusOK, exts)
+	utils.RespondwithJSON(w, http.StatusOK, extractions)
 }
 func (s *Service) DeleteExtraction(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

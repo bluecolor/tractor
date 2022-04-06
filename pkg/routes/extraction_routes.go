@@ -1,4 +1,4 @@
-package extraction
+package routes
 
 import (
 	"github.com/bluecolor/tractor/pkg/repo"
@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-func BuildRoutes(repository *repo.Repository, workerClient *tasks.Client) *chi.Mux {
+func buildExtractionRoutes(repository *repo.Repository, workerClient *tasks.Client) *chi.Mux {
 	service := extraction.NewService(repository, workerClient)
 	router := chi.NewRouter()
 	router.Get("/", service.FindExtractions)

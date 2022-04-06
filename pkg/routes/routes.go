@@ -2,8 +2,6 @@ package routes
 
 import (
 	"github.com/bluecolor/tractor/pkg/repo"
-	"github.com/bluecolor/tractor/pkg/routes/connection"
-	"github.com/bluecolor/tractor/pkg/routes/extraction"
 	"github.com/bluecolor/tractor/pkg/tasks"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -30,8 +28,10 @@ func BuildRoutes(repository *repo.Repository, workerClient *tasks.Client) *chi.M
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 
 	r.Route("/api/v1", func(rt chi.Router) {
-		rt.Mount("/connections", connection.BuildRoutes(repository))
-		rt.Mount("/extractions", extraction.BuildRoutes(repository, workerClient))
+		rt.Mount("/connections", buildConnectionRoutes(repository))
+		rt.Mount("/extractions", buildExtractionRoutes(repository, workerClient))
+		rt.Mount("/sessions", buildSessionRoutes(repository))
+
 	})
 	return r
 }

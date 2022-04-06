@@ -1,4 +1,4 @@
-package connection
+package routes
 
 import (
 	"github.com/bluecolor/tractor/pkg/repo"
@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-func BuildRoutes(repository *repo.Repository) *chi.Mux {
+func buildConnectionRoutes(repository *repo.Repository) *chi.Mux {
 	service := connection.NewService(repository)
 	router := chi.NewRouter()
 	// connection routes
