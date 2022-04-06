@@ -1,14 +1,16 @@
 <script>
 	import PlayIcon from '@icons/play.svg';
-	import MoreIcon from '@icons/more.svg';
 	import FilterIcon from '@icons/filter.svg';
-	import Dropdown from '@components/Dropdown.svelte';
+	import TrashIcon from '@icons/trash.svg';
+	import InfoIcon from '@icons/info.svg';
 	import { onMount } from 'svelte';
 	import { api } from '$lib/utils';
 
 	let extraction;
+	let sessions = [];
 	let extractions = [];
 	let filtersOpen = false;
+	let detailId = 53;
 	let options = [
 		{
 			label: 'Delete',
@@ -21,20 +23,19 @@
 	];
 
 	onMount(async () => {
-		const response = await api('GET', 'extractions');
-		const result = await response.json();
-		extractions = result.map((r) => {
-			if (r.sessions.length > 0) {
-				r.status = r.sessions[0].status;
-			} else {
-				r.status = 'pending';
-			}
-			return r;
+		Promise.all([api('GET', 'extractions'), api('GET', 'sessions')]).then(async ([e, s]) => {
+			extractions = await e.json();
+			sessions = await s.json();
+			console.log(sessions);
 		});
+
+		let response = await api('GET', 'sessions');
+		sessions = await response.json();
+		response = await api('GET', 'extractions');
+		extractions = await response.json();
 	});
 
 	function onRunExtraction(id) {
-		console.log(id);
 		api('POST', `extractions/${id}/run`).then((response) => {
 			if (response.ok) {
 				console.log('Extraction run');
@@ -45,27 +46,22 @@
 			}
 		});
 	}
-	function onDeleteExtraction(id) {
-		let extraction = extractions.find((e) => e.id === id);
-		let ok = confirm('Are you sure you want to delete this extraction? ' + extraction.name);
-		if (ok) {
-			api('DELETE', 'extractions/' + id).then((response) => {
-				if (response.ok) {
-					extractions = extractions.filter((e) => e.id !== id);
-				} else {
-					response.text().then((text) => {
-						alert('Failed to delete extraction\n' + text);
-					});
-				}
-			});
-		}
-	}
+	function onDeleteExtraction(id) {}
 	function onDropdown(e, id) {
 		switch (e.detail.value) {
 			case 'delete':
 				onDeleteExtraction(id);
 		}
 	}
+	function formatDate(d) {
+		return new Date(d).toLocaleString();
+	}
+	$: getRowClass = function (sessionId) {
+		if (detailId === sessionId) {
+			return 'last:border-b-0 bg-yellow-50';
+		}
+		return 'last:border-b-0 hover:bg-gray-50';
+	};
 </script>
 
 <template lang="pug">
@@ -110,32 +106,41 @@
               | Status
             th.actions
         tbody
-          +each('extractions as e')
-            tr(class="last:border-b-0  hover:bg-gray-50")
+          +each('sessions as s')
+            tr(class="{getRowClass(s.id)}")
               td
-                a(href="/extractions/{e.id}")
-                  | {e.name}
+                a(href="/extractions/{s.extraction.id}")
+                  | {s.extraction.name}
               td
-                | {e.sourceDataset.name}<span class="text-gray-400">@{e.sourceDataset.connection.name} </span>
+                | {s.extraction.sourceDataset.name}<span class="text-gray-400">@{s.extraction.sourceDataset.connection.name} </span>
               td
-                | {e.targetDataset.name}<span class="text-gray-400">@{e.targetDataset.connection.name} </span>
+                | {s.extraction.targetDataset.name}<span class="text-gray-400">@{s.extraction.targetDataset.connection.name} </span>
               td
-                +if('e.status === "success"')
+                +if('s.status === "success"')
                   .flex.justify-center.items-center.m-1.font-medium.py-1.px-2.bg-white.rounded-full.text-green-700.bg-green-100.border.border-green-300
-                    .text-xs.font-normal.leading-none.max-w-full.flex-initial { e.status }
+                    .text-xs.font-normal.leading-none.max-w-full.flex-initial { s.status }
                   +else
                     .flex.justify-center.items-center.m-1.font-medium.py-1.px-2.bg-white.rounded-full.text-gray-700.bg-gray-100.border.border-gray-300
-                      .text-xs.font-normal.leading-none.max-w-full.flex-initial { e.status }
-
+                      .text-xs.font-normal.leading-none.max-w-full.flex-initial { s.status }
               td.actions
                 div.flex.justify-end.items-center
-                  span(on:click='{onRunExtraction(e.id)}')
-                    PlayIcon(class="icon-btn")
-                  <Dropdown label="Options" bind:options='{options}' on:select='{(x) => onDropdown(x, e.id)}'>
-                    div(slot="button")
-                      MoreIcon.icon-btn()
-                  </Dropdown>
+                  span(on:click='{onRunExtraction(s.id)}')
+                    TrashIcon(class="trash")
+                  <span on:click='{() => detailId = detailId && detailId===s.id ? null : s.id }'>
+                    InfoIcon(class="icon-btn")
+                  </span>
+            +if('detailId === s.id')
+              <tr class="{getRowClass(s.id)}">
+                td(colspan="5")
+                  .flex.flex-col.pl-4
+                    .flex.border-b.border-gray-200(class="hover:bg-yellow-100")
+                      .text-gray-400.border-r.border-gray-200(class="w-1/3") Start Time
+                      .text-gray-500.pl-2 {formatDate(s.createdAt)}
+                    .flex(class="hover:bg-yellow-100")
+                      .text-gray-400.border-r.border-gray-200(class="w-1/3") End Time
+                      .text-gray-500.pl-2 {formatDate(s.createdAt)}
 
+              </tr>
 
 </template>
 
