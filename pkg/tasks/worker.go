@@ -5,9 +5,7 @@ import (
 
 	"github.com/bluecolor/tractor/pkg/conf"
 	"github.com/bluecolor/tractor/pkg/lib/msg"
-	"github.com/bluecolor/tractor/pkg/repo"
-	"github.com/bluecolor/tractor/pkg/tasks/middleware/feed/pubsub"
-	"github.com/bluecolor/tractor/pkg/tasks/middleware/feed/repository"
+	"github.com/bluecolor/tractor/pkg/tasks/middleware/feedbackend"
 	"github.com/hibiken/asynq"
 )
 
@@ -24,17 +22,13 @@ func NewWorker(c conf.Worker) *Worker {
 			Concurrency: c.Concurrency,
 		},
 	)
-	pubsub, err := pubsub.New(c.BackendAddr)
-	if err != nil {
-		panic(err)
-	}
-	r, err := repo.New(c.DB)
+	fb, err := feedbackend.New(c.BackendAddr, c.DB)
 	if err != nil {
 		panic(err)
 	}
 	return &Worker{
 		Server:       worker,
-		feedBackends: []msg.FeedBackend{pubsub, repository.New(r)},
+		feedBackends: []msg.FeedBackend{fb},
 	}
 }
 

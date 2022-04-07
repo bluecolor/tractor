@@ -10,7 +10,7 @@
 	let sessions = [];
 	let extractions = [];
 	let filtersOpen = false;
-	let detailId = 53;
+	let detailId = null;
 	let options = [
 		{
 			label: 'Delete',
@@ -46,15 +46,42 @@
 			}
 		});
 	}
-	function onDeleteExtraction(id) {}
-	function onDropdown(e, id) {
-		switch (e.detail.value) {
-			case 'delete':
-				onDeleteExtraction(id);
+	function onDeleteSession(id) {
+		let ok = confirm('Are you sure you want to delete this session? ');
+		if (ok) {
+			api('DELETE', 'sessions/' + id).then((response) => {
+				if (response.ok) {
+					sessions = sessions.filter((s) => s.id !== id);
+				} else {
+					response.text().then((text) => {
+						alert('Failed to delete session\n' + text);
+					});
+				}
+			});
 		}
 	}
 	function formatDate(d) {
 		return new Date(d).toLocaleString();
+	}
+	function getSessionDetails(s) {
+		return [
+			{
+				label: 'Started at',
+				value: formatDate(s.createdAt)
+			},
+			{
+				label: 'Ended at',
+				value: formatDate(s.createdAt)
+			},
+			{
+				label: 'Duration',
+				value: '100 minutes'
+			},
+			{
+				label: 'Read/Write count',
+				value: 'R:1012 / W:1012'
+			}
+		];
 	}
 	$: getRowClass = function (sessionId) {
 		if (detailId === sessionId) {
@@ -117,14 +144,14 @@
                 | {s.extraction.targetDataset.name}<span class="text-gray-400">@{s.extraction.targetDataset.connection.name} </span>
               td
                 +if('s.status === "success"')
-                  .flex.justify-center.items-center.m-1.font-medium.py-1.px-2.bg-white.rounded-full.text-green-700.bg-green-100.border.border-green-300
+                  .flex.justify-center.items-center.font-medium.py-1.px-2.bg-white.rounded-full.text-green-700.bg-green-100.border.border-green-300
                     .text-xs.font-normal.leading-none.max-w-full.flex-initial { s.status }
                   +else
-                    .flex.justify-center.items-center.m-1.font-medium.py-1.px-2.bg-white.rounded-full.text-gray-700.bg-gray-100.border.border-gray-300
+                    .flex.justify-center.items-center.font-medium.py-1.px-2.bg-white.rounded-full.text-gray-700.bg-gray-100.border.border-gray-300
                       .text-xs.font-normal.leading-none.max-w-full.flex-initial { s.status }
               td.actions
                 div.flex.justify-end.items-center
-                  span(on:click='{onRunExtraction(s.id)}')
+                  span(on:click='{onDeleteSession(s.id)}')
                     TrashIcon(class="trash")
                   <span on:click='{() => detailId = detailId && detailId===s.id ? null : s.id }'>
                     InfoIcon(class="icon-btn")
@@ -133,12 +160,10 @@
               <tr class="{getRowClass(s.id)}">
                 td(colspan="5")
                   .flex.flex-col.pl-4
-                    .flex.border-b.border-gray-200(class="hover:bg-yellow-100")
-                      .text-gray-400.border-r.border-gray-200(class="w-1/3") Start Time
-                      .text-gray-500.pl-2 {formatDate(s.createdAt)}
-                    .flex(class="hover:bg-yellow-100")
-                      .text-gray-400.border-r.border-gray-200(class="w-1/3") End Time
-                      .text-gray-500.pl-2 {formatDate(s.createdAt)}
+                    +each("getSessionDetails(s) as d")
+                      .detail-item.flex.border-b.border-gray-200(class="last:border-b-0")
+                        .label.text-gray-400.border-r.border-gray-200(class="w-1/3") {d.label}
+                        .value.text-gray-500.pl-2 {d.value}
 
               </tr>
 
@@ -150,5 +175,11 @@
 	}
 	table tbody tr td {
 		@apply font-normal text-base text-gray-700 pl-4 pr-4 pb-2 pt-2;
+	}
+	.detail-item:hover .label {
+		@apply text-red-400;
+	}
+	.detail-item:hover .value {
+		@apply text-red-500;
 	}
 </style>

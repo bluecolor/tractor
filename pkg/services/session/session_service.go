@@ -6,6 +6,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/models"
 	"github.com/bluecolor/tractor/pkg/repo"
 	"github.com/bluecolor/tractor/pkg/utils"
+	"github.com/go-chi/chi"
 )
 
 type Service struct {
@@ -30,4 +31,18 @@ func (s *Service) FindSessions(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, result.Error)
 	}
 	utils.RespondwithJSON(w, http.StatusOK, sessions)
+}
+
+func (s *Service) DeleteSession(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	session := models.Session{}
+	if err := s.repo.First(&session, id).Error; err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := s.repo.Delete(&session).Error; err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	utils.RespondwithJSON(w, http.StatusOK, session)
 }

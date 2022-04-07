@@ -6,23 +6,23 @@ import (
 )
 
 type Wire struct {
-	data     chan msg.Data
-	feedback chan *msg.Feedback
+	data  chan msg.Data
+	feeds chan *msg.Feed
 }
 
 func New() *Wire {
 	return &Wire{
-		data:     make(chan msg.Data, 1000),
-		feedback: make(chan *msg.Feedback, 100),
+		data:  make(chan msg.Data, 1000),
+		feeds: make(chan *msg.Feed, 100),
 	}
 }
 
 func (w *Wire) Close() {
 	w.CloseData()
-	w.CloseFeedback()
+	w.CloseFeeds()
 }
-func (w *Wire) CloseFeedback() {
-	close(w.feedback)
+func (w *Wire) CloseFeeds() {
+	close(w.feeds)
 }
 func (w *Wire) CloseData() {
 	log.Debug().Msg("closing data channel....")
@@ -43,29 +43,29 @@ func (w *Wire) SendData(data interface{}, args ...interface{}) {
 func (w *Wire) ReceiveData() <-chan msg.Data {
 	return w.data
 }
-func (w *Wire) SendFeedback(feedback *msg.Feedback) {
-	w.feedback <- feedback
+func (w *Wire) SendFeed(feed *msg.Feed) {
+	w.feeds <- feed
 }
-func (w *Wire) ReceiveFeedback() <-chan *msg.Feedback {
-	return w.feedback
+func (w *Wire) ReceiveFeedback() <-chan *msg.Feed {
+	return w.feeds
 }
 func (w *Wire) SendSuccess(sender msg.Sender, args ...interface{}) {
-	w.feedback <- msg.NewSuccess(sender, args)
+	w.feeds <- msg.NewSuccess(sender, args)
 }
 func (w *Wire) SendProgress(sender msg.Sender, count int) {
-	w.feedback <- msg.NewProgress(sender, count)
+	w.feeds <- msg.NewProgress(sender, count)
 }
 func (w *Wire) SendError(sender msg.Sender, err error) {
-	w.feedback <- msg.NewError(sender, err)
+	w.feeds <- msg.NewError(sender, err)
 }
 func (w *Wire) SendInfo(sender msg.Sender, content interface{}) {
-	w.feedback <- msg.NewInfo(sender, content)
+	w.feeds <- msg.NewInfo(sender, content)
 }
 func (w *Wire) SendWarning(sender msg.Sender, content interface{}) {
-	w.feedback <- msg.NewWarning(sender, content)
+	w.feeds <- msg.NewWarning(sender, content)
 }
 func (w *Wire) SendDebug(sender msg.Sender, content interface{}) {
-	w.feedback <- msg.NewDebug(sender, content)
+	w.feeds <- msg.NewDebug(sender, content)
 }
 func (w *Wire) SendInputProgress(progress int) {
 	w.SendProgress(msg.InputConnector, progress)
@@ -104,7 +104,7 @@ func (w *Wire) SendOutputDebug(content interface{}) {
 	w.SendDebug(msg.OutputConnector, content)
 }
 func (w *Wire) SendCancelled(sender msg.Sender, args ...interface{}) {
-	w.feedback <- msg.NewCancelled(sender, args)
+	w.feeds <- msg.NewCancelled(sender, args)
 }
 func (w *Wire) SendInputCancelled(args ...interface{}) {
 	w.SendCancelled(msg.InputConnector, args...)
@@ -113,7 +113,7 @@ func (w *Wire) SendOutputCancelled(args ...interface{}) {
 	w.SendCancelled(msg.OutputConnector, args...)
 }
 func (w *Wire) SendDone(sender msg.Sender, args ...interface{}) {
-	w.feedback <- msg.NewDone(sender, args)
+	w.feeds <- msg.NewDone(sender, args)
 }
 func (w *Wire) SendInputDone(args ...interface{}) {
 	w.SendDone(msg.InputConnector, args...)

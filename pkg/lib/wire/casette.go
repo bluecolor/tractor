@@ -4,15 +4,15 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 )
 
-type Casette []*msg.Feedback
+type Casette []*msg.Feed
 
 func NewCasette() *Casette {
 	return &Casette{}
 }
 
 type Memo struct {
-	errors           []*msg.Feedback
-	successes        []*msg.Feedback
+	errors           []*msg.Feed
+	successes        []*msg.Feed
 	hasInputError    bool
 	hasInputSuccess  bool
 	hasOutputError   bool
@@ -66,14 +66,14 @@ func (m *Memo) ReadCount() int {
 func (m *Memo) WriteCount() int {
 	return m.writeCount
 }
-func (m *Memo) Errors() []*msg.Feedback {
+func (m *Memo) Errors() []*msg.Feed {
 	return m.errors
 }
-func (m *Memo) Successes() []*msg.Feedback {
+func (m *Memo) Successes() []*msg.Feed {
 	return m.successes
 }
 
-func (c *Casette) process(m *msg.Feedback) {
+func (c *Casette) process(m *msg.Feed) {
 	*c = append(*c, m)
 }
 func (c *Casette) Record(w *Wire) {
@@ -81,7 +81,7 @@ func (c *Casette) Record(w *Wire) {
 		c.process(m)
 	}
 }
-func (c *Casette) RecordWithCallback(w *Wire, callback func(*msg.Feedback) error) error {
+func (c *Casette) RecordWithCallback(w *Wire, callback func(*msg.Feed) error) error {
 	for m := range w.ReceiveFeedback() {
 		c.process(m)
 		if err := callback(m); err != nil {
@@ -106,7 +106,7 @@ func (c *Casette) GetWriteCount() (count int) {
 	}
 	return
 }
-func (c *Casette) GetFeedbacks() []*msg.Feedback {
+func (c *Casette) GetFeedbacks() []*msg.Feed {
 	return *c
 }
 func (c *Casette) HasSuccess() bool {
@@ -154,8 +154,8 @@ func (c *Casette) Errors() []error {
 }
 func (c *Casette) Memo() *Memo {
 	var memo *Memo = &Memo{
-		errors:    []*msg.Feedback{},
-		successes: []*msg.Feedback{},
+		errors:    []*msg.Feed{},
+		successes: []*msg.Feed{},
 	}
 	if len(*c) == 0 {
 		return memo
