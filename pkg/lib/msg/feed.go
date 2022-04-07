@@ -1,6 +1,7 @@
 package msg
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/bluecolor/tractor/pkg/lib/types"
@@ -43,17 +44,22 @@ func (ft FeedType) String() string {
 	}
 }
 
-type FeedBackend interface {
-	Process(sessionID string, feed *Feed) error
-}
 type Feed struct {
-	Type    FeedType    `json:"type"`
-	Sender  Sender      `json:"sender"`
-	Content interface{} `json:"content"`
+	Type      FeedType    `json:"type"`
+	Sender    Sender      `json:"sender"`
+	SessionID string      `json:"sessionId"`
+	Content   interface{} `json:"content"`
+}
+
+func (f *Feed) Marshal() ([]byte, error) {
+	return json.Marshal(f)
+}
+func (f *Feed) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, f)
 }
 
 func (f *Feed) String() string {
-	return fmt.Sprintf("%v: %v", f.Sender, f.Type)
+	return fmt.Sprintf("Sender:%v Type:%v SessionID:%v", f.Sender, f.Type, f.SessionID)
 }
 func (f *Feed) Data() []Record {
 	return f.Content.([]Record)

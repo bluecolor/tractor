@@ -9,30 +9,30 @@ import (
 	"github.com/bluecolor/tractor/pkg/models"
 )
 
-func (f *FeedBackend) UpdateRepo(sessionID string, feed *msg.Feed) error {
+func (h *Handler) UpdateRepo(feed *msg.Feed) error {
 	if !feed.IsSessionStatus() {
 		return nil
 	}
 	status := strings.ToLower(feed.Type.String())
-	sid, err := strconv.Atoi(sessionID)
+	sid, err := strconv.Atoi(feed.SessionID)
 	if err != nil {
 		return err
 	}
 	session := models.Session{}
-	if err := f.repo.First(&session, sid).Error; err != nil {
+	if err := h.repo.First(&session, sid).Error; err != nil {
 		return err
 	}
 	if session.Status != status {
 		session.Status = status
-		f.updateSessionWithCache(&session)
+		h.updateSessionWithCache(&session)
 		session.Log = fmt.Sprintf("%v", feed.Content)
-		if err := f.repo.Save(&session).Error; err != nil {
+		if err := h.repo.Save(&session).Error; err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (f *FeedBackend) updateSessionWithCache(session *models.Session) error {
+func (h *Handler) updateSessionWithCache(session *models.Session) error {
 	return nil
 }
