@@ -27,7 +27,7 @@ func NewHandler(cache *redis.Client, repo *repo.Repository) *Handler {
 	}
 }
 
-func (h *Handler) Process(feed *msg.Feed, args ...interface{}) error {
+func (h *Handler) Process(feed *msg.Feed, reply *error) error {
 	if err := h.UpdateCache(feed); err != nil {
 		return err
 	}
