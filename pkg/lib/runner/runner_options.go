@@ -1,11 +1,13 @@
 package runner
 
-import "github.com/bluecolor/tractor/pkg/lib/msg"
+import (
+	"net/rpc"
+)
 
 type OptionType int
 
 const (
-	FeedBackendOption OptionType = iota
+	FeedClientOption OptionType = iota
 )
 
 type Option struct {
@@ -13,19 +15,18 @@ type Option struct {
 	Value interface{}
 }
 
-func WithFeedbackBackendOption(backend msg.FeedBackend) Option {
+func WithFeedClientOption(client *rpc.Client) Option {
 	return Option{
-		Type:  FeedBackendOption,
-		Value: backend,
+		Type:  FeedClientOption,
+		Value: client,
 	}
 }
 
-func GetFeedBackends(options ...Option) []msg.FeedBackend {
-	var backends []msg.FeedBackend
+func GetFeedClient(options ...Option) *rpc.Client {
 	for _, opt := range options {
-		if opt.Type == FeedBackendOption {
-			backends = append(backends, opt.Value.(msg.FeedBackend))
+		if opt.Type == FeedClientOption {
+			return opt.Value.(*rpc.Client)
 		}
 	}
-	return backends
+	return nil
 }

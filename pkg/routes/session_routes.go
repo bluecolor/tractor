@@ -10,5 +10,6 @@ func buildSessionRoutes(repository *repo.Repository) *chi.Mux {
 	service := session.NewService(repository)
 	router := chi.NewRouter()
 	router.Get("/", service.FindSessions)
+	router.Delete("/{id}", service.DeleteSession)
 	return router
 }

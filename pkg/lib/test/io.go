@@ -11,7 +11,7 @@ func Record(w *wire.Wire) *wire.Casette {
 	var inputSuccess, outputSuccess bool
 	c := wire.NewCasette()
 
-	cb := func(m *msg.Feedback) error {
+	cb := func(m *msg.Feed) error {
 		if m.Type == msg.Cancelled {
 			return errors.New("cancelled")
 		}
@@ -26,7 +26,7 @@ func Record(w *wire.Wire) *wire.Casette {
 				outputSuccess = true
 			}
 			if inputSuccess && outputSuccess {
-				w.CloseFeedback()
+				w.CloseFeeds()
 			}
 		}
 		return nil

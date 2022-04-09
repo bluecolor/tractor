@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+	"net/rpc"
 	"sync"
 	"time"
 
@@ -45,7 +46,7 @@ type Runner struct {
 	result           *Result
 	isFeedbackClosed bool
 	isDataClosed     bool
-	feedBackends     []msg.FeedBackend
+	feedClient       *rpc.Client
 }
 
 func (r *Result) Errors() types.Errors {
@@ -132,7 +133,7 @@ func New(ctx context.Context, s types.Session, options ...Option) (*Runner, erro
 			input:  inputConnector,
 			output: outputConnector,
 		},
-		feedBackends: GetFeedBackends(options...),
+		feedClient: GetFeedClient(options...),
 		result: &Result{
 			errors: types.Errors{},
 		},
@@ -140,7 +141,7 @@ func New(ctx context.Context, s types.Session, options ...Option) (*Runner, erro
 	return r, nil
 }
 
-func (r *Runner) ProcessFeedback(f *msg.Feedback) {
+func (r *Runner) ProcessFeedback(f *msg.Feed) {
 	r.result.readCount += f.InputProgress()
 	r.result.writeCount += f.OutputProgress()
 	switch {
@@ -167,17 +168,17 @@ func (r *Runner) ProcessResult() *Result {
 	}
 	if r.result.IsSuccess() {
 		r.wire.SendSuccess(msg.Driver)
-		r.wire.SendFeedback(msg.NewSessionSuccess())
+		r.wire.SendFeed(msg.NewSessionSuccess())
 	}
 	if r.result.Errors().Count() > 0 {
-		r.wire.SendFeedback(msg.NewSessionError())
-		r.wire.SendFeedback(msg.NewSessionDone())
+		r.wire.SendFeed(msg.NewSessionError())
+		r.wire.SendFeed(msg.NewSessionDone())
 	}
 	return r.result
 }
 func (r *Runner) Run() (err error) {
 	log.Debug().Msgf("runner started")
-	r.wire.SendFeedback(msg.NewSessionRunning())
+	r.wire.SendFeed(msg.NewSessionRunning())
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
 	// supervisor
@@ -224,10 +225,14 @@ func (r *Runner) RunOutput(d types.Dataset) error {
 
 	return r.connectors.output.Write(d, r.wire)
 }
-func (r *Runner) ForwardFeedback(feedback *msg.Feedback) {
-	for _, backend := range r.feedBackends {
-		// ignore error
-		backend.Process(r.session.ID, feedback)
+func (r *Runner) ForwardFeed(feed *msg.Feed) {
+	if r.feedClient == nil {
+		return
+	}
+	feed.SessionID = r.session.ID
+	err := r.feedClient.Call("Handler.Process", feed, nil)
+	if err != nil {
+		log.Error().Msgf("feed client error %s", err)
 	}
 }
 func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
@@ -248,14 +253,14 @@ func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
 				result = r.Result()
 				return
 			}
-			r.ForwardFeedback(f)
+			r.ForwardFeed(f)
 			r.ProcessFeedback(f)
 			r.TryCloseData()
 			if r.IsIODone() {
 				r.ProcessResult()
 				if r.IsDone() {
 					result = r.Result()
-					r.TryCloseFeedback()
+					r.TryCloseFeeds()
 					return
 				}
 			}
@@ -271,12 +276,12 @@ func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
 		}
 	}
 }
-func (r *Runner) TryCloseFeedback() bool {
+func (r *Runner) TryCloseFeeds() bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.result.isInputDone && r.result.isOutputDone && !r.isFeedbackClosed {
 		r.isFeedbackClosed = true
-		r.wire.CloseFeedback()
+		r.wire.CloseFeeds()
 		return true
 	}
 	return r.isFeedbackClosed
@@ -315,5 +320,5 @@ func (r *Runner) Cancel() {
 	r.isDataClosed = true
 	r.isFeedbackClosed = true
 	r.wire.CloseData()
-	r.wire.CloseFeedback()
+	r.wire.CloseFeeds()
 }

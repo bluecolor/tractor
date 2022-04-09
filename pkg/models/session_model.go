@@ -6,12 +6,6 @@ import (
 	"gorm.io/datatypes"
 )
 
-const (
-	SessionStatusRunning = "running"
-	SessionStatusError   = "error"
-	SessionStatusSuccess = "success"
-)
-
 type Session struct {
 	Model
 	Extraction   *Extraction    `gorm:"foreignkey:ExtractionID" json:"extraction"`
@@ -19,6 +13,8 @@ type Session struct {
 	Status       string         `json:"status"`
 	StartedAt    *time.Time     `json:"startedAt"`
 	FinishedAt   *time.Time     `json:"finishedAt"`
+	ReadCount    int            `json:"readCount"`
 	WriteCount   int            `json:"writeCount"`
 	Config       datatypes.JSON `gorm:"type:text" json:"config"`
+	Log          string         `json:"log"`
 }
