@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 
+	"github.com/go-redis/redis/v7"
 	"github.com/rs/zerolog/log"
 
 	"github.com/bluecolor/tractor/pkg/conf"
@@ -18,6 +19,10 @@ func Start(config conf.Config) error {
 	}
 	workerClient := tasks.NewClient(config.Worker)
 
-	http.Handle("/", routes.BuildRoutes(repository, workerClient))
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: config.Worker.FeedProcessor.CacheAddr,
+	})
+
+	http.Handle("/", routes.BuildRoutes(repository, workerClient, redisClient))
 	return http.ListenAndServe(":3000", nil)
 }

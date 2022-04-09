@@ -68,9 +68,15 @@ func getExtraction(extraction *models.Extraction) (*types.Extraction, error) {
 	if err != nil {
 		return nil, err
 	}
+	if extraction.SourceDataset == nil {
+		return nil, fmt.Errorf("extraction.SourceDataset is nil")
+	}
 	sourceDataset, err := getDataset(extraction.SourceDataset)
 	if err != nil {
 		return nil, err
+	}
+	if extraction.TargetDataset == nil {
+		return nil, fmt.Errorf("extraction.TargetDataset is nil")
 	}
 	targetDataset, err := getDataset(extraction.TargetDataset)
 	if err != nil {

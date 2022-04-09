@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/models"
 )
 
@@ -22,10 +23,10 @@ func (fp *FeedProcessor) UpdateRepo(feed *msg.Feed) error {
 	if err := fp.repo.First(&session, sid).Error; err != nil {
 		return err
 	}
-	if session.Status != status {
+	if session.Status != status && status != types.StatusDone {
 		session.Status = status
 		fp.updateSessionWithCache(&session)
-		session.Log = fmt.Sprintf("%v", feed.Content)
+		session.Logs = fmt.Sprintf("%v", feed.Content)
 		if err := fp.repo.Save(&session).Error; err != nil {
 			return err
 		}

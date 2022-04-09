@@ -4,7 +4,7 @@
 	import TrashIcon from '@icons/trash.svg';
 	import InfoIcon from '@icons/info.svg';
 	import { onMount } from 'svelte';
-	import { api } from '$lib/utils';
+	import { api, wsendpoint } from '$lib/utils';
 
 	let extraction;
 	let sessions = [];
@@ -22,6 +22,21 @@
 		}
 	];
 
+	function subscribe() {
+		const url = wsendpoint('session/feeds');
+		const client = new WebSocket(url);
+		client.addEventListener('open', () => {
+			console.log('Connected to session feed');
+		});
+		client.addEventListener('message', (event) => {
+			const data = JSON.parse(event.data);
+			console.log(data);
+		});
+		client.addEventListener('close', () => {
+			console.log('Disconnected from session feed');
+		});
+	}
+
 	onMount(async () => {
 		Promise.all([api('GET', 'extractions'), api('GET', 'sessions')]).then(async ([e, s]) => {
 			extractions = await e.json();
@@ -33,6 +48,7 @@
 		sessions = await response.json();
 		response = await api('GET', 'extractions');
 		extractions = await response.json();
+		subscribe();
 	});
 
 	function onRunExtraction(id) {

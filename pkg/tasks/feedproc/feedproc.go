@@ -35,5 +35,8 @@ func (fp *FeedProcessor) Process(feed *msg.Feed) error {
 	if err := fp.UpdateRepo(feed); err != nil {
 		return err
 	}
+	if err := fp.Publish(feed); err != nil {
+		return err
+	}
 	return nil
 }

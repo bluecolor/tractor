@@ -23,7 +23,7 @@ func HandleExtractionTask(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("feed.processor is not set")
 	}
 	options := []runner.Option{
-		runner.WithFeedClientOption(ctx.Value("feed.processor").(*feedproc.FeedProcessor)),
+		runner.WithFeedProcessorOption(ctx.Value("feed.processor").(*feedproc.FeedProcessor)),
 	}
 	options = append(options)
 	r, err := runner.New(ctx, s, options...)

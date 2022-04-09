@@ -155,6 +155,8 @@ func (r *Runner) ProcessFeedback(f *msg.Feed) {
 		r.result.isOutputSuccess = true
 	case f.IsOutputDone():
 		r.result.isOutputDone = true
+	case f.IsSessionDone():
+		r.result.isDriverDone = true
 	}
 }
 func (r *Runner) Result() *Result {
@@ -168,7 +170,7 @@ func (r *Runner) ProcessResult() *Result {
 	}
 	if r.result.IsSuccess() {
 		r.wire.SendSuccess(msg.Driver)
-		r.wire.SendFeed(msg.NewSessionSuccess())
+		r.wire.SendFeed(msg.NewSessionDone())
 	}
 	if r.result.Errors().Count() > 0 {
 		r.wire.SendFeed(msg.NewSessionError())

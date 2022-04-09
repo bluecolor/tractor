@@ -1,6 +1,9 @@
 const endpoint = (path) => {
 	return `http://localhost:3000/api/v1/${path}`;
 };
+const wsendpoint = (path) => {
+	return `ws://localhost:3000/ws/${path}`;
+};
 
 function api(method, resource, data) {
 	return fetch(endpoint(resource), {
@@ -30,4 +33,4 @@ function clickOutside(element, callbackFunction) {
 	};
 }
 
-export { endpoint, api, clickOutside };
+export { endpoint, wsendpoint, api, clickOutside };

@@ -74,6 +74,7 @@ require (
 	github.com/go-chi/render v1.0.1
 	github.com/go-redis/redis/v7 v7.4.1
 	github.com/google/uuid v1.3.0
+	github.com/gorilla/websocket v1.5.0
 	github.com/hibiken/asynq v0.21.0
 	github.com/imdario/mergo v0.3.12
 	github.com/mitchellh/mapstructure v1.4.3

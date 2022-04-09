@@ -7,9 +7,10 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
+	"github.com/go-redis/redis/v7"
 )
 
-func BuildRoutes(repository *repo.Repository, workerClient *tasks.Client) *chi.Mux {
+func BuildRoutes(repository *repo.Repository, workerClient *tasks.Client, redisClient *redis.Client) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{
 		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
@@ -31,7 +32,7 @@ func BuildRoutes(repository *repo.Repository, workerClient *tasks.Client) *chi.M
 		rt.Mount("/connections", buildConnectionRoutes(repository))
 		rt.Mount("/extractions", buildExtractionRoutes(repository, workerClient))
 		rt.Mount("/sessions", buildSessionRoutes(repository))
-
+		rt.Mount("/ws", buildWSRoutes(redisClient))
 	})
 	return r
 }
