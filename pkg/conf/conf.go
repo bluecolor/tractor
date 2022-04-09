@@ -19,6 +19,9 @@ type Worker struct {
 	FeedBackendAddr string `mapstructure:"feedBackendAddr" default:"localhost:6379"`
 }
 
+type FeedProcessor struct {
+}
+
 type FeedBackend struct {
 	Addr      string `mapstructure:"feedBackendAddr" default:"localhost:9090"`
 	CacheAddr string `mapstructure:"workerBackendAddr" default:"localhost:6379"`
