@@ -1,11 +1,14 @@
 package ws
 
 import (
+	"encoding/json"
 	"net/http"
 
+	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/go-redis/redis/v7"
 	"github.com/gorilla/websocket"
+	"github.com/rs/zerolog/log"
 )
 
 type Service struct {
@@ -24,6 +27,8 @@ func NewService(client *redis.Client) *Service {
 }
 
 func (s *Service) SubSessionFeeds(w http.ResponseWriter, r *http.Request) {
+	// todo CheckOrigin
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
@@ -36,15 +41,32 @@ func (s *Service) SubSessionFeeds(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	for {
-		msg, err := ps.ReceiveMessage()
+		m, err := ps.ReceiveMessage()
 		if err != nil {
 			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 			return
 		}
-		if msg == nil || msg.Payload == "" || msg.Payload == "null" {
+		if m == nil || m.Payload == "" || m.Payload == "null" {
 			continue
 		}
-		if err := conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload)); err != nil {
+		feed := &msg.Feed{}
+		if err := feed.Unmarshal([]byte(m.Payload)); err != nil {
+			log.Error().Err(err).Msg("unmarshal feed")
+			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+			return
+		}
+		payload, err := json.Marshal(map[string]interface{}{
+			"_":       feed,
+			"type":    feed.Type.String(),
+			"sender":  feed.Sender.String(),
+			"content": feed.Content,
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("marshal feed")
+			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+			return
+		}
+		if err := conn.WriteMessage(websocket.TextMessage, payload); err != nil {
 			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 			return
 		}
