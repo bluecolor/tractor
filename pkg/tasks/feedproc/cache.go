@@ -1,4 +1,4 @@
-package feedbackend
+package feedproc
 
 import (
 	"fmt"
@@ -8,8 +8,15 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 )
 
-func (h *Handler) UpdateCache(feed *msg.Feed) error {
-	session, err := h.cache.HGetAll(getSessionKey(feed.SessionID)).Result()
+func getSessionKey(sessionID string) string {
+	return fmt.Sprintf("tractor:session:%s", sessionID)
+}
+func getPubsubKey() string {
+	return fmt.Sprintf("tractor:session:feeds")
+}
+
+func (fp *FeedProcessor) UpdateCache(feed *msg.Feed) error {
+	session, err := fp.cache.HGetAll(getSessionKey(feed.SessionID)).Result()
 	if err != nil {
 		return err
 	}
@@ -38,38 +45,13 @@ func (h *Handler) UpdateCache(feed *msg.Feed) error {
 		session["input_progress"] = strconv.Itoa(inputProgress)
 		session["output_progress"] = strconv.Itoa(outputProgress)
 	}
-	return h.cache.HMSet(getSessionKey(feed.SessionID), session).Err()
+	return fp.cache.HMSet(getSessionKey(feed.SessionID), session).Err()
 }
 
-func (h *Handler) Publish(feed *msg.Feed) error {
+func (fp *FeedProcessor) Publish(feed *msg.Feed) error {
 	payload, err := feed.Marshal()
 	if err != nil {
 		return err
 	}
-	return h.cache.Publish(getPubsubKey(), payload).Err()
+	return fp.cache.Publish(getPubsubKey(), payload).Err()
 }
-
-// func (f *FeedBackend) Subscribe() (*redis.PubSub, <-chan *msg.Feed, error) {
-// 	pubsub := f.cache.Subscribe(getPubsubKey())
-// 	ch := make(chan *msg.Feed)
-// 	go func() {
-// 		for {
-// 			m, err := pubsub.ReceiveMessage()
-// 			if err != nil {
-// 				close(ch)
-// 				return
-// 			}
-// 			if m == nil || m.Payload == "" || m.Payload == "null" {
-// 				ch <- nil
-// 				continue
-// 			}
-// 			feed := &msg.Feed{}
-// 			if err := feed.Unmarshal([]byte(m.Payload)); err != nil {
-// 				close(ch)
-// 				return
-// 			}
-// 			ch <- feed
-// 		}
-// 	}()
-// 	return pubsub, ch, nil
-// }

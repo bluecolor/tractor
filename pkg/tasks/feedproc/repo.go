@@ -1,4 +1,4 @@
-package feedbackend
+package feedproc
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/models"
 )
 
-func (h *Handler) UpdateRepo(feed *msg.Feed) error {
+func (fp *FeedProcessor) UpdateRepo(feed *msg.Feed) error {
 	if !feed.IsSessionStatus() {
 		return nil
 	}
@@ -19,20 +19,20 @@ func (h *Handler) UpdateRepo(feed *msg.Feed) error {
 		return err
 	}
 	session := models.Session{}
-	if err := h.repo.First(&session, sid).Error; err != nil {
+	if err := fp.repo.First(&session, sid).Error; err != nil {
 		return err
 	}
 	if session.Status != status {
 		session.Status = status
-		h.updateSessionWithCache(&session)
+		fp.updateSessionWithCache(&session)
 		session.Log = fmt.Sprintf("%v", feed.Content)
-		if err := h.repo.Save(&session).Error; err != nil {
+		if err := fp.repo.Save(&session).Error; err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (h *Handler) updateSessionWithCache(session *models.Session) error {
+func (fp *FeedProcessor) updateSessionWithCache(session *models.Session) error {
 	return nil
 }

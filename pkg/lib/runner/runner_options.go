@@ -1,13 +1,13 @@
 package runner
 
 import (
-	"net/rpc"
+	"github.com/bluecolor/tractor/pkg/tasks/feedproc"
 )
 
 type OptionType int
 
 const (
-	FeedClientOption OptionType = iota
+	FeedProcessorOption OptionType = iota
 )
 
 type Option struct {
@@ -15,17 +15,16 @@ type Option struct {
 	Value interface{}
 }
 
-func WithFeedClientOption(client *rpc.Client) Option {
+func WithFeedProcessorOption(processor *feedproc.FeedProcessor) Option {
 	return Option{
-		Type:  FeedClientOption,
-		Value: client,
+		Type:  FeedProcessorOption,
+		Value: processor,
 	}
 }
-
-func GetFeedClient(options ...Option) *rpc.Client {
+func GetFeedProcessor(options ...Option) *feedproc.FeedProcessor {
 	for _, opt := range options {
-		if opt.Type == FeedClientOption {
-			return opt.Value.(*rpc.Client)
+		if opt.Type == FeedProcessorOption {
+			return opt.Value.(*feedproc.FeedProcessor)
 		}
 	}
 	return nil

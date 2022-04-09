@@ -3,11 +3,10 @@ package tasks
 import (
 	"context"
 
-	"net/rpc"
-
 	"github.com/rs/zerolog/log"
 
 	"github.com/bluecolor/tractor/pkg/conf"
+	"github.com/bluecolor/tractor/pkg/tasks/feedproc"
 	"github.com/hibiken/asynq"
 )
 
@@ -29,17 +28,17 @@ func NewWorker(c conf.Worker) *Worker {
 	}
 }
 
-func (w *Worker) getFeedClient() (*rpc.Client, error) {
-	return rpc.Dial("tcp", w.config.FeedBackendAddr)
+func (w *Worker) getFeedProcessor() (*feedproc.FeedProcessor, error) {
+	return feedproc.New(w.config.FeedProcessor)
 }
 
 func (w *Worker) feedClientMiddleware(h asynq.Handler) asynq.Handler {
-	client, err := w.getFeedClient()
+	processor, err := w.getFeedProcessor()
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to get feed backend client")
 	}
 	return asynq.HandlerFunc(func(ctx context.Context, t *asynq.Task) error {
-		ctx = context.WithValue(ctx, "feed.client", client)
+		ctx = context.WithValue(ctx, "feed.processor", processor)
 		if err := h.ProcessTask(ctx, t); err != nil {
 			return err
 		}

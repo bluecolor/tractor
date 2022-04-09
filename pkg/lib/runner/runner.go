@@ -3,7 +3,6 @@ package runner
 import (
 	"context"
 	"fmt"
-	"net/rpc"
 	"sync"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
+	"github.com/bluecolor/tractor/pkg/tasks/feedproc"
 	"github.com/rs/zerolog/log"
 )
 
@@ -46,7 +46,7 @@ type Runner struct {
 	result           *Result
 	isFeedbackClosed bool
 	isDataClosed     bool
-	feedClient       *rpc.Client
+	feedProcessor    *feedproc.FeedProcessor
 }
 
 func (r *Result) Errors() types.Errors {
@@ -133,7 +133,7 @@ func New(ctx context.Context, s types.Session, options ...Option) (*Runner, erro
 			input:  inputConnector,
 			output: outputConnector,
 		},
-		feedClient: GetFeedClient(options...),
+		feedProcessor: GetFeedProcessor(options...),
 		result: &Result{
 			errors: types.Errors{},
 		},
@@ -226,13 +226,13 @@ func (r *Runner) RunOutput(d types.Dataset) error {
 	return r.connectors.output.Write(d, r.wire)
 }
 func (r *Runner) ForwardFeed(feed *msg.Feed) {
-	if r.feedClient == nil {
+	if r.feedProcessor == nil {
 		return
 	}
 	feed.SessionID = r.session.ID
-	err := r.feedClient.Call("Handler.Process", feed, nil)
+	err := r.feedProcessor.Process(feed)
 	if err != nil {
-		log.Error().Msgf("feed client error %s", err)
+		log.Error().Msgf("feed processor error %s", err)
 	}
 }
 func (r *Runner) Supervise(timeout time.Duration) (result *Result) {
