@@ -43,6 +43,8 @@ func (s Sender) String() string {
 		return "OutputConnector"
 	case Supervisor:
 		return "Supervisor"
+	case Driver:
+		return "Driver"
 	default:
 		return fmt.Sprintf("%d", int(s))
 	}

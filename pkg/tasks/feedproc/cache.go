@@ -1,15 +1,26 @@
-package feedbackend
+package feedproc
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/rs/zerolog/log"
 )
 
-func (h *Handler) UpdateCache(feed *msg.Feed) error {
-	session, err := h.cache.HGetAll(getSessionKey(feed.SessionID)).Result()
+var ctx = context.Background()
+
+func getSessionKey[T string | int | uint](sessionID T) string {
+	return fmt.Sprintf("tractor:session:%v", sessionID)
+}
+func getPubsubKey() string {
+	return fmt.Sprintf("tractor:session:feeds")
+}
+
+func (fp *FeedProcessor) UpdateCache(feed *msg.Feed) error {
+	session, err := fp.cache.HGetAll(ctx, getSessionKey(feed.SessionID)).Result()
 	if err != nil {
 		return err
 	}
@@ -38,38 +49,22 @@ func (h *Handler) UpdateCache(feed *msg.Feed) error {
 		session["input_progress"] = strconv.Itoa(inputProgress)
 		session["output_progress"] = strconv.Itoa(outputProgress)
 	}
-	return h.cache.HMSet(getSessionKey(feed.SessionID), session).Err()
+	if err := fp.cache.HSet(ctx, getSessionKey(feed.SessionID), session).Err(); err != nil {
+		log.Error().Err(err).Msg("failed to update cache")
+		return err
+	}
+	return nil
 }
 
-func (h *Handler) Publish(feed *msg.Feed) error {
+func (fp *FeedProcessor) Publish(feed *msg.Feed) error {
 	payload, err := feed.Marshal()
 	if err != nil {
 		return err
 	}
-	return h.cache.Publish(getPubsubKey(), payload).Err()
+	key := getPubsubKey()
+	if err := fp.cache.Publish(ctx, key, payload).Err(); err != nil {
+		log.Error().Err(err).Msg("failed to publish to " + key)
+		return err
+	}
+	return nil
 }
-
-// func (f *FeedBackend) Subscribe() (*redis.PubSub, <-chan *msg.Feed, error) {
-// 	pubsub := f.cache.Subscribe(getPubsubKey())
-// 	ch := make(chan *msg.Feed)
-// 	go func() {
-// 		for {
-// 			m, err := pubsub.ReceiveMessage()
-// 			if err != nil {
-// 				close(ch)
-// 				return
-// 			}
-// 			if m == nil || m.Payload == "" || m.Payload == "null" {
-// 				ch <- nil
-// 				continue
-// 			}
-// 			feed := &msg.Feed{}
-// 			if err := feed.Unmarshal([]byte(m.Payload)); err != nil {
-// 				close(ch)
-// 				return
-// 			}
-// 			ch <- feed
-// 		}
-// 	}()
-// 	return pubsub, ch, nil
-// }

@@ -3,7 +3,7 @@
 	import MoreIcon from '@icons/more.svg';
 	import Dropdown from '@components/Dropdown.svelte';
 	import { onMount } from 'svelte';
-	import { api } from '$lib/utils';
+	import { api, wsendpoint } from '$lib/utils';
 	import { session } from '$app/stores';
 
 	let extractions = [];
@@ -18,17 +18,52 @@
 		}
 	];
 
+	function updateExtraction(feed) {
+		if (!feed.sessionId) {
+			return;
+		}
+		extractions = extractions.map((e) => {
+			if (e.session?.id == feed.sessionId) {
+				const status = feed.type.toLowerCase();
+				if (['success', 'error', 'running'].indexOf(status) > -1) {
+					e.status = status;
+				}
+			}
+			return e;
+		});
+		extractions = [...extractions];
+	}
+
+	function subscribe() {
+		const url = wsendpoint('session/feeds');
+		const client = new WebSocket(url);
+		client.addEventListener('open', () => {
+			console.log('Connected to session feed');
+		});
+		client.addEventListener('message', (event) => {
+			const feed = JSON.parse(event.data);
+			if (feed.sender == 'Driver') {
+				updateExtraction(feed);
+			}
+		});
+		client.addEventListener('close', () => {
+			console.log('Disconnected from session feed');
+		});
+	}
+
 	onMount(async () => {
 		const response = await api('GET', 'extractions');
 		const result = await response.json();
 		extractions = result.map((r) => {
 			if (r.sessions.length > 0) {
 				r.status = r.sessions[0].status;
+				r.session = r.sessions[0];
 			} else {
 				r.status = null;
 			}
 			return r;
 		});
+		subscribe();
 	});
 
 	function onRunExtraction(id) {
@@ -39,6 +74,7 @@
 				extractions = extractions.map((e) => {
 					if (e.id === session.extraction.id) {
 						e.status = session.status;
+						e.session = session;
 					}
 					return e;
 				});
@@ -106,10 +142,16 @@
                 | {e.sourceDataset.name}<span class="text-gray-400">@{e.sourceDataset.connection.name} </span>
               td
                 | {e.targetDataset.name}<span class="text-gray-400">@{e.targetDataset.connection.name} </span>
-              td(scope="col" align="left")
+              td(align="left")
                 +if('e.status === "success"')
                   .flex.justify-center.items-center.font-medium.py-1.px-2.bg-white.rounded-full.text-green-700.bg-green-100.border.border-green-300
                     .text-xs.font-normal.leading-none.max-w-full.flex-initial { e.status }
+                  +elseif('e.status === "running"')
+                    .flex.justify-center.items-center.font-medium.py-1.px-2.bg-white.rounded-full.text-blue-700.bg-blue-100.border.border-blue-300
+                      .text-xs.font-normal.leading-none.max-w-full.flex-initial { e.status }
+                  +elseif('e.status === "error"')
+                    .flex.justify-center.items-center.font-medium.py-1.px-2.bg-white.rounded-full.text-red-700.bg-red-100.border.border-red-300
+                      .text-xs.font-normal.leading-none.max-w-full.flex-initial { e.status }
                   +elseif('e.status != null')
                     .flex.justify-center.items-center.font-medium.py-1.px-2.bg-white.rounded-full.text-gray-700.bg-gray-100.border.border-gray-300
                       .text-xs.font-normal.leading-none.max-w-full.flex-initial { e.status }

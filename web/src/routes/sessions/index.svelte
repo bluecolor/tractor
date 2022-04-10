@@ -4,7 +4,7 @@
 	import TrashIcon from '@icons/trash.svg';
 	import InfoIcon from '@icons/info.svg';
 	import { onMount } from 'svelte';
-	import { api } from '$lib/utils';
+	import { api, wsendpoint } from '$lib/utils';
 
 	let extraction;
 	let sessions = [];
@@ -22,6 +22,21 @@
 		}
 	];
 
+	function subscribe() {
+		const url = wsendpoint('session/feeds');
+		const client = new WebSocket(url);
+		client.addEventListener('open', () => {
+			console.log('Connected to session feed');
+		});
+		client.addEventListener('message', (event) => {
+			const feed = JSON.parse(event.data);
+			console.log(feed);
+		});
+		client.addEventListener('close', () => {
+			console.log('Disconnected from session feed');
+		});
+	}
+
 	onMount(async () => {
 		Promise.all([api('GET', 'extractions'), api('GET', 'sessions')]).then(async ([e, s]) => {
 			extractions = await e.json();
@@ -31,8 +46,10 @@
 
 		let response = await api('GET', 'sessions');
 		sessions = await response.json();
+		console.log(sessions);
 		response = await api('GET', 'extractions');
 		extractions = await response.json();
+		subscribe();
 	});
 
 	function onRunExtraction(id) {
@@ -67,19 +84,21 @@
 		return [
 			{
 				label: 'Started at',
-				value: formatDate(s.createdAt)
+				value: s.startedAt && formatDate(s.startedAt)
 			},
 			{
 				label: 'Ended at',
-				value: formatDate(s.createdAt)
+				value: s.finishedAt && formatDate(s.finishedAt)
 			},
 			{
 				label: 'Duration',
-				value: '100 minutes'
+				value: `${Math.floor(
+					(new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime()) / 1000
+				)} seconds`
 			},
 			{
 				label: 'Read/Write count',
-				value: 'R:1012 / W:1012'
+				value: `R:${s.readCount} / W:${s.writeCount}`
 			}
 		];
 	}
@@ -92,7 +111,7 @@
 </script>
 
 <template lang="pug">
-  .w-full.h-full.flex.flex-col.pt-4
+  .w-full.h-full.flex.flex-col.pt-4.pb-4
     .flex.justify-between.items-center
       .title
         | Sessions

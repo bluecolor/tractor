@@ -13,19 +13,14 @@ type DB struct {
 	Options  string `mapstructure:"db_options"`
 }
 
-type Worker struct {
-	BackendAddr     string `mapstructure:"workerBackendAddr" default:"localhost:6379"`
-	Concurrency     int    `mapstructure:"workerConcurrency" validate:"min=1" default:"50"`
-	FeedBackendAddr string `mapstructure:"feedBackendAddr" default:"localhost:6379"`
-}
-
 type FeedProcessor struct {
-}
-
-type FeedBackend struct {
-	Addr      string `mapstructure:"feedBackendAddr" default:"localhost:9090"`
 	CacheAddr string `mapstructure:"workerBackendAddr" default:"localhost:6379"`
 	DB        DB     `mapstructure:",squash"`
+}
+type Worker struct {
+	BackendAddr   string        `mapstructure:"workerBackendAddr" default:"localhost:6379"`
+	Concurrency   int           `mapstructure:"workerConcurrency" validate:"min=1" default:"50"`
+	FeedProcessor FeedProcessor `mapstructure:",squash"`
 }
 
 type App struct {
@@ -38,11 +33,10 @@ type Log struct {
 }
 
 type Config struct {
-	DB          DB          `mapstructure:",squash"`
-	Worker      Worker      `mapstructure:",squash"`
-	Log         Log         `mapstructure:",squash"`
-	App         App         `mapstructure:",squash"`
-	FeedBackend FeedBackend `mapstructure:",squash"`
+	DB     DB     `mapstructure:",squash"`
+	Worker Worker `mapstructure:",squash"`
+	Log    Log    `mapstructure:",squash"`
+	App    App    `mapstructure:",squash"`
 }
 
 func LoadConfig(args ...string) (config Config, err error) {

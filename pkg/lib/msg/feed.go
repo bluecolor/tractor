@@ -111,6 +111,9 @@ func (f *Feed) IsSessionSuccess() bool {
 func (f *Feed) IsSessionError() bool {
 	return f.Type == Error && f.Sender == Driver
 }
+func (f *Feed) IsSessionDone() bool {
+	return f.IsDone() && f.Sender == Driver
+}
 func (f *Feed) IsInputSuccess() bool {
 	return f.Sender == InputConnector && f.Type == Success
 }

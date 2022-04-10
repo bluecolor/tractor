@@ -16,5 +16,5 @@ type Session struct {
 	ReadCount    int            `json:"readCount"`
 	WriteCount   int            `json:"writeCount"`
 	Config       datatypes.JSON `gorm:"type:text" json:"config"`
-	Log          string         `json:"log"`
+	Logs         string         `json:"logs"`
 }

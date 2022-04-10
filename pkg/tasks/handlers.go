@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/rpc"
 
 	"github.com/bluecolor/tractor/pkg/lib/runner"
 	"github.com/bluecolor/tractor/pkg/lib/types"
+	"github.com/bluecolor/tractor/pkg/tasks/feedproc"
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog/log"
 )
@@ -19,11 +19,11 @@ func HandleExtractionTask(ctx context.Context, t *asynq.Task) error {
 	}
 	log.Debug().Msgf("Running extraction %s", s.Extraction.Name)
 
-	if ctx.Value("feed.client") == nil {
-		return fmt.Errorf("feed.client is not set")
+	if ctx.Value("feed.processor") == nil {
+		return fmt.Errorf("feed.processor is not set")
 	}
 	options := []runner.Option{
-		runner.WithFeedClientOption(ctx.Value("feed.client").(*rpc.Client)),
+		runner.WithFeedProcessorOption(ctx.Value("feed.processor").(*feedproc.FeedProcessor)),
 	}
 	options = append(options)
 	r, err := runner.New(ctx, s, options...)
