@@ -1,12 +1,14 @@
 <script>
 	import PlayIcon from '@icons/play.svg';
 	import MoreIcon from '@icons/more.svg';
+	import FilterIcon from '@icons/filter.svg';
 	import Dropdown from '@components/Dropdown.svelte';
 	import { onMount } from 'svelte';
 	import { api, wsendpoint } from '$lib/utils';
 	import { session } from '$app/stores';
 
 	let extractions = [];
+	let connections = [];
 	let options = [
 		{
 			label: 'Delete',
@@ -17,6 +19,11 @@
 			value: 'sessions'
 		}
 	];
+	export let filters = {
+		sourceConnectionId: null,
+		targetConnectionId: null
+	};
+	let filtersOpen = false;
 
 	function updateExtraction(feed) {
 		if (!feed.sessionId) {
@@ -50,18 +57,18 @@
 			console.log('Disconnected from session feed');
 		});
 	}
-
 	onMount(async () => {
-		const response = await api('GET', 'extractions');
-		const result = await response.json();
-		extractions = result.map((r) => {
-			if (r.sessions.length > 0) {
-				r.status = r.sessions[0].status;
-				r.session = r.sessions[0];
-			} else {
-				r.status = null;
-			}
-			return r;
+		Promise.all([api('GET', 'extractions'), api('GET', 'connections')]).then(async ([e, c]) => {
+			connections = await c.json();
+			extractions = (await e.json()).map((r) => {
+				if (r.sessions.length > 0) {
+					r.status = r.sessions[0].status;
+					r.session = r.sessions[0];
+				} else {
+					r.status = null;
+				}
+				return r;
+			});
 		});
 		subscribe();
 	});
@@ -115,9 +122,30 @@
         | Extractions
       .search.space-x-2.inline-flex.items-center()
         .action
+          <span class="action" on:click='{() => filtersOpen = !filtersOpen}'>
+            FilterIcon(class="icon-btn")
+          </span>
+        .action
           input.input(type="text" placeholder="Search")
         a.action(href="/extractions/new")
           button.btn Add
+    +if('filtersOpen')
+      .bg-white.mt-4.p-2.rounded-md
+        .flex.items-center.gap-x-2
+          .form-item.w-full
+            label(for="source") Source connection
+            select(name='source', bind:value='{filters.sourceConnectionId}')
+              +each('connections as c')
+                option(value='{c.id}') {c.name}
+          .form-item.w-full
+            label(for="target") Target connection
+            select(name='source', bind:value='{filters.targetConnectionId}')
+              +each('connections as c')
+                option(value='{c.id}') {c.name}
+
+        .actions.flex.justify-start.gap-x-3
+          button.btn Apply
+          button.btn.danger Clear
 
     .bg-white.mt-4.p-2.rounded-md
       table.min-w-full

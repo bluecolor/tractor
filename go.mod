@@ -9,6 +9,7 @@ require (
 	github.com/Xuanwo/go-bufferpool v0.2.0 // indirect
 	github.com/Xuanwo/templateutils v0.1.0 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
+	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.10.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.9.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.5.0 // indirect
@@ -30,14 +31,17 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/iancoleman/strcase v0.1.3 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.4 // indirect
 	github.com/kevinburke/go-bindata v3.22.0+incompatible // indirect
+	github.com/klauspost/compress v1.11.12 // indirect
 	github.com/kyoh86/richgo v0.3.10 // indirect
 	github.com/kyoh86/xdg v1.2.0 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
+	github.com/morkid/gocache v1.0.0 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/qingstor/go-mime v0.1.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
@@ -47,6 +51,8 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/fasthttp v1.22.0 // indirect
 	github.com/wacul/ptr v1.0.0 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da // indirect
 	go.beyondstorage.io/credential v1.0.0 // indirect
@@ -78,6 +84,7 @@ require (
 	github.com/hibiken/asynq v0.21.0
 	github.com/imdario/mergo v0.3.12
 	github.com/mitchellh/mapstructure v1.4.3
+	github.com/morkid/paginate v1.1.4
 	github.com/rs/zerolog v1.26.1
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
