@@ -1,12 +1,13 @@
 package ws
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/utils"
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 )
@@ -14,6 +15,8 @@ import (
 type Service struct {
 	client *redis.Client
 }
+
+var ctx = context.Background()
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -34,14 +37,14 @@ func (s *Service) SubSessionFeeds(w http.ResponseWriter, r *http.Request) {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 		return
 	}
-	ps := s.client.Subscribe("tractor:session:feeds")
+	ps := s.client.Subscribe(ctx, "tractor:session:feeds")
 	defer func() {
 		_ = ps.Close()
 		_ = conn.Close()
 	}()
 
 	for {
-		m, err := ps.ReceiveMessage()
+		m, err := ps.ReceiveMessage(ctx)
 		if err != nil {
 			utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 			return

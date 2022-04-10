@@ -46,6 +46,7 @@
 
 		let response = await api('GET', 'sessions');
 		sessions = await response.json();
+		console.log(sessions);
 		response = await api('GET', 'extractions');
 		extractions = await response.json();
 		subscribe();
@@ -83,19 +84,21 @@
 		return [
 			{
 				label: 'Started at',
-				value: formatDate(s.createdAt)
+				value: s.startedAt && formatDate(s.startedAt)
 			},
 			{
 				label: 'Ended at',
-				value: formatDate(s.createdAt)
+				value: s.finishedAt && formatDate(s.finishedAt)
 			},
 			{
 				label: 'Duration',
-				value: '100 minutes'
+				value: `${Math.floor(
+					(new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime()) / 1000
+				)} seconds`
 			},
 			{
 				label: 'Read/Write count',
-				value: 'R:1012 / W:1012'
+				value: `R:${s.readCount} / W:${s.writeCount}`
 			}
 		];
 	}

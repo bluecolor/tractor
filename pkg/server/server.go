@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog/log"
 
 	"github.com/bluecolor/tractor/pkg/conf"

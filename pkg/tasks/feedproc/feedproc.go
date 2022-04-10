@@ -4,7 +4,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/conf"
 	"github.com/bluecolor/tractor/pkg/lib/msg"
 	"github.com/bluecolor/tractor/pkg/repo"
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog/log"
 )
 

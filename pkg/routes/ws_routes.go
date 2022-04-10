@@ -3,7 +3,7 @@ package routes
 import (
 	"github.com/bluecolor/tractor/pkg/services/ws"
 	"github.com/go-chi/chi"
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis/v8"
 )
 
 func buildWSRoutes(client *redis.Client) *chi.Mux {

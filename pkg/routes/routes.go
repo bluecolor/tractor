@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis/v8"
 )
 
 func BuildRoutes(repository *repo.Repository, workerClient *tasks.Client, redisClient *redis.Client) *chi.Mux {
