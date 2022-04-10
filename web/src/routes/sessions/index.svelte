@@ -29,8 +29,8 @@
 			console.log('Connected to session feed');
 		});
 		client.addEventListener('message', (event) => {
-			const data = JSON.parse(event.data);
-			console.log(data);
+			const feed = JSON.parse(event.data);
+			console.log(feed);
 		});
 		client.addEventListener('close', () => {
 			console.log('Disconnected from session feed');
@@ -111,7 +111,7 @@
 </script>
 
 <template lang="pug">
-  .w-full.h-full.flex.flex-col.pt-4
+  .w-full.h-full.flex.flex-col.pt-4.pb-4
     .flex.justify-between.items-center
       .title
         | Sessions

@@ -59,10 +59,11 @@ func (s *Service) SubSessionFeeds(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		payload, err := json.Marshal(map[string]interface{}{
-			"_":       feed,
-			"type":    feed.Type.String(),
-			"sender":  feed.Sender.String(),
-			"content": feed.Content,
+			"_":         feed,
+			"sessionId": feed.SessionID,
+			"type":      feed.Type.String(),
+			"sender":    feed.Sender.String(),
+			"content":   feed.Content,
 		})
 		if err != nil {
 			log.Error().Err(err).Msg("marshal feed")
