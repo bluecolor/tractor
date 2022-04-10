@@ -7,6 +7,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/repo"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/go-chi/chi"
+	"github.com/morkid/paginate"
 )
 
 type Service struct {
@@ -19,18 +20,16 @@ func NewService(repo *repo.Repository) *Service {
 	}
 }
 func (s *Service) FindSessions(w http.ResponseWriter, r *http.Request) {
-	sessions := []models.Session{}
-	result := s.repo.
+	model := s.repo.
 		Preload("Extraction").
 		Preload("Extraction.SourceDataset").
 		Preload("Extraction.SourceDataset.Connection").
 		Preload("Extraction.TargetDataset").
 		Preload("Extraction.TargetDataset.Connection").
-		Find(&sessions)
-	if result.Error != nil {
-		utils.ErrorWithJSON(w, http.StatusInternalServerError, result.Error)
-	}
-	utils.RespondwithJSON(w, http.StatusOK, sessions)
+		Model(&[]models.Session{})
+
+	result := paginate.New().Response(model, r, &[]models.Session{})
+	utils.RespondwithJSON(w, http.StatusOK, result)
 }
 
 func (s *Service) DeleteSession(w http.ResponseWriter, r *http.Request) {

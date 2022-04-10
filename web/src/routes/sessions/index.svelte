@@ -5,8 +5,10 @@
 	import InfoIcon from '@icons/info.svg';
 	import { onMount } from 'svelte';
 	import { api, wsendpoint } from '$lib/utils';
+	import Pagination from '@components/Pagination.svelte';
 
 	let extraction;
+	let page = {};
 	let sessions = [];
 	let extractions = [];
 	let filtersOpen = false;
@@ -21,6 +23,12 @@
 			value: 'sessions'
 		}
 	];
+
+	async function onPaginate(p) {
+		let result = await api('GET', `sessions?page=${p.detail}`);
+		page = { ...(await result.json()) };
+		sessions = [...(page.items || [])];
+	}
 
 	function subscribe() {
 		const url = wsendpoint('session/feeds');
@@ -40,15 +48,11 @@
 	onMount(async () => {
 		Promise.all([api('GET', 'extractions'), api('GET', 'sessions')]).then(async ([e, s]) => {
 			extractions = await e.json();
-			sessions = await s.json();
-			console.log(sessions);
+			page = await s.json();
+			sessions = page.items || [];
+			console.log(page);
 		});
 
-		let response = await api('GET', 'sessions');
-		sessions = await response.json();
-		console.log(sessions);
-		response = await api('GET', 'extractions');
-		extractions = await response.json();
 		subscribe();
 	});
 
@@ -185,6 +189,12 @@
                         .value.text-gray-500.pl-2 {d.value}
 
               </tr>
+      .mt-4
+        Pagination(
+          page='{page.page}' total='{page.total}' visible='{page.visible}'
+          first='{page.first}' last='{page.last}' maxPage='{page.max_page}'
+          on:paginate='{onPaginate}'
+        )
 
 </template>
 
