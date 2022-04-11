@@ -10,6 +10,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/go-chi/chi"
 	"github.com/hibiken/asynq"
+	"github.com/morkid/paginate"
 	"gorm.io/gorm"
 )
 
@@ -34,20 +35,35 @@ func (s *Service) OneExtraction(w http.ResponseWriter, r *http.Request) {
 	utils.RespondwithJSON(w, http.StatusOK, ext)
 }
 func (s *Service) FindExtractions(w http.ResponseWriter, r *http.Request) {
-	extractions := []models.Extraction{}
-	result := s.repo.
-		Preload("SourceDataset").
+
+	model := s.repo.
+		Joins("SourceDataset").
+		Joins("TargetDataset").
 		Preload("SourceDataset.Connection").
 		Preload("TargetDataset.Connection").
-		Preload("TargetDataset").
 		Preload("Sessions", func(db *gorm.DB) *gorm.DB {
 			return db.Order("sessions.created_at desc").Limit(1)
-		}).
-		Find(&extractions)
-	if result.Error != nil {
-		utils.ErrorWithJSON(w, http.StatusInternalServerError, result.Error)
+		})
+
+	if r.URL.Query().Get("sc") != "" {
+		model = model.Where("SourceDataset.connection_id = ?", r.URL.Query().Get("sc"))
 	}
-	utils.RespondwithJSON(w, http.StatusOK, extractions)
+	if r.URL.Query().Get("tc") != "" {
+		model = model.Where("TargetDataset.connection_id = ?", r.URL.Query().Get("tc"))
+	}
+	if r.URL.Query().Get("q") != "" {
+		q := r.URL.Query().Get("q")
+		model = model.Where("extractions.name like ?", "%"+q+"%")
+	}
+	model = model.Find(&[]models.Extraction{})
+
+	if model.Error != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, model.Error)
+		return
+	}
+
+	result := paginate.New().Response(model, r, &[]models.Extraction{})
+	utils.RespondwithJSON(w, http.StatusOK, result)
 }
 func (s *Service) DeleteExtraction(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
