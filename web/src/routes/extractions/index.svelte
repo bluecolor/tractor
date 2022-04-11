@@ -6,9 +6,13 @@
 	import { onMount } from 'svelte';
 	import { api, wsendpoint } from '$lib/utils';
 	import { session } from '$app/stores';
+	import Pagination from '@components/Pagination.svelte';
+	import _ from 'lodash';
 
 	let extractions = [];
 	let connections = [];
+	let page = {};
+	export let q = '';
 	let options = [
 		{
 			label: 'Delete',
@@ -20,11 +24,44 @@
 		}
 	];
 	export let filters = {
-		sourceConnectionId: null,
-		targetConnectionId: null
+		sc: '',
+		tc: ''
 	};
 	let filtersOpen = false;
 
+	function onSearch() {
+		_.debounce(async () => {
+			onLoad({ q });
+		}, 500)();
+	}
+
+	function onClearFilters() {
+		filters = {
+			sc: '',
+			tc: ''
+		};
+		onLoad();
+	}
+	async function onLoad(params) {
+		let url = 'extractions?' + new URLSearchParams(params);
+		let result = await api('GET', url);
+		if (!result.ok) {
+			let error = await result.json();
+			alert(error.error);
+			return;
+		}
+		page = await result.json();
+		extractions = page.items.map((r) => {
+			if (r.sessions.length > 0) {
+				r.status = r.sessions[0].status;
+				r.session = r.sessions[0];
+			} else {
+				r.status = null;
+			}
+			return r;
+		});
+		extractions = [...(page.items || [])];
+	}
 	function updateExtraction(feed) {
 		if (!feed.sessionId) {
 			return;
@@ -40,7 +77,6 @@
 		});
 		extractions = [...extractions];
 	}
-
 	function subscribe() {
 		const url = wsendpoint('session/feeds');
 		const client = new WebSocket(url);
@@ -57,22 +93,6 @@
 			console.log('Disconnected from session feed');
 		});
 	}
-	onMount(async () => {
-		Promise.all([api('GET', 'extractions'), api('GET', 'connections')]).then(async ([e, c]) => {
-			connections = await c.json();
-			extractions = (await e.json()).map((r) => {
-				if (r.sessions.length > 0) {
-					r.status = r.sessions[0].status;
-					r.session = r.sessions[0];
-				} else {
-					r.status = null;
-				}
-				return r;
-			});
-		});
-		subscribe();
-	});
-
 	function onRunExtraction(id) {
 		api('POST', `extractions/${id}/run`).then(async (response) => {
 			if (response.ok) {
@@ -113,6 +133,12 @@
 				onDeleteExtraction(id);
 		}
 	}
+	onMount(async () => {
+		let c = await api('GET', 'connections');
+		connections = await c.json();
+		onLoad({ page: 0, ...filters });
+		subscribe();
+	});
 </script>
 
 <template lang="pug">
@@ -126,7 +152,7 @@
             FilterIcon(class="icon-btn")
           </span>
         .action
-          input.input(type="text" placeholder="Search")
+          input.input(type="text" placeholder="Search" bind:value="{q}" on:input="{onSearch}")
         a.action(href="/extractions/new")
           button.btn Add
     +if('filtersOpen')
@@ -134,18 +160,18 @@
         .flex.items-center.gap-x-2
           .form-item.w-full
             label(for="source") Source connection
-            select(name='source', bind:value='{filters.sourceConnectionId}')
+            select(name='source', bind:value='{filters.sc}')
               +each('connections as c')
                 option(value='{c.id}') {c.name}
           .form-item.w-full
             label(for="target") Target connection
-            select(name='source', bind:value='{filters.targetConnectionId}')
+            select(name='source', bind:value='{filters.tc}')
               +each('connections as c')
                 option(value='{c.id}') {c.name}
 
         .actions.flex.justify-start.gap-x-3
-          button.btn Apply
-          button.btn.danger Clear
+          <button class="btn" on:click="{() => onLoad({page:0, ...filters})}"> Apply </button>
+          <button class="btn danger" on:click="{() => onClearFilters()}">Clear </button>
 
     .bg-white.mt-4.p-2.rounded-md
       table.min-w-full
@@ -192,7 +218,8 @@
                     div(slot="button")
                       MoreIcon.icon-btn()
                   </Dropdown>
-
+      .mt-4
+        <Pagination page='{page.page}' total='{page.total}' first='{page.first}' last='{page.last}' maxPage='{page.max_page}' visible='{page.visible}' on:paginate='{(p) => onLoad({page: p.detail, ...filters})}'/>
 
 </template>
 
