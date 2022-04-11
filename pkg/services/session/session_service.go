@@ -2,6 +2,7 @@ package session
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/bluecolor/tractor/pkg/models"
 	"github.com/bluecolor/tractor/pkg/repo"
@@ -21,12 +22,23 @@ func NewService(repo *repo.Repository) *Service {
 }
 func (s *Service) FindSessions(w http.ResponseWriter, r *http.Request) {
 	model := s.repo.
-		Preload("Extraction").
+		Joins("Extraction").
 		Preload("Extraction.SourceDataset").
 		Preload("Extraction.SourceDataset.Connection").
 		Preload("Extraction.TargetDataset").
 		Preload("Extraction.TargetDataset.Connection").
 		Model(&[]models.Session{})
+
+	if r.URL.Query().Get("statuses") != "" {
+		statuses := strings.Split(r.URL.Query().Get("statuses"), ",")
+		model = model.Where("Extraction.status IN (?)", statuses)
+	}
+	if r.URL.Query().Get("e") != "" {
+		model = model.Where("Extraction.id = ?", r.URL.Query().Get("e"))
+	}
+	if r.URL.Query().Get("q") != "" {
+		model = model.Where("Extraction.name LIKE ?", "%"+r.URL.Query().Get("q")+"%")
+	}
 
 	result := paginate.New().Response(model, r, &[]models.Session{})
 	utils.RespondwithJSON(w, http.StatusOK, result)
