@@ -7,7 +7,6 @@
 	import { api, wsendpoint } from '$lib/utils';
 	import Pagination from '@components/Pagination.svelte';
 
-	let extraction;
 	let page = {};
 	let sessions = [];
 	let extractions = [];
@@ -23,13 +22,38 @@
 			value: 'sessions'
 		}
 	];
+	export let filters = {
+		statuses: [],
+		e: ''
+	};
 
-	async function onPaginate(p) {
-		let result = await api('GET', `sessions?page=${p.detail}`);
-		page = { ...(await result.json()) };
-		sessions = [...(page.items || [])];
+	async function onLoad(params) {
+		let url = 'sessions?' + new URLSearchParams(params);
+		console.log(url);
+		const response = await api('GET', 'sessions');
+		if (!response.ok) {
+			const result = await response.json();
+			alert(result.error);
+			return;
+		}
+		page = await response.json();
+		sessions = page.items;
 	}
-
+	function onClearFilters() {
+		filters = {
+			e: '',
+			statuses: []
+		};
+		onLoad();
+	}
+	function onStatusFilter(status) {
+		const s = status.toLowerCase();
+		if (filters.statuses.includes(s)) {
+			filters.statuses = filters.statuses.filter((f) => f !== s);
+		} else {
+			filters.statuses.push(s);
+		}
+	}
 	function subscribe() {
 		const url = wsendpoint('session/feeds');
 		const client = new WebSocket(url);
@@ -46,13 +70,9 @@
 	}
 
 	onMount(async () => {
-		Promise.all([api('GET', 'extractions'), api('GET', 'sessions')]).then(async ([e, s]) => {
-			extractions = await e.json();
-			page = await s.json();
-			sessions = page.items || [];
-			console.log(page);
-		});
-
+		const e = await api('GET', 'extractions');
+		extractions = (await e.json()).items || [];
+		onLoad();
 		subscribe();
 	});
 
@@ -127,20 +147,21 @@
       .bg-white.mt-4.p-2.rounded-md
         .form-item
           label(for="extractions") Extraction
-          select(name='extractions', bind:value='{extraction}')
+          select(name='extractions', value='{filters.e}')
             +each('extractions as e')
-              option(value='{e}') {e.name}
+              option(value='{e.id}') {e.name}
         .form-item
           label(for="status") Status
           .flex.items-center.h-5.gap-x-3(name="status")
             +each('["Success", "Pending", "Failed", "Cancelled"] as s')
               .flex
-                input(id="{s + '-status'}" aria-describedby="remember" type="checkbox" class="w-4 h-4 bg-gray-50 rounded border border-gray-300 focus:ring-2 focus:ring-blue-200")
+                <input on:input="{() => onStatusFilter(s)}" id="{s + '-status'}" aria-describedby="remember" type="checkbox" class="w-4 h-4 bg-gray-50 rounded border border-gray-300 focus:ring-2 focus:ring-blue-200"/>
                 .ml-3.text-sm
                   label(for="{s + '-status'}" class="font-medium text-gray-700") {s}
         .actions.flex.justify-start.gap-x-3
-          button.btn Apply
-          button.btn.danger Clear
+          <button class="btn" on:click="{() => onLoad({page:0, ...filters})}"> Apply </button>
+          <button class="btn danger" on:click="{() => onClearFilters()}">Clear </button>
+
 
     .bg-white.mt-4.p-2.rounded-md
       table.min-w-full
@@ -190,11 +211,8 @@
 
               </tr>
       .mt-4
-        Pagination(
-          page='{page.page}' total='{page.total}' visible='{page.visible}'
-          first='{page.first}' last='{page.last}' maxPage='{page.max_page}'
-          on:paginate='{onPaginate}'
-        )
+        <Pagination page='{page.page}' total='{page.total}' first='{page.first}' last='{page.last}' maxPage='{page.max_page}' visible='{page.visible}' on:paginate='{(p) => onLoad({page: p.detail, ...filters})}'/>
+
 
 </template>
 
@@ -206,9 +224,9 @@
 		@apply font-normal text-base text-gray-700 pl-4 pr-4 pb-2 pt-2;
 	}
 	.detail-item:hover .label {
-		@apply text-red-400;
+		@apply text-gray-700;
 	}
 	.detail-item:hover .value {
-		@apply text-red-500;
+		@apply text-gray-700;
 	}
 </style>
