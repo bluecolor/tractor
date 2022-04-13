@@ -1,8 +1,5 @@
 <script>
-	import Connection from '../../assets/icons/connection.svg';
-	import Download from '../../assets/icons/download.svg';
-	import Tractor from '../../assets/icons/tractor.svg';
-	import Pulse from '../../assets/icons/pulse.svg';
+	import Tractor from '@icons/tractor.svg';
 	import './navbar.css';
 </script>
 
@@ -16,12 +13,12 @@ nav.nav-top.bg-white.border-b
           Tractor(width='2em' class="nav-link")
         .hidden(class='md:block')
           .ml-10.flex.items-baseline.space-x-6
-            a.navlink(href='/connections')
-              Connection(width='1.4em')
-            a.navlink(href='/extractions')
-              Download(width='1.4em')
-            a.navlink(href='/sessions')
-              Pulse(width='1.4em')
+            a.navlink.text-gray-600(href='/connections')
+              | Connections
+            a.navlink.text-gray-600(href='/extractions')
+              | Extractions
+            a.navlink.text-gray-600(href='/sessions')
+              | Sessions
 
 </template>
 
