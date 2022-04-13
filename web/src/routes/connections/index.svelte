@@ -1,15 +1,35 @@
 <script>
-	import Trash from '../../assets/icons/trash.svg';
-
+	import Trash from '@icons/trash.svg';
 	import { onMount } from 'svelte';
-	import { endpoint, api } from '$lib/utils';
+	import { api } from '$lib/utils';
+	import Pagination from '@components/Pagination.svelte';
+	import _ from 'lodash';
 
 	let connections = [];
-	onMount(async () => {
-		const response = await fetch(endpoint('connections'));
-		connections = await response.json();
-	});
+	let page = {};
+	export let filters = {
+		q: ''
+	};
 
+	onMount(async () => {
+		onLoad();
+	});
+	async function onLoad(params) {
+		let url = 'connections?' + new URLSearchParams(params);
+		let result = await api('GET', url);
+		if (!result.ok) {
+			let error = await result.json();
+			alert(error.error);
+			return;
+		}
+		page = await result.json();
+		connections = page.items;
+	}
+	function onSearch() {
+		_.debounce(async () => {
+			onLoad(filters);
+		}, 500)();
+	}
 	function onDeleteConnection(id) {
 		let connection = connections.find((connection) => connection.id === id);
 		let ok = confirm('Are you sure you want to delete this connection? ' + connection.name);
@@ -34,17 +54,17 @@
         | Connections
       .search.space-x-2.inline-flex.items-center()
         .action
-          input.input(type="text" placeholder="Search")
+          input.input(type="text" placeholder="Search" bind:value="{filters.q}" on:input="{onSearch}")
         a.action(href="/connections/new")
           button.btn Add
 
     .bg-white.mt-4.p-2.rounded-md
-      table.table.min-w-full
+      table.min-w-full
         thead
           tr
-            th(scope="col")
+            th(scope="col" align="left")
               | Name
-            th(scope="col")
+            th(scope="col" align="left")
               | Type
             th.actions
         tbody
@@ -59,5 +79,16 @@
                 .flex.justify-end.items-center
                   span(on:click='{onDeleteConnection(conn.id)}')
                     Trash(class="trash")
+      .mt-4
+        <Pagination page='{page.page}' total='{page.total}' first='{page.first}' last='{page.last}' maxPage='{page.max_page}' visible='{page.visible}' on:paginate='{(p) => onLoad({page: p.detail, ...filters})}'/>
 
 </template>
+
+<style lang="postcss">
+	table thead tr th {
+		@apply font-normal text-base text-gray-500 pl-4 pr-4 pb-2 pt-2;
+	}
+	table tbody tr td {
+		@apply font-normal text-base text-gray-700 pl-4 pr-4 pb-2 pt-2;
+	}
+</style>

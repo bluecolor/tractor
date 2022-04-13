@@ -3,12 +3,14 @@ package connection
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
 	"github.com/bluecolor/tractor/pkg/models"
 	"github.com/bluecolor/tractor/pkg/repo"
 	"github.com/bluecolor/tractor/pkg/utils"
 	"github.com/go-chi/chi"
+	"github.com/morkid/paginate"
 	"github.com/rs/zerolog/log"
 )
 
@@ -30,12 +32,19 @@ func (s *Service) OneConnection(w http.ResponseWriter, r *http.Request) {
 	utils.RespondwithJSON(w, http.StatusOK, connection)
 }
 func (s *Service) FindConnections(w http.ResponseWriter, r *http.Request) {
-	connections := []models.Connection{}
-	result := s.repo.Preload("ConnectionType").Find(&connections)
-	if result.Error != nil {
-		utils.ErrorWithJSON(w, http.StatusInternalServerError, result.Error)
+	model := s.repo.Preload("ConnectionType")
+
+	if r.URL.Query().Get("q") != "" {
+		query := strings.ToUpper(r.URL.Query().Get("q"))
+		model = model.Where("upper(name) LIKE ?", "%"+query+"%")
 	}
-	utils.RespondwithJSON(w, http.StatusOK, connections)
+	model = model.Find(&[]models.Connection{})
+
+	if model.Error != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, model.Error)
+	}
+	result := paginate.New().Response(model, r, &[]models.Connection{})
+	utils.RespondwithJSON(w, http.StatusOK, result)
 }
 func (s *Service) CreateConnection(w http.ResponseWriter, r *http.Request) {
 	var connection models.Connection
