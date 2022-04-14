@@ -8,6 +8,7 @@
 	import { session } from '$app/stores';
 	import Pagination from '@components/Pagination.svelte';
 	import _ from 'lodash';
+	import RichSelect from '@components/RichSelect.svelte';
 
 	let extractions = [];
 	let connections = [];
@@ -131,6 +132,9 @@
 		switch (e.detail.value) {
 			case 'delete':
 				onDeleteExtraction(id);
+				break;
+			case 'sessions':
+				window.location.href = `/sessions?extraction=${id}`;
 		}
 	}
 	onMount(async () => {

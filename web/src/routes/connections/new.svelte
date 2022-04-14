@@ -30,7 +30,7 @@
 		connectionTypeCode = connectionTypes.find((c) => c.id == connectionTypeId).code;
 	}
 	function onSubmit(e) {
-		let method = 'PUT';
+		let method = 'POST';
 		let resource = 'connections';
 		loading = true;
 		console.log(connection);
@@ -56,10 +56,13 @@
 				if (response.ok) {
 					alert('Connection test successful');
 				} else {
-					response.text().then((text) => {
-						alert('Connection test failed!\n' + text);
+					response.json().then((json) => {
+						alert('Connection test failed\n' + json.message);
 					});
 				}
+			})
+			.catch((error) => {
+				alert(error.message);
 			})
 			.finally(() => {
 				loading = false;
@@ -89,7 +92,7 @@
               <svelte:component this={components[connectionTypeCode]} state={connection.config} />
 
         .py-3.text-right.space-x-4(class='sm:px-6')
-          button.warning(on:click|preventDefault='{onTest}' disabled='{loading}') {loading ? 'Testing...' : 'Test Connection'}
-          button() Save
+          button.btn.warning(on:click|preventDefault='{onTest}' disabled='{loading}') {loading ? 'Testing...' : 'Test Connection'}
+          button.btn() Save
 
 </template>

@@ -9,9 +9,10 @@
 	let sourceDataset = { config: {} };
 	let targetDataset = { config: {} };
 	onMount(async () => {
-		api('GET', 'connections').then(async (response) => {
+		api('GET', 'connections?size=-1').then(async (response) => {
 			if (response.ok) {
-				connections = await response.json();
+				let result = await response.json();
+				connections = result.items;
 			} else {
 				let errm = await response.text();
 				alert('Failed to load connections\n' + errm);
@@ -24,7 +25,6 @@
 			sourceDataset: sourceDataset,
 			targetDataset: targetDataset
 		};
-		console.log(payload);
 		api('POST', 'extractions', payload).then(async (response) => {
 			if (response.ok) {
 				let extraction = await response.json();

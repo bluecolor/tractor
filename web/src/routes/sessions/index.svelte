@@ -24,7 +24,7 @@
 	];
 	export let filters = {
 		statuses: [],
-		e: ''
+		extraction: ''
 	};
 
 	async function onLoad(params) {
@@ -41,7 +41,7 @@
 	}
 	function onClearFilters() {
 		filters = {
-			e: '',
+			extraction: '',
 			statuses: []
 		};
 		onLoad();
@@ -72,7 +72,8 @@
 	onMount(async () => {
 		const e = await api('GET', 'extractions');
 		extractions = (await e.json()).items || [];
-		onLoad();
+		let params = Object.fromEntries(new URLSearchParams(location.search).entries());
+		onLoad(params);
 		subscribe();
 	});
 
@@ -147,7 +148,7 @@
       .bg-white.mt-4.p-2.rounded-md
         .form-item
           label(for="extractions") Extraction
-          select(name='extractions', value='{filters.e}')
+          select(name='extractions', value='{filters.extraction}')
             +each('extractions as e')
               option(value='{e.id}') {e.name}
         .form-item

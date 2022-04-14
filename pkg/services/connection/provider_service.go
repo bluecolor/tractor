@@ -38,14 +38,6 @@ func (s *Service) OneProvider(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.RespondwithJSON(w, http.StatusOK, provider)
 }
-func (s *Service) FindProviderTypes(w http.ResponseWriter, r *http.Request) {
-	providerTypes := []models.ProviderType{}
-	if err := s.repo.Find(&providerTypes).Error; err != nil {
-		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
-		return
-	}
-	utils.RespondwithJSON(w, http.StatusOK, providerTypes)
-}
 func (s *Service) DeleteProvider(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	provider := models.Provider{}

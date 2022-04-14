@@ -1,11 +1,13 @@
 <script>
 	import MySQLDataset from './MySQLDataset.svelte';
+	import FileDataset from './FileDataset.svelte';
 
 	export let type = 'source';
 	export let connections = [];
 	export let dataset = { config: {} };
 	const components = {
-		mysql: MySQLDataset
+		mysql: MySQLDataset,
+		file: FileDataset
 	};
 	$: component = () => {
 		let connection = connections.find((c) => c.id == dataset.connectionId);
