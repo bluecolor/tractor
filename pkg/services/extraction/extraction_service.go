@@ -42,7 +42,8 @@ func (s *Service) FindExtractions(w http.ResponseWriter, r *http.Request) {
 		Preload("SourceDataset.Connection").
 		Preload("TargetDataset.Connection").
 		Preload("Sessions", func(db *gorm.DB) *gorm.DB {
-			return db.Order("sessions.created_at desc").Limit(1)
+			// todo load only last sessions
+			return db.Order("created_at desc")
 		})
 
 	if r.URL.Query().Get("sc") != "" {

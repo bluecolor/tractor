@@ -92,8 +92,7 @@
 		});
 	}
 	function onClear() {
-		source.fields = [];
-		target.fields = [];
+		mappings = [];
 	}
 </script>
 

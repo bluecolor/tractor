@@ -33,7 +33,7 @@ func (c *Connection) GetConnectorConfig() (connectors.ConnectorConfig, error) {
 type Provider struct {
 	Model
 	Name string `gorm:"size:100;not null;unique" json:"name"`
-	Code string `gorm:"size:100;not null;unique" json:"name"`
+	Code string `gorm:"size:100;not null;unique" json:"code"`
 }
 type FileType struct {
 	Model
