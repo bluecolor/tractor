@@ -29,7 +29,12 @@ func NewService(repo *repo.Repository, client *tasks.Client) *Service {
 func (s *Service) OneExtraction(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	ext := models.Extraction{}
-	if err := s.repo.First(&ext, id).Error; err != nil {
+	if err := s.repo.
+		Preload("SourceDataset").
+		Preload("TargetDataset").
+		Preload("SourceDataset.Connection.ConnectionType").
+		Preload("TargetDataset.Connection.ConnectionType").
+		First(&ext, id).Error; err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 	}
 	utils.RespondwithJSON(w, http.StatusOK, ext)
