@@ -32,7 +32,9 @@ func (s *Service) OneExtraction(w http.ResponseWriter, r *http.Request) {
 	if err := s.repo.
 		Preload("SourceDataset").
 		Preload("TargetDataset").
+		Preload("SourceDataset.Connection").
 		Preload("SourceDataset.Connection.ConnectionType").
+		Preload("TargetDataset.Connection").
 		Preload("TargetDataset.Connection.ConnectionType").
 		First(&ext, id).Error; err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)

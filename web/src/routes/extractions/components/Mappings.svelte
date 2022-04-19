@@ -1,4 +1,5 @@
 <script>
+	import { onMount } from 'svelte'
 	import { api } from '$lib/utils'
 	import Dropdown from '@components/Dropdown.svelte'
 	import TrashIcon from '@icons/trash.svg'
@@ -31,6 +32,14 @@
 		extraction.targetDataset.fields = mappings.map((m, i) => ({ ...m.target, order: i }))
 	}
 
+	onMount(async () => {
+		if (extraction?.sourceDataset?.fields && extraction?.targetDataset?.fields) {
+			mapFields({
+				sf: extraction.sourceDataset.fields,
+				tf: extraction.targetDataset.fields
+			})
+		}
+	})
 	function onDropdown(e) {
 		const { value } = e.detail
 		switch (value) {
