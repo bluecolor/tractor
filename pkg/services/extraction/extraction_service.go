@@ -29,7 +29,16 @@ func NewService(repo *repo.Repository, client *tasks.Client) *Service {
 func (s *Service) OneExtraction(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	ext := models.Extraction{}
-	if err := s.repo.First(&ext, id).Error; err != nil {
+	if err := s.repo.
+		Preload("SourceDataset").
+		Preload("TargetDataset").
+		Preload("SourceDataset.Connection").
+		Preload("TargetDataset.Connection").
+		Preload("SourceDataset.Connection.ConnectionType").
+		Preload("TargetDataset.Connection.ConnectionType").
+		Preload("SourceDataset.Fields").
+		Preload("TargetDataset.Fields").
+		First(&ext, id).Error; err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 	}
 	utils.RespondwithJSON(w, http.StatusOK, ext)
@@ -42,7 +51,8 @@ func (s *Service) FindExtractions(w http.ResponseWriter, r *http.Request) {
 		Preload("SourceDataset.Connection").
 		Preload("TargetDataset.Connection").
 		Preload("Sessions", func(db *gorm.DB) *gorm.DB {
-			return db.Order("sessions.created_at desc").Limit(1)
+			// todo load only last sessions
+			return db.Order("created_at desc")
 		})
 
 	if r.URL.Query().Get("sc") != "" {

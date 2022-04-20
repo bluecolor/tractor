@@ -43,9 +43,9 @@ func (r *Repository) SeedFileTypes(basePath string) (err error) {
 	}
 	return
 }
-func (r *Repository) SeedProviderTypes(basePath string) (err error) {
-	filename := path.Join(basePath, "provider_types.csv")
-	log.Info().Msg("seeding provider types from " + filename)
+func (r *Repository) SeedProviders(basePath string) (err error) {
+	filename := path.Join(basePath, "providers.csv")
+	log.Info().Msg("seeding providers from " + filename)
 	f, err := os.Open(filename)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to open " + filename)
@@ -59,12 +59,12 @@ func (r *Repository) SeedProviderTypes(basePath string) (err error) {
 		log.Error().Err(err).Msg("failed to read " + filename)
 	}
 
-	records := []models.ProviderType{}
+	records := []models.Provider{}
 	for i, row := range data {
 		if i == 0 {
 			continue
 		}
-		record := models.ProviderType{
+		record := models.Provider{
 			Name: row[0],
 			Code: row[1],
 		}
@@ -72,7 +72,7 @@ func (r *Repository) SeedProviderTypes(basePath string) (err error) {
 	}
 	err = r.Save(&records).Error
 	if err != nil {
-		log.Error().Err(err).Msg("failed to seed provider types")
+		log.Error().Err(err).Msg("failed to seed providers")
 		return
 	}
 	return

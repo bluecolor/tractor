@@ -1,17 +1,17 @@
 <script>
-	import EditIcon from '@icons/edit.svg';
-	import { onMount } from 'svelte';
-	import { api } from '$lib/utils';
-	import ExtractionMode from './ExtractionMode.svelte';
-	export let dataset;
-	export let type = 'source';
+	import EditIcon from '@icons/edit.svg'
+	import { onMount } from 'svelte'
+	import { api } from '$lib/utils'
+	import ExtractionMode from './ExtractionMode.svelte'
+	export let dataset
+	export let type = 'source'
 
-	let databases = [];
-	let tables = [];
-	let editTable = false;
+	let databases = []
+	let tables = []
+	let editTable = false
 
 	$: {
-		dataset.name = `${dataset.config.database}.${dataset.config.table}`;
+		dataset.name = `${dataset.config.database}.${dataset.config.table}`
 	}
 
 	onMount(async () => {
@@ -20,30 +20,34 @@
 			info: 'databases'
 		}).then(async (response) => {
 			if (response.ok) {
-				databases = await response.json();
+				databases = await response.json()
 			} else {
-				let errm = await response.text();
-				alert('Failed to load databases\n' + errm);
+				let errm = await response.text()
+				alert('Failed to load databases\n' + errm)
 			}
-		});
-	});
+		})
+		if (dataset?.config?.database) {
+			onDatabaseChange(false)
+		}
+	})
 	function toggleEditTable() {
-		editTable = !editTable;
+		editTable = !editTable
 	}
-	function onDatabaseChange() {
+	function onDatabaseChange(clearTable = true) {
 		api('POST', 'connections/info', {
 			connection: dataset.connection,
 			info: 'tables',
 			options: { database: dataset.config.database }
 		}).then(async (response) => {
-			if (response.ok) {
-				tables = await response.json();
-				dataset.config.table = null;
-			} else {
-				tables = [];
-				dataset.config.table = null;
+			if (clearTable) {
+				dataset.config.table = null
 			}
-		});
+			if (response.ok) {
+				tables = await response.json()
+			} else {
+				tables = []
+			}
+		})
 	}
 	function onTableChange() {}
 </script>

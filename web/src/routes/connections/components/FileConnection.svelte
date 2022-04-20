@@ -1,30 +1,38 @@
 <script>
 	import { onMount } from 'svelte';
-	import { endpoint } from '$lib/utils';
+	import { api } from '$lib/utils';
+	import _ from 'lodash';
+	export let state = {};
+	state = _.extend(state, {
+		provider: {
+			code: ''
+		},
+		format: {
+			code: ''
+		}
+	});
 
-	let ptypes = [];
+	let providers = [];
 	onMount(async () => {
-		const response = await fetch(endpoint(`connections/providers/types`));
-		ptypes = await response.json();
-		console.log(ptypes);
+		const response = await api('GET', `connections/providers`);
+		providers = await response.json();
 	});
 
 	const fileFormats = [
 		{ name: 'CSV', code: 'csv' },
 		{ name: 'JSON', code: 'json' }
 	];
-	export let state;
 </script>
 
 <template lang="pug">
   .form-item
     label(for='file-provider') Provider
-    select#file-provider(aria-label='provider')
-      +each('ptypes as p')
-        option(value='{p.code}' selected='{p.code === state?.provider}') {p.name}
+    select#file-provider(aria-label='provider' bind:value='{state.provider.code}')
+      +each('providers as p')
+        option(value='{p.code}' selected='{p.code === state?.provider?.code}') {p.name}
   .form-item
     label(for='file-format') Format
-    select#file-format(aria-label='file format')
+    select#file-format(aria-label='file format' bind:value='{state.format.code}')
       +each('fileFormats as ff')
         option(value='{ff.code}' selected='{ff.code === state?.format}') {ff.name}
 </template>

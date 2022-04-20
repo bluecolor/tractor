@@ -91,7 +91,7 @@ func (r *Repository) Seed(basePath string, reset bool) (err error) {
 	}
 	functions := []func(string) error{
 		r.SeedFileTypes,
-		r.SeedProviderTypes,
+		r.SeedProviders,
 		r.SeedConnectionTypes,
 	}
 	for _, f := range functions {

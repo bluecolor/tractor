@@ -9,9 +9,8 @@ import (
 
 type ConnectionType struct {
 	Model
-	Name          string         `gorm:"size:100;not null;unique" json:"name"`
-	Code          string         `gorm:"size:100;not null;unique" json:"code"`
-	ProviderTypes []ProviderType `gorm:"many2many:connection_type_provider_types"`
+	Name string `gorm:"size:100;not null;unique" json:"name"`
+	Code string `gorm:"size:100;not null;unique" json:"code"`
 }
 type Connection struct {
 	Model
@@ -31,18 +30,10 @@ func (c *Connection) GetConnectorConfig() (connectors.ConnectorConfig, error) {
 	return configMap, nil
 }
 
-type ProviderType struct {
-	Model
-	Name            string           `gorm:"size:100;not null;unique" json:"name"`
-	Code            string           `gorm:"size:100;not null;unique" json:"code"`
-	ConnectionTypes []ConnectionType `gorm:"many2many:connection_type_provider_types"`
-}
 type Provider struct {
 	Model
-	Name           string         `gorm:"size:100;not null;unique" json:"name"`
-	Config         datatypes.JSON `gorm:"type:text" json:"config"`
-	ProviderTypeID uint           `json:"providerTypeId"`
-	ProviderType   *ProviderType  `gorm:"foreignkey:ProviderTypeID" json:"providerType"`
+	Name string `gorm:"size:100;not null;unique" json:"name"`
+	Code string `gorm:"size:100;not null;unique" json:"code"`
 }
 type FileType struct {
 	Model

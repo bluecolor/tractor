@@ -21,7 +21,6 @@ func buildConnectionRoutes(repository *repo.Repository) *chi.Mux {
 	router.Post("/info", service.GetInfo)
 
 	// provider routes
-	router.Get("/providers/types", service.FindProviderTypes)
 	router.Get("/providers", service.FindProviders)
 	router.Get("/providers/{id}", service.OneProvider)
 	router.Delete("/providers/{id}", service.DeleteProvider)

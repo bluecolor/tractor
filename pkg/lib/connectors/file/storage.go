@@ -6,16 +6,8 @@ import (
 	"go.beyondstorage.io/v5/types"
 )
 
-func getFS(storageConfig StorageConfig) (types.Storager, error) {
-	url := storageConfig.GetURL()
-	return services.NewStoragerFromString(url)
-}
+func getStorage(provider map[string]interface{}) (types.Storager, error) {
+	code := provider["code"].(string)
+	return services.NewStoragerFromString(code + "://")
 
-func getStorage(storageType string, storageConfig StorageConfig) (types.Storager, error) {
-
-	switch storageType {
-	case "fs":
-		return getFS(storageConfig)
-	}
-	return nil, nil
 }

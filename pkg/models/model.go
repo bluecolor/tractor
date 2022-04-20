@@ -21,7 +21,6 @@ func init() {
 		&Field{},
 		&FileType{},
 		&Provider{},
-		&ProviderType{},
 		&Param{},
 		&Session{},
 	)

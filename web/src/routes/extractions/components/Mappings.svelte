@@ -1,13 +1,13 @@
 <script>
-	import { api } from '$lib/utils';
-	import Dropdown from '@components/Dropdown.svelte';
-	import TrashIcon from '@icons/trash.svg';
-	import MoreIcon from '@icons/more.svg';
-	import PlusIcon from '@icons/plus.svg';
-	import GreaterThanIcon from '@icons/greater-than.svg';
+	import { onMount } from 'svelte'
+	import { api } from '$lib/utils'
+	import Dropdown from '@components/Dropdown.svelte'
+	import TrashIcon from '@icons/trash.svg'
+	import MoreIcon from '@icons/more.svg'
+	import PlusIcon from '@icons/plus.svg'
+	import GreaterThanIcon from '@icons/greater-than.svg'
 
-	export let source = { fields: [] };
-	export let target = { fields: [] };
+	export let extraction = null
 
 	let options = [
 		{
@@ -18,22 +18,30 @@
 			label: 'Clear',
 			value: 'clear'
 		}
-	];
-	export let mappings = [];
-	$: {
-		source.fields = mappings.map((m, i) => ({ ...m.source, order: i }));
-		target.fields = mappings.map((m, i) => ({ ...m.target, order: i }));
-	}
+	]
+	export let mappings = []
+	// $: {
+	// 	extraction.sourceDataset.fields = mappings.map((m, i) => ({ ...m.source, order: i }))
+	// 	extraction.targetDataset.fields = mappings.map((m, i) => ({ ...m.target, order: i }))
+	// }
 
+	onMount(async () => {
+		if (extraction?.sourceDataset?.fields && extraction?.targetDataset?.fields) {
+			mapFields({
+				sf: extraction.sourceDataset.fields,
+				tf: extraction.targetDataset.fields
+			})
+		}
+	})
 	function onDropdown(e) {
-		const { value } = e.detail;
+		const { value } = e.detail
 		switch (value) {
 			case 'fetch':
-				onFetch();
-				break;
+				onFetch()
+				break
 			case 'clear':
-				onClear();
-				break;
+				onClear()
+				break
 		}
 	}
 	function mapFields({ sf, tf }) {
@@ -41,30 +49,30 @@
 			return {
 				order: i,
 				...s
-			};
-		});
+			}
+		})
 		let targetFields = (tf ?? target.fields).map((t, i) => {
 			return {
 				order: i,
 				...t
-			};
-		});
+			}
+		})
 
 		while (sourceFields.length < targetFields.length) {
-			sourceFields.push({ order: sourceFields.length });
+			sourceFields.push({ order: sourceFields.length })
 		}
 		while (targetFields.length < sourceFields.length) {
-			targetFields.push({ order: targetFields.length });
+			targetFields.push({ order: targetFields.length })
 		}
-		sourceFields = sourceFields.sort((a, b) => a.order - b.order) || [];
-		targetFields = targetFields.sort((a, b) => a.order - b.order) || [];
+		sourceFields = sourceFields.sort((a, b) => a.order - b.order) || []
+		targetFields = targetFields.sort((a, b) => a.order - b.order) || []
 		mappings = sourceFields.map((sf, i) => {
 			return {
 				source: sf,
 				target: targetFields[i]
-			};
-		});
-		mappings = [...mappings];
+			}
+		})
+		mappings = [...mappings]
 	}
 	function onFetch() {
 		Promise.all([
@@ -72,28 +80,27 @@
 			api('POST', `connections/${target.connectionId}/dataset`, target.config)
 		]).then(async (responses) => {
 			if (responses.every((r) => r.ok)) {
-				let s = await responses[0].json();
-				let t = await responses[1].json();
-				mapFields({ sf: s.fields, tf: t.fields });
+				let s = await responses[0].json()
+				let t = await responses[1].json()
+				mapFields({ sf: s.fields, tf: t.fields })
 			} else {
-				let errms = await Promise.all(responses.map((r) => r.text()));
-				alert('Failed to load fields\n' + errms.join('\n'));
+				let errms = await Promise.all(responses.map((r) => r.text()))
+				alert('Failed to load fields\n' + errms.join('\n'))
 			}
-		});
+		})
 	}
 	function onDeleteMapping(i) {
-		mappings.splice(i, 1);
-		mappings = [...mappings];
+		mappings.splice(i, 1)
+		mappings = [...mappings]
 	}
 	function onAddMapping() {
 		mappings.push({
 			source: { order: mappings.length },
 			target: { order: mappings.length }
-		});
+		})
 	}
 	function onClear() {
-		source.fields = [];
-		target.fields = [];
+		mappings = []
 	}
 </script>
 

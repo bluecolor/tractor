@@ -7,20 +7,9 @@ import (
 	"go.beyondstorage.io/v5/types"
 )
 
-type StorageConfig map[string]interface{}
-
-func (c StorageConfig) WithURL(url string) StorageConfig {
-	c["url"] = url
-	return c
-}
-func (c StorageConfig) GetURL() string {
-	return c["url"].(string)
-}
-
 type FileConfig struct {
-	StorageType   string        `json:"storageType"`
-	Format        string        `json:"format"`
-	StorageConfig StorageConfig `json:"storageConfig"`
+	Provider map[string]interface{} `json:"provider"`
+	Format   map[string]interface{} `json:"format"`
 }
 
 type FileConnector struct {
@@ -41,11 +30,11 @@ func New(config connectors.ConnectorConfig) (*FileConnector, error) {
 }
 
 func (f *FileConnector) Connect() error {
-	storage, err := getStorage(f.Config.StorageType, f.Config.StorageConfig)
+	storage, err := getStorage(f.Config.Provider)
 	if err != nil {
 		return err
 	}
-	ff, err := formats.GetFileFormat(f.Config.Format, storage)
+	ff, err := formats.GetFileFormat(f.Config.Format["code"].(string), storage)
 	if err != nil {
 		return err
 	}
@@ -58,11 +47,7 @@ func (f *FileConnector) Close() error {
 	return nil
 }
 func (f *FileConnector) GetPath(filename string) string {
-	url := f.Config.StorageConfig.GetURL()
-	if url[len(url)-1] != '/' {
-		url += "/"
-	}
-	return url + filename
+	return f.Config.Provider["code"].(string) + "://" + filename
 }
 
 func init() {
