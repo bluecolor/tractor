@@ -66,7 +66,6 @@ func (g *WaitGroup) Finish() error {
 	defer g.w.SendDone(sender)
 
 	if g.cancelled {
-
 		g.w.SendCancelled(sender)
 	} else if g.err != nil {
 		g.w.SendError(sender, g.err)

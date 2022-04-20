@@ -51,6 +51,20 @@ func ToChunksStr(items []string, chunkCount int) [][]string {
 	return chunks
 }
 
+func ToChunks[T comparable](items []T, chunkCount int) [][]T {
+	cc := int(math.Min(float64(int(len(items)/chunkCount)), 1))
+	chunks := [][]T{}
+	chunk := []T{}
+	for i := 0; i < len(items); i++ {
+		chunk = append(chunk, items[i])
+		if (i%cc == 0 && i != 0) || i == len(items)-1 {
+			chunks = append(chunks, chunk)
+			chunk = []T{}
+		}
+	}
+	return chunks
+}
+
 // Taken from https://github.com/lithammer/dedent
 // Dedent removes any common leading whitespace from every line in text.
 //

@@ -7,7 +7,7 @@
 	import PlusIcon from '@icons/plus.svg'
 	import GreaterThanIcon from '@icons/greater-than.svg'
 
-	export let extraction = null
+	export let extraction
 
 	let options = [
 		{
@@ -45,13 +45,13 @@
 		}
 	}
 	function mapFields({ sf, tf }) {
-		let sourceFields = (sf ?? source.fields).map((s, i) => {
+		let sourceFields = (sf ?? extraction.sourceDataset?.fields ?? []).map((s, i) => {
 			return {
 				order: i,
 				...s
 			}
 		})
-		let targetFields = (tf ?? target.fields).map((t, i) => {
+		let targetFields = (tf ?? extraction.targetDataset?.fields ?? []).map((t, i) => {
 			return {
 				order: i,
 				...t
@@ -76,8 +76,14 @@
 	}
 	function onFetch() {
 		Promise.all([
-			api('POST', `connections/${source.connectionId}/dataset`, source.config),
-			api('POST', `connections/${target.connectionId}/dataset`, target.config)
+			api('POST', `connections/${extraction.sourceDataset.connectionId}/dataset`, {
+				...extraction.sourceDataset.connection.config,
+				...extraction.sourceDataset.config
+			}),
+			api('POST', `connections/${extraction.targetDataset.connectionId}/dataset`, {
+				...extraction.targetDataset.connection.config,
+				...extraction.targetDataset.config
+			})
 		]).then(async (responses) => {
 			if (responses.every((r) => r.ok)) {
 				let s = await responses[0].json()

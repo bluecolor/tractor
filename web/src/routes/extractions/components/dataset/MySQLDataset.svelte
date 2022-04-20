@@ -9,6 +9,7 @@
 	let databases = []
 	let tables = []
 	let editTable = false
+	dataset.config = dataset.config || {}
 
 	$: {
 		dataset.name = `${dataset.config.database}.${dataset.config.table}`
