@@ -4,7 +4,7 @@
 
 	export let type = 'source'
 	export let connections = []
-	export let dataset = { config: {} }
+	export let dataset = null
 	const components = {
 		mysql: MySQLDataset,
 		file: FileDataset

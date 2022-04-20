@@ -7,14 +7,7 @@
 	import PlusIcon from '@icons/plus.svg'
 	import GreaterThanIcon from '@icons/greater-than.svg'
 
-	export let extraction = {
-		sourceDataset: {
-			fields: []
-		},
-		targetDataset: {
-			fields: []
-		}
-	}
+	export let extraction = null
 
 	let options = [
 		{
@@ -27,10 +20,10 @@
 		}
 	]
 	export let mappings = []
-	$: {
-		extraction.sourceDataset.fields = mappings.map((m, i) => ({ ...m.source, order: i }))
-		extraction.targetDataset.fields = mappings.map((m, i) => ({ ...m.target, order: i }))
-	}
+	// $: {
+	// 	extraction.sourceDataset.fields = mappings.map((m, i) => ({ ...m.source, order: i }))
+	// 	extraction.targetDataset.fields = mappings.map((m, i) => ({ ...m.target, order: i }))
+	// }
 
 	onMount(async () => {
 		if (extraction?.sourceDataset?.fields && extraction?.targetDataset?.fields) {

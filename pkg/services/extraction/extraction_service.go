@@ -33,9 +33,11 @@ func (s *Service) OneExtraction(w http.ResponseWriter, r *http.Request) {
 		Preload("SourceDataset").
 		Preload("TargetDataset").
 		Preload("SourceDataset.Connection").
-		Preload("SourceDataset.Connection.ConnectionType").
 		Preload("TargetDataset.Connection").
+		Preload("SourceDataset.Connection.ConnectionType").
 		Preload("TargetDataset.Connection.ConnectionType").
+		Preload("SourceDataset.Fields").
+		Preload("TargetDataset.Fields").
 		First(&ext, id).Error; err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 	}
