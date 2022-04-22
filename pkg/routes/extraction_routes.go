@@ -15,5 +15,6 @@ func buildExtractionRoutes(repository *repo.Repository, workerClient *tasks.Clie
 	router.Delete("/{id}", service.DeleteExtraction)
 	router.Post("/", service.CreateExtraction)
 	router.Post("/{id}/run", service.RunExtraction)
+	router.Put("/{id}", service.UpdateExtraction)
 	return router
 }

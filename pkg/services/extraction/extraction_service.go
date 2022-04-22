@@ -43,6 +43,21 @@ func (s *Service) OneExtraction(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.RespondwithJSON(w, http.StatusOK, ext)
 }
+func (s *Service) UpdateExtraction(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	extraction := models.Extraction{}
+	if err := s.repo.First(&extraction, id).Error; err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+	}
+	if err := json.NewDecoder(r.Body).Decode(&extraction); err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+	}
+	if err := s.repo.Save(&extraction).Error; err != nil {
+		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
+	}
+	utils.RespondwithJSON(w, http.StatusOK, extraction)
+}
+
 func (s *Service) FindExtractions(w http.ResponseWriter, r *http.Request) {
 
 	model := s.repo.

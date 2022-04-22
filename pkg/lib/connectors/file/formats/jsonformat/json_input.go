@@ -30,6 +30,7 @@ func (f *JsonFormat) Work(filename string, d types.Dataset, w *wire.Wire, wi int
 			}
 			offset += readBytes
 			contentstr = contentstr + buf.String()
+			buf = bytes.Buffer{}
 		}
 		if readBytes == 0 && len(rest) == 0 {
 			break
@@ -38,8 +39,8 @@ func (f *JsonFormat) Work(filename string, d types.Dataset, w *wire.Wire, wi int
 	if err := json.Unmarshal([]byte(contentstr), &content); err != nil {
 		return err
 	}
-	record := msg.Record{}
 	for _, item := range content {
+		record := msg.Record{}
 		for _, field := range d.Fields {
 			keys := strings.Split(field.Name, ".")
 			if len(keys) == 1 {

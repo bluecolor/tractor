@@ -34,12 +34,7 @@
 		)
 	})
 	function onSave() {
-		let payload = {
-			name,
-			sourceDataset,
-			targetDataset
-		}
-		api('POST', 'extractions', payload).then(async (response) => {
+		api('PUT', `extractions/${extraction.id}`, extraction).then(async (response) => {
 			if (response.ok) {
 				let extraction = await response.json()
 			} else {
