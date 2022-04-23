@@ -19,7 +19,7 @@ type Dataset struct {
 	Connection   *Connection    `gorm:"foreignkey:ConnectionID" json:"connection"`
 	ConnectionID uint           `json:"connectionId"`
 	ExtractionID uint           `json:"extractionId"`
-	Config       datatypes.JSON `gorm:"type:text" json:"config"`
+	Config       datatypes.JSON `gorm:"type:text" json:"config" `
 	Fields       []*Field       `json:"fields"`
 }
 

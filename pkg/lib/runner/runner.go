@@ -29,7 +29,7 @@ type Result struct {
 	isDriverDone    bool
 	isTimeout       bool
 	isDone          bool
-	errors          types.Errors
+	errors          *types.Errors
 }
 
 type ioConnectors struct {
@@ -50,13 +50,10 @@ type Runner struct {
 }
 
 func (r *Result) Errors() types.Errors {
-	r.errors = types.Errors{}
 	if r.isInputSuccess && r.isOutputSuccess && r.readCount != r.writeCount {
 		r.errors.Add(fmt.Errorf("read count %d != write count %d", r.readCount, r.writeCount))
 	}
-	r.errors.Add(r.inputError)
-	r.errors.Add(r.outputError)
-	return r.errors
+	return *r.errors
 }
 
 func (r *Result) AddError(err error, es ...types.ErrorSource) {
@@ -64,7 +61,6 @@ func (r *Result) AddError(err error, es ...types.ErrorSource) {
 		return
 	}
 	source := types.UnknownErrorSource
-	r.errors.Add(err)
 	if len(es) != 0 {
 		source = es[0]
 	}
@@ -135,7 +131,7 @@ func New(ctx context.Context, s types.Session, options ...Option) (*Runner, erro
 		},
 		feedProcessor: GetFeedProcessor(options...),
 		result: &Result{
-			errors: types.Errors{},
+			errors: &types.Errors{},
 		},
 	}
 	return r, nil
@@ -173,7 +169,7 @@ func (r *Runner) ProcessResult() *Result {
 		r.wire.SendFeed(msg.NewSessionDone())
 	}
 	if r.result.Errors().Count() > 0 {
-		r.wire.SendFeed(msg.NewSessionError())
+		r.wire.SendFeed(msg.NewSessionError(r.result.Errors().Wrap()))
 		r.wire.SendFeed(msg.NewSessionDone())
 	}
 	return r.result

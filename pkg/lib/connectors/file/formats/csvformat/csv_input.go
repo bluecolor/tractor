@@ -79,7 +79,7 @@ func (f *CsvFormat) Read(d types.Dataset, w *wire.Wire) (err error) {
 		go func(wg *esync.WaitGroup, chunk []string, w *wire.Wire, i int) {
 			defer wg.Done()
 			if err := f.StartReadWorker(chunk, d, w, i); err != nil {
-				w.SendInputError(err)
+				mwg.HandleError(err)
 			}
 		}(mwg, chunk, w, i)
 	}

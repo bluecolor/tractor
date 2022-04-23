@@ -16,7 +16,6 @@ import (
 
 func (c *MySQLConnector) write(d types.Dataset, i int, data msg.Data) error {
 	log.Debug().Msgf("writing %d records to %s", data.Count(), d.Name)
-	ok := true
 	query, err := c.BuildBatchInsertQuery(d, data.Count())
 	if err != nil {
 		log.Error().Err(err).Msg("failed to build batch insert query")
@@ -30,9 +29,6 @@ func (c *MySQLConnector) write(d types.Dataset, i int, data msg.Data) error {
 	for i, record := range data {
 		for j := range record {
 			values[i*len(fields)+j] = record[j]
-			if !ok {
-				log.Debug().Msgf("field %d not found in record %d", j, i)
-			}
 		}
 	}
 	log.Debug().Msgf("executing mysql output query: %s", query)

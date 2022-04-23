@@ -208,10 +208,11 @@ func NewSessionRunning() *Feed {
 		Type:   Running,
 	}
 }
-func NewSessionError() *Feed {
+func NewSessionError(err error) *Feed {
 	return &Feed{
-		Sender: Driver,
-		Type:   Error,
+		Sender:  Driver,
+		Type:    Error,
+		Content: err,
 	}
 }
 func NewSessionDone() *Feed {

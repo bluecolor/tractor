@@ -16,17 +16,17 @@ const (
 
 type Errors []error
 
-func (e Errors) Add(err interface{}) Errors {
+func (e *Errors) Add(err interface{}) *Errors {
 	if err == nil {
 		return e
 	}
 	switch val := err.(type) {
 	case error:
-		e = append(e, val)
+		*e = append(*e, val)
 	case Errors:
-		e = append(e, val...)
+		*e = append(*e, val...)
 	default:
-		e = append(e, fmt.Errorf("%v", val))
+		*e = append(*e, fmt.Errorf("%v", val))
 	}
 	return e
 }
