@@ -31,7 +31,7 @@ func (s *Service) FindSessions(w http.ResponseWriter, r *http.Request) {
 
 	if r.URL.Query().Get("statuses") != "" {
 		statuses := strings.Split(r.URL.Query().Get("statuses"), ",")
-		model = model.Where("Extraction.status IN (?)", statuses)
+		model = model.Where("status IN (?)", statuses)
 	}
 	if r.URL.Query().Get("extraction") != "" {
 		model = model.Where("Extraction.id = ?", r.URL.Query().Get("extraction"))

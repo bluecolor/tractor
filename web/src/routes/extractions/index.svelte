@@ -163,8 +163,9 @@
 		})
 	}
 	onMount(async () => {
-		let c = await api('GET', 'connections')
-		connections = await c.json()
+		let c = await api('GET', 'connections?limit=1000')
+		let cp = await c.json()
+		connections = cp.items
 		onLoad({ page: 0, ...filters })
 		subscribe()
 	})
@@ -226,9 +227,9 @@
                 a(href="/extractions/{e.id}")
                   | {e.name}
               td
-                | {e.sourceDataset.name}<span class="text-gray-400">@{e.sourceDataset.connection.name} </span>
+                | {e.sourceDataset.name}<a class="text-gray-400 cursor-pointer" href="{'/connections/' + e.sourceDataset.connectionId}">@{e.sourceDataset.connection.name} </a>
               td
-                | {e.targetDataset.name}<span class="text-gray-400">@{e.targetDataset.connection.name} </span>
+                | {e.targetDataset.name}<a class="text-gray-400 cursor-pointer" href="{'/connections/' + e.targetDataset.connectionId}">@{e.targetDataset.connection.name} </a>
               td(align="left")
                 <div id="{'status-' + e.id}" class="{e.status=='error' ? 'cursor-pointer': ''}" aria-describedby="tooltip" on:click="{() => onStatusClick(e)}">
                   +if('e.status === "success"')

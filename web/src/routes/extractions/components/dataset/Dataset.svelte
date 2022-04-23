@@ -27,8 +27,11 @@
   select(name='connection', bind:value='{dataset.connectionId}')
     +each('connections as c')
       option(value='{c.id}' selected='{dataset.connectionId === c.id}') {c.name}
-.form-item
-  +if('dataset.connectionId')
++if('dataset.connectionId')
+  .form-item
+    label(for="name") Dataset name
+    input.input(type="text", name="name", bind:value='{dataset.name}')
+  .form-item
     <svelte:component type='{type}' bind:dataset='{dataset}' this={component()} connection={connections.find((c) => c.id == dataset.connectionId)} />
 
 </template>
