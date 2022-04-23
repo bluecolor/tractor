@@ -52,7 +52,9 @@ func (s *Service) UpdateExtraction(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&extraction); err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 	}
-	if err := s.repo.Save(&extraction).Error; err != nil {
+	if err := s.repo.
+		Session(&gorm.Session{FullSaveAssociations: true}).
+		Updates(&extraction).Error; err != nil {
 		utils.ErrorWithJSON(w, http.StatusInternalServerError, err)
 	}
 	utils.RespondwithJSON(w, http.StatusOK, extraction)

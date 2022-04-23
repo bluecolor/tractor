@@ -10,23 +10,23 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 	"github.com/bluecolor/tractor/pkg/utils"
+	"github.com/rs/zerolog/log"
 	"go.beyondstorage.io/v5/pairs"
 )
 
-func (f *JsonFormat) Work(filename string, d types.Dataset, w *wire.Wire, wi int) (err error) {
+func (f *JsonFormat) readAll(filename string) (string, error) {
 	var buf bytes.Buffer
 	var contentstr string
 	var content []map[string]interface{}
 	size, offset := int64(1000), int64(0) // todo size from .env
 	rest := []byte{}
 	var readBytes int64 = -1
-	bw := wire.NewBuffered(w, d.GetBufferSize())
-
 	for {
 		if readBytes != 0 {
-			readBytes, err = f.storage.Read(filename, &buf, pairs.WithOffset(offset), pairs.WithSize(size))
+			readBytes, err := f.storage.Read(filename, &buf, pairs.WithOffset(offset), pairs.WithSize(size))
 			if err != nil {
-				return err
+				log.Error().Err(err).Msg("read file error " + filename)
+				return "", err
 			}
 			offset += readBytes
 			contentstr = contentstr + buf.String()
@@ -36,6 +36,23 @@ func (f *JsonFormat) Work(filename string, d types.Dataset, w *wire.Wire, wi int
 			break
 		}
 	}
+	if err := json.Unmarshal([]byte(contentstr), &content); err != nil {
+		log.Error().Err(err).Msg("content unmarshal error " + filename)
+		return "", err
+	}
+	return contentstr, nil
+}
+
+func (f *JsonFormat) Work(filename string, d types.Dataset, w *wire.Wire, wi int) (err error) {
+	var contentstr string
+	var content []map[string]interface{}
+	bw := wire.NewBuffered(w, d.GetBufferSize())
+
+	contentstr, err = f.readAll(filename)
+	if err != nil {
+		return err
+	}
+
 	if err := json.Unmarshal([]byte(contentstr), &content); err != nil {
 		return err
 	}

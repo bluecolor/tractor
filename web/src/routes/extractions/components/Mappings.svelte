@@ -130,30 +130,31 @@
               div(slot="button")
                 MoreIcon.icon-btn()
       tbody
-        +each('extraction.sourceDataset.fields as s, i')
-          tr(class="last:border-b-0  hover:bg-blue-50")
-            td
-              input.input(placeholder="Source column", bind:value='{s.name}')
-            td
-              span.text-gray-600
-                | {s.type}
-            td
-              input.input(placeholder="Target column", bind:value='{extraction.targetDataset.fields[i].name}')
-            td
-              select.cursor-pointer()
-                option(value="string") string
-                option(value="integer") integer
-                option(value="float") float
-                option(value="boolean") boolean
-                option(value="date") date
-            td
-              div.flex.justify-end.items-center
-                <span class="cursor-pointer" on:click='{() => onDeleteMapping(i)}'>
-                  GreaterThanIcon(class="fill-current text-gray-200 hover:text-blue-500")
-                </span>
-                <span class="cursor-pointer" on:click='{() => onDeleteMapping(i)}'>
-                  TrashIcon(class="trash")
-                </span>
+        +if('extraction.sourceDataset?.fields')
+          +each('extraction.sourceDataset.fields as s, i')
+            tr(class="last:border-b-0  hover:bg-blue-50")
+              td
+                input.input(placeholder="Source column", bind:value='{s.name}')
+              td
+                span.text-gray-600
+                  | {s.type}
+              td
+                input.input(placeholder="Target column", bind:value='{extraction.targetDataset.fields[i].name}')
+              td
+                select.cursor-pointer()
+                  option(value="string") string
+                  option(value="integer") integer
+                  option(value="float") float
+                  option(value="boolean") boolean
+                  option(value="date") date
+              td
+                div.flex.justify-end.items-center
+                  <span class="cursor-pointer" on:click='{() => onDeleteMapping(i)}'>
+                    GreaterThanIcon(class="fill-current text-gray-200 hover:text-blue-500")
+                  </span>
+                  <span class="cursor-pointer" on:click='{() => onDeleteMapping(i)}'>
+                    TrashIcon(class="trash")
+                  </span>
 
 </template>
 

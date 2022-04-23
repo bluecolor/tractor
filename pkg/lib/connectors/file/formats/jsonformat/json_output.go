@@ -1,7 +1,9 @@
 package jsonformat
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/bluecolor/tractor/pkg/lib/esync"
 	"github.com/bluecolor/tractor/pkg/lib/msg"
@@ -22,21 +24,56 @@ func generateFileNames(filename string, parallel int) []string {
 	return fileNames
 }
 
-func (f *JsonFormat) write(filename string, data []msg.Record, d types.Dataset, wi int) (err error) {
-	// todo
+func (f *JsonFormat) write(filename string, data []msg.Record, d types.Dataset, wi int, output *[]map[string]interface{}) (err error) {
+	// todo convert to correct types
+	for _, r := range data {
+		record := map[string]interface{}{}
+		for i, field := range d.GetFields() {
+			keys := strings.Split(field.Name, ".")
+			if len(keys) == 1 {
+				record[field.Name] = string(r[i].([]byte))
+			} else {
+				tmp := record
+				for k, key := range keys {
+					if _, ok := record[key]; !ok {
+						tmp[key] = map[string]interface{}{}
+					}
+					if k == len(keys)-1 {
+						tmp[key] = string(r[i].([]byte))
+					} else {
+						tmp = tmp[key].(map[string]interface{})
+					}
+				}
+			}
+		}
+		*output = append(*output, record)
+	}
 	return
+}
+func (f *JsonFormat) persist(filename string, output []map[string]interface{}) error {
+	f.storage.Create(filename)
+	ob, err := json.Marshal(output)
+	if err != nil {
+		return err
+	}
+	outstr := string(ob)
+	_, err = f.storage.Write(filename, strings.NewReader(string(outstr)), int64(len(outstr)))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // todo add batch size, buffer
 // todo add timeout
 func (f *JsonFormat) StartWriteWorker(filename string, d types.Dataset, w *wire.Wire, wi int) (err error) {
-	f.storage.Create(filename)
+	output := []map[string]interface{}{}
 	for {
 		data, ok := <-w.ReceiveData()
 		if !ok {
-			return nil
+			return f.persist(filename, output)
 		}
-		if err := f.write(filename, data, d, wi); err != nil {
+		if err := f.write(filename, data, d, wi, &output); err != nil {
 			return err
 		}
 		w.SendOutputProgress(data.Count())
@@ -44,7 +81,7 @@ func (f *JsonFormat) StartWriteWorker(filename string, d types.Dataset, w *wire.
 }
 func (f *JsonFormat) Write(d types.Dataset, w *wire.Wire) (err error) {
 	var parallel int = d.GetParallel()
-	files := generateFileNames(d.Config.GetString("file", "out.csv"), parallel)
+	files := generateFileNames(d.Config.GetString("path", "out.json"), parallel)
 	mwg := esync.NewWaitGroup(w, types.OutputConnector)
 	for i, file := range files {
 		mwg.Add(1)

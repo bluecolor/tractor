@@ -4,7 +4,6 @@
 	import { onMount } from 'svelte'
 	import { api } from '$lib/utils'
 	import Collapse from '@components/Collapse.svelte'
-	let name = ''
 	let connections = []
 	let extraction = {}
 	onMount(async () => {
@@ -35,11 +34,11 @@
   .w-full.flex.flex-col.pt-4.mb-4
     .flex.justify-between.items-center
       .title
-        | New Extraction {extraction.name}
+        | New Extraction {extraction.name || ''}
     .bg-white.mt-4.rounded-md.flex.flex-col
       .toolbar.flex.justify-between.pt-4.px-4.mb-4.items-center
         .name.flex-1.mr-4
-          input.input(placeholder="Name", type="text", bind:value='{name}')
+          input.input(placeholder="Name", type="text", bind:value='{extraction.name}')
         .actions
           button.btn(on:click='{onSave}') Save
       Collapse(title="Configuration", open='{true}')

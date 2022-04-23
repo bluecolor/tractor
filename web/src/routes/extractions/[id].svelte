@@ -34,9 +34,10 @@
 		)
 	})
 	function onSave() {
+		console.log(extraction)
 		api('PUT', `extractions/${extraction.id}`, extraction).then(async (response) => {
 			if (response.ok) {
-				let extraction = await response.json()
+				alert('Saved extraction')
 			} else {
 				let errm = await response.text()
 				alert('Failed to save extraction\n' + errm)
