@@ -3,7 +3,7 @@
 	export let connection = null
 	export let dataset = null
 	dataset.config = dataset.config || {}
-	$: if (dataset?.config?.path) {
+	$: if (dataset?.config?.path && !dataset.name) {
 		dataset.name = dataset.config.path.split('/').pop()
 	}
 </script>

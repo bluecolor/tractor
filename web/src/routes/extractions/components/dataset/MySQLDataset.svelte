@@ -11,7 +11,7 @@
 	let editTable = false
 	dataset.config = dataset.config || {}
 
-	$: {
+	$: if (!dataset.name) {
 		dataset.name = `${dataset.config.database}.${dataset.config.table}`
 	}
 

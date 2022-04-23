@@ -34,7 +34,6 @@
 		)
 	})
 	function onSave() {
-		console.log(extraction)
 		api('PUT', `extractions/${extraction.id}`, extraction).then(async (response) => {
 			if (response.ok) {
 				alert('Saved extraction')

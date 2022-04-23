@@ -30,7 +30,7 @@
 	async function onLoad(params) {
 		let url = 'sessions?' + new URLSearchParams(params)
 		console.log(url)
-		const response = await api('GET', 'sessions')
+		const response = await api('GET', url)
 		if (!response.ok) {
 			const result = await response.json()
 			alert(result.error)
@@ -152,7 +152,7 @@
       .bg-white.mt-4.p-2.rounded-md
         .form-item
           label(for="extractions") Extraction
-          select(name='extractions', value='{filters.extraction}')
+          select(name='extractions', bind:value='{filters.extraction}')
             +each('extractions as e')
               option(value='{e.id}') {e.name}
         .form-item

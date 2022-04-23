@@ -1,27 +1,19 @@
 <script>
-	import { onMount } from 'svelte';
-	import { api } from '$lib/utils';
-	import _ from 'lodash';
-	export let state = {};
-	state = _.extend(state, {
-		provider: {
-			code: ''
-		},
-		format: {
-			code: ''
-		}
-	});
+	import { onMount } from 'svelte'
+	import { api } from '$lib/utils'
+	import _ from 'lodash'
+	export let state = null
 
-	let providers = [];
+	let providers = []
 	onMount(async () => {
-		const response = await api('GET', `connections/providers`);
-		providers = await response.json();
-	});
+		const response = await api('GET', `connections/providers`)
+		providers = await response.json()
+	})
 
 	const fileFormats = [
 		{ name: 'CSV', code: 'csv' },
 		{ name: 'JSON', code: 'json' }
-	];
+	]
 </script>
 
 <template lang="pug">
