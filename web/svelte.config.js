@@ -1,8 +1,8 @@
 // import adapter from '@sveltejs/adapter-auto';
-import sveltePreprocess from 'svelte-preprocess';
-import svg from '@poppanator/sveltekit-svg';
-import adapter from '@sveltejs/adapter-static';
-import path from 'path';
+import sveltePreprocess from 'svelte-preprocess'
+import svg from '@poppanator/sveltekit-svg'
+import adapter from '@sveltejs/adapter-static'
+import path from 'path'
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -29,20 +29,17 @@ const config = {
 					includePaths: ['./src/assets/icons/'],
 					svgoOptions: {
 						multipass: true,
-						plugins: [
-							'preset-default',
-							{ name: 'removeAttrs', params: { attrs: '(fill|stroke)' } }
-						]
+						plugins: ['preset-default', { name: 'removeAttrs', params: { attrs: '(fill|stroke)' } }]
 					}
 				})
 			]
 		}
 	},
 	preprocess: sveltePreprocess({
-		pug: true,
 		scss: true,
-		postcss: true
+		postcss: true,
+		pug: true
 	})
-};
+}
 
-export default config;
+export default config

@@ -4,7 +4,7 @@
 	import TrashIcon from '@icons/trash.svg'
 	import InfoIcon from '@icons/info.svg'
 	import { onMount } from 'svelte'
-	import { api, wsendpoint } from '$lib/utils'
+	import { api, wsendpoint, Alert, Toast } from '$lib/utils'
 	import Pagination from '@components/Pagination.svelte'
 
 	let page = {}
@@ -89,18 +89,28 @@
 		})
 	}
 	function onDeleteSession(id) {
-		let ok = confirm('Are you sure you want to delete this session? ')
-		if (ok) {
+		Alert.fire({
+			title: 'Confirm',
+			text: 'Do you want to continue?',
+			confirmButtonText: 'Yes'
+		}).then(async ({ isConfirmed }) => {
+			if (!isConfirmed) {
+				return
+			}
 			api('DELETE', 'sessions/' + id).then((response) => {
 				if (response.ok) {
 					sessions = sessions.filter((s) => s.id !== id)
+					Toast.fire({
+						icon: 'success',
+						title: 'Deleted session'
+					})
 				} else {
 					response.text().then((text) => {
 						alert('Failed to delete session\n' + text)
 					})
 				}
 			})
-		}
+		})
 	}
 	function formatDate(d) {
 		return new Date(d).toLocaleString()
@@ -149,7 +159,7 @@
           FilterIcon(class="icon-btn")
         </span>
     +if('filtersOpen')
-      .bg-white.mt-4.p-2.rounded-md
+      .bg-white.mt-4.p-2.rounded-md.shadow-sm
         .form-item
           label(for="extractions") Extraction
           select(name='extractions', bind:value='{filters.extraction}')
@@ -168,7 +178,7 @@
           <button class="btn danger" on:click="{() => onClearFilters()}">Clear </button>
 
 
-    .bg-white.mt-4.p-2.rounded-md
+    .bg-white.mt-4.p-2.rounded-md.shadow-md
       table.min-w-full
         thead
           tr

@@ -186,7 +186,7 @@
         a.action(href="/extractions/new")
           button.btn Add
     +if('filtersOpen')
-      .bg-white.mt-4.p-2.rounded-md
+      .bg-white.mt-4.p-2.rounded-md.shadow-sm
         .flex.items-center.gap-x-2
           .form-item.w-full
             label(for="source") Source connection
@@ -203,7 +203,7 @@
           <button class="btn" on:click="{() => onLoad({page:0, ...filters})}"> Apply </button>
           <button class="btn danger" on:click="{() => onClearFilters()}">Clear </button>
 
-    .bg-white.mt-4.p-2.rounded-md
+    .bg-white.mt-4.p-2.rounded-md.shadow-md
       #statuslog.hidden.relative
         .bubble(role="tooltip")
           | {sessionLog}
