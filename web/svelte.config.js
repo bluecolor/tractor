@@ -21,7 +21,8 @@ const config = {
 					// these are the aliases and paths to them
 					'@components': path.resolve('./src/components'),
 					'@lib': path.resolve('./src/lib'),
-					'@icons': path.resolve('./src/assets/icons')
+					'@icons': path.resolve('./src/assets/icons'),
+					'@stores': path.resolve('./src/stores')
 				}
 			},
 			plugins: [

@@ -1,4 +1,5 @@
 import Swal from 'sweetalert2/dist/sweetalert2.js'
+import { globalStatus } from '@stores'
 
 const endpoint = (path) => {
 	return `http://localhost:3000/api/v1/${path}`
@@ -67,4 +68,21 @@ const Toast = Swal.mixin({
 	}
 })
 
-export { endpoint, wsendpoint, api, clickOutside, Alert, Toast }
+const GlobalStatus = {
+	open(text, type) {
+		globalStatus.set({
+			open: true,
+			text,
+			type
+		})
+	},
+	close() {
+		globalStatus.set({
+			open: false,
+			text: '',
+			type: ''
+		})
+	}
+}
+
+export { endpoint, wsendpoint, api, clickOutside, Alert, Toast, GlobalStatus }
