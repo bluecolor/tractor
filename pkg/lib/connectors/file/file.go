@@ -4,6 +4,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/connectors"
 	"github.com/bluecolor/tractor/pkg/lib/connectors/file/formats"
 	_ "github.com/bluecolor/tractor/pkg/lib/connectors/file/formats/all"
+	"github.com/bluecolor/tractor/pkg/lib/connectors/file/storage"
 	"go.beyondstorage.io/v5/types"
 )
 
@@ -30,7 +31,7 @@ func New(config connectors.ConnectorConfig) (*FileConnector, error) {
 }
 
 func (f *FileConnector) Connect() error {
-	storage, err := getStorage(f.Config.Provider)
+	storage, err := storage.GetStorage(f.Config.Provider)
 	if err != nil {
 		return err
 	}

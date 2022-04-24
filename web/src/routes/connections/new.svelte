@@ -1,81 +1,80 @@
 <script>
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
-	import { endpoint, api } from '$lib/utils';
-	import FileConnection from './components/FileConnection.svelte';
-	import MySQLConnection from './components/MySQLConnection.svelte';
-	let loading = false;
+	import { page } from '$app/stores'
+	import { goto } from '$app/navigation'
+	import { onMount } from 'svelte'
+	import { endpoint, api } from '$lib/utils'
+	import FileConnection from './components/FileConnection.svelte'
+	import MySQLConnection from './components/MySQLConnection.svelte'
+	let loading = false
 	let connection = {
 		config: {}
-	};
-	let connectionTypes = [];
-	let connectionTypeId = undefined;
-	let connectionTypeCode = undefined;
+	}
+	let connectionTypes = []
+	let connectionTypeId = undefined
+	let connectionTypeCode = undefined
 	onMount(async () => {
-		const [ctypes] = await Promise.all([fetch(endpoint('connections/types'))]);
-		connectionTypes = await ctypes.json();
-	});
+		const [ctypes] = await Promise.all([fetch(endpoint('connections/types'))])
+		connectionTypes = await ctypes.json()
+	})
 	const components = {
 		file: FileConnection,
 		mysql: MySQLConnection
-	};
+	}
 
 	$: connection = {
 		...connection
-	};
+	}
 
 	function onConnectionTypeChange(e) {
-		connectionTypeId = e.target.value;
-		connectionTypeCode = connectionTypes.find((c) => c.id == connectionTypeId).code;
+		connectionTypeId = e.target.value
+		connectionTypeCode = connectionTypes.find((c) => c.id == connectionTypeId).code
 	}
 	function onSubmit(e) {
-		let method = 'POST';
-		let resource = 'connections';
-		loading = true;
-		console.log(connection);
+		let method = 'POST'
+		let resource = 'connections'
+		loading = true
 		api(method, resource, connection)
 			.then((response) => {
 				if (response.ok) {
-					goto('/connections');
-					alert('Connection saved');
+					goto('/connections')
+					alert('Connection saved')
 				} else {
 					response.text().then((text) => {
-						alert('Error saving connection\n' + text);
-					});
+						alert('Error saving connection\n' + text)
+					})
 				}
 			})
 			.finally(() => {
-				loading = false;
-			});
+				loading = false
+			})
 	}
 	function onTest() {
-		loading = true;
+		loading = true
 		api('POST', 'connections/test', connection)
 			.then((response) => {
 				if (response.ok) {
-					alert('Connection test successful');
+					alert('Connection test successful')
 				} else {
 					response.json().then((json) => {
-						alert('Connection test failed\n' + json.message);
-					});
+						alert('Connection test failed\n' + json.message)
+					})
 				}
 			})
 			.catch((error) => {
-				alert(error.message);
+				alert(error.message)
 			})
 			.finally(() => {
-				loading = false;
-			});
+				loading = false
+			})
 	}
 </script>
 
 <template lang="pug">
-  .w-full.h-full.flex.flex-col.pt-4
+  .w-full.h-full.flex.flex-col.pt-4.mb-4
     .flex.justify-between.items-center
       .title
         | New Connection
-    .bg-white.mt-4.p-2.rounded-md.flex.items-center.justify-center
+    .bg-white.mt-4.p-2.rounded-md.flex.items-center.justify-center.shadow-md
       form(action='#' method='POST' class="w-2/3" on:submit|preventDefault='{onSubmit}')
         .px-4.py-5.bg-white(class='sm:p-6')
           .flex.flex-col
