@@ -1,5 +1,5 @@
 import Swal from 'sweetalert2/dist/sweetalert2.js'
-import { globalStatus } from '@stores'
+import { globalStatus, loading } from '@stores'
 
 const endpoint = (path) => {
 	return `http://localhost:3000/api/v1/${path}`
@@ -85,4 +85,13 @@ const GlobalStatus = {
 	}
 }
 
-export { endpoint, wsendpoint, api, clickOutside, Alert, Toast, GlobalStatus }
+const PageLoader = {
+	show() {
+		loading.set(true)
+	},
+	hide() {
+		loading.set(false)
+	}
+}
+
+export { endpoint, wsendpoint, api, clickOutside, Alert, Toast, GlobalStatus, PageLoader }

@@ -4,15 +4,24 @@
 	import '../assets/css/app.css'
 	import '../assets/scss/index.scss'
 	import 'sweetalert2/src/sweetalert2.scss'
+	import { loading } from '@stores'
+	import PageLoading from '@components/PageLoading.svelte'
+
+	let isLoading = false
+	loading.subscribe((value) => {
+		isLoading = value
+	})
 </script>
 
-<Navbar />
-<GlobalStatus />
-<div class="main-layout flex justify-center">
-	<div class="main-layout-content flex w-3/5">
-		<slot />
-	</div>
-</div>
+<template lang="pug">
+Navbar
+GlobalStatus
+div(class="{isLoading ? '' : 'hidden'}")
+  PageLoading
+.main-layout.flex.justify-center
+  .main-layout-content.flex(class="{'w-3/5 ' + (isLoading ? 'hidden' : '')}")
+    slot
+</template>
 
 <style>
 	.main-layout {

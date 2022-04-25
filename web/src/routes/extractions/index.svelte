@@ -4,7 +4,7 @@
 	import FilterIcon from '@icons/filter.svg'
 	import Dropdown from '@components/Dropdown.svelte'
 	import { onMount } from 'svelte'
-	import { api, wsendpoint } from '$lib/utils'
+	import { api, wsendpoint, PageLoader } from '$lib/utils'
 	import { session } from '$app/stores'
 	import Pagination from '@components/Pagination.svelte'
 	import _ from 'lodash'
@@ -46,8 +46,10 @@
 		onLoad()
 	}
 	async function onLoad(params) {
+		// PageLoader.show()
 		let url = 'extractions?' + new URLSearchParams(params)
 		let result = await api('GET', url)
+		// PageLoader.hide()
 		if (!result.ok) {
 			let error = await result.json()
 			alert(error.error)

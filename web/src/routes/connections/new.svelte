@@ -88,7 +88,7 @@
                 +each('connectionTypes as ct')
                   option(value='{ct.id}'  selected='{ct.id === connection.connectionTypeId}' ) {ct.name}
             +if('connectionTypeCode !== undefined')
-              <svelte:component this={components[connectionTypeCode]} state={connection.config} />
+              <svelte:component this={components[connectionTypeCode]} bind:state={connection.config} />
 
         .py-3.text-right.space-x-4(class='sm:px-6')
           button.btn.warning(on:click|preventDefault='{onTest}' disabled='{loading}') {loading ? 'Testing...' : 'Test Connection'}

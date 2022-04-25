@@ -5,3 +5,5 @@ export const globalStatus = writable({
 	text: 'Error',
 	type: 'error'
 })
+
+export const loading = writable(false)

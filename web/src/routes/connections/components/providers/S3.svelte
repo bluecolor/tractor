@@ -10,9 +10,6 @@
   label(for='bucket') Bucket
   input.input.mt-1(type='text' name='bucket' bind:value='{config.bucket}')
 .form-item
-  label(for='workdir') Working Directory
-  input.input.mt-1(type='text' name='workdir' bind:value='{config.workdir}')
-.form-item
   label(for='location') Location
   input.input.mt-1(type='text' name='workdir' bind:value='{config.location}')
 .form-item

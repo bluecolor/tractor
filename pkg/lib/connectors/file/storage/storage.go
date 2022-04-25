@@ -10,7 +10,10 @@ import (
 
 func GetStorage(provider map[string]interface{}) (types.Storager, error) {
 	code := provider["code"].(string)
-	config := provider["config"].(map[string]interface{})
+	var config map[string]interface{}
+	if provider["config"] != nil {
+		config = provider["config"].(map[string]interface{})
+	}
 	switch code {
 	case "fs":
 		return getFSStorage(config)

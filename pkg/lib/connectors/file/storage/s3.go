@@ -9,12 +9,9 @@ import (
 func getS3Storage(config map[string]interface{}) (types.Storager, error) {
 	params := []types.Pair{}
 
-	credential := config["accessKey"].(string) + ":" + config["secretAccessKey"].(string)
+	credential := "hmac:" + config["accessKeyId"].(string) + ":" + config["secretAccessKeyId"].(string)
 	params = append(params, pairs.WithCredential(credential))
 
-	if config["workdir"] != nil {
-		params = append(params, pairs.WithWorkDir(config["workdir"].(string)))
-	}
 	if config["endpoint"] != nil {
 		params = append(params, pairs.WithEndpoint(config["endpoint"].(string)))
 	}

@@ -71,7 +71,7 @@
     .flex.justify-between.items-center
       .title
         | Connection: {connection?.name}
-    .bg-white.mt-4.p-2.rounded-md.flex.items-center.justify-center
+    .bg-white.mt-4.p-2.rounded-md.flex.items-center.justify-center.shadow-md.mb-4
       form(action='#' method='POST' class="w-2/3" on:submit|preventDefault='{onSubmit}')
         .px-4.py-5.bg-white(class='sm:p-6')
           .flex.flex-col
