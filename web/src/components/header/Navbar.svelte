@@ -1,11 +1,11 @@
 <script>
-	import Tractor from '@icons/tractor.svg';
-	import './navbar.css';
+	import Tractor from '@icons/tractor.svg'
+	import './navbar.css'
 </script>
 
 <template lang="pug">
 
-nav.nav-top.bg-white.border-b
+nav.nav-top.bg-white.shadow-sm
   .max-w-full.mx-auto
     .flex.items-center.justify-center.h-12
       .justify-between.flex.items-center(class='w-3/5')

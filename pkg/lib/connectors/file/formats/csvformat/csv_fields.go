@@ -12,10 +12,14 @@ import (
 func (f *CsvFormat) ReadFields(options map[string]interface{}) ([]string, error) {
 	var buf bytes.Buffer
 	var lines []string
+	var delimiter string = ","
+	var readBytes int64 = -1
+
 	size, offset := int64(100000), int64(0)
 	files := options["files"].([]string)
-	delimiter := options["delimiter"].(string)
-	var readBytes int64 = -1
+	if options["delimiter"] != nil {
+		delimiter = options["delimiter"].(string)
+	}
 
 	if readBytes != 0 {
 		readBytes, err := f.storage.Read(files[0], &buf, pairs.WithOffset(offset), pairs.WithSize(size))

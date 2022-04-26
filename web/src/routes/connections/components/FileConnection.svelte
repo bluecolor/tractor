@@ -2,7 +2,19 @@
 	import { onMount } from 'svelte'
 	import { api } from '$lib/utils'
 	import _ from 'lodash'
+	import S3 from './providers/S3.svelte'
+
 	export let state = null
+
+	let components = {
+		s3: S3
+	}
+
+	state = {
+		provider: { code: 's3', config: {} },
+		format: { code: 'csv' },
+		...(state || {})
+	}
 
 	let providers = []
 	onMount(async () => {
@@ -18,13 +30,18 @@
 
 <template lang="pug">
   .form-item
-    label(for='file-provider') Provider
-    select#file-provider(aria-label='provider' bind:value='{state.provider.code}')
-      +each('providers as p')
-        option(value='{p.code}' selected='{p.code === state?.provider?.code}') {p.name}
-  .form-item
     label(for='file-format') Format
     select#file-format(aria-label='file format' bind:value='{state.format.code}')
       +each('fileFormats as ff')
         option(value='{ff.code}' selected='{ff.code === state?.format}') {ff.name}
+  .form-item
+    label(for='file-provider') Provider
+    select#file-provider(aria-label='provider' bind:value='{state.provider.code}')
+      +each('providers as p')
+        option(value='{p.code}' selected='{p.code === state?.provider?.code}') {p.name}
+
+  +if('components[state?.provider?.code]')
+    <svelte:component this={components[state?.provider?.code]} bind:config={state.provider.config} />
+
+
 </template>

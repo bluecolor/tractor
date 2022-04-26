@@ -19,11 +19,9 @@ func (f *JsonFormat) readAll(filename string) (string, error) {
 	var contentstr string
 	var content []map[string]interface{}
 	size, offset := int64(1000), int64(0) // todo size from .env
-	rest := []byte{}
-	var readBytes int64 = -1
 	for {
+		readBytes, err := f.storage.Read(filename, &buf, pairs.WithOffset(offset), pairs.WithSize(size))
 		if readBytes != 0 {
-			readBytes, err := f.storage.Read(filename, &buf, pairs.WithOffset(offset), pairs.WithSize(size))
 			if err != nil {
 				log.Error().Err(err).Msg("read file error " + filename)
 				return "", err
@@ -32,7 +30,7 @@ func (f *JsonFormat) readAll(filename string) (string, error) {
 			contentstr = contentstr + buf.String()
 			buf = bytes.Buffer{}
 		}
-		if readBytes == 0 && len(rest) == 0 {
+		if readBytes == 0 {
 			break
 		}
 	}
@@ -47,9 +45,9 @@ func (f *JsonFormat) Work(filename string, d types.Dataset, w *wire.Wire, wi int
 	var contentstr string
 	var content []map[string]interface{}
 	bw := wire.NewBuffered(w, d.GetBufferSize())
-
 	contentstr, err = f.readAll(filename)
 	if err != nil {
+		log.Error().Err(err).Msg("read file error " + filename)
 		return err
 	}
 

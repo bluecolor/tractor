@@ -1,48 +1,48 @@
 <script>
-	import Trash from '@icons/trash.svg';
-	import { onMount } from 'svelte';
-	import { api } from '$lib/utils';
-	import Pagination from '@components/Pagination.svelte';
-	import _ from 'lodash';
+	import Trash from '@icons/trash.svg'
+	import { onMount } from 'svelte'
+	import { api } from '$lib/utils'
+	import Pagination from '@components/Pagination.svelte'
+	import _ from 'lodash'
 
-	let connections = [];
-	let page = {};
+	let connections = []
+	let page = {}
 	export let filters = {
 		q: ''
-	};
+	}
 
 	onMount(async () => {
-		onLoad();
-	});
+		onLoad()
+	})
 	async function onLoad(params) {
-		let url = 'connections?' + new URLSearchParams(params);
-		let result = await api('GET', url);
+		let url = 'connections?' + new URLSearchParams(params)
+		let result = await api('GET', url)
 		if (!result.ok) {
-			let error = await result.json();
-			alert(error.error);
-			return;
+			let error = await result.json()
+			alert(error.error)
+			return
 		}
-		page = await result.json();
-		connections = page.items;
+		page = await result.json()
+		connections = page.items
 	}
 	function onSearch() {
 		_.debounce(async () => {
-			onLoad(filters);
-		}, 500)();
+			onLoad(filters)
+		}, 500)()
 	}
 	function onDeleteConnection(id) {
-		let connection = connections.find((connection) => connection.id === id);
-		let ok = confirm('Are you sure you want to delete this connection? ' + connection.name);
+		let connection = connections.find((connection) => connection.id === id)
+		let ok = confirm('Are you sure you want to delete this connection? ' + connection.name)
 		if (ok) {
 			api('DELETE', 'connections/' + id).then((response) => {
 				if (response.ok) {
-					connections = connections.filter((connection) => connection.id !== id);
+					connections = connections.filter((connection) => connection.id !== id)
 				} else {
 					response.text().then((text) => {
-						alert('Failed to delete connection\n' + text);
-					});
+						alert('Failed to delete connection\n' + text)
+					})
 				}
-			});
+			})
 		}
 	}
 </script>
@@ -58,7 +58,7 @@
         a.action(href="/connections/new")
           button.btn Add
 
-    .bg-white.mt-4.p-2.rounded-md
+    .bg-white.mt-4.p-2.rounded-md.shadow-md
       table.min-w-full
         thead
           tr

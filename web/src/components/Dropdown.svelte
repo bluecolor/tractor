@@ -1,19 +1,19 @@
 <script>
-	import { createEventDispatcher } from 'svelte';
-	import { clickOutside } from '$lib/utils';
+	import { createEventDispatcher } from 'svelte'
+	import { clickOutside } from '$lib/utils'
 
-	const dispatch = createEventDispatcher();
+	const dispatch = createEventDispatcher()
 
-	export let label = 'Options';
-	export let options = [];
+	export let label = 'Options'
+	export let options = []
 
-	let isOpen = false;
+	let isOpen = false
 	function toggle() {
-		isOpen = !isOpen;
+		isOpen = !isOpen
 	}
 	function onSelect(item) {
-		isOpen = false;
-		dispatch('select', item);
+		isOpen = false
+		dispatch('select', item)
 	}
 </script>
 

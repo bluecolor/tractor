@@ -22,14 +22,14 @@ func (f *CsvFormat) Work(filename string, d types.Dataset, w *wire.Wire, wi int)
 	var readBytes int64 = -1
 	bw := wire.NewBuffered(w, d.GetBufferSize())
 	for {
+		readBytes, err = f.storage.Read(filename, &buf, pairs.WithOffset(offset), pairs.WithSize(size))
 		if readBytes != 0 {
-			readBytes, err = f.storage.Read(filename, &buf, pairs.WithOffset(offset), pairs.WithSize(size))
 			offset += readBytes
 			if err != nil {
 				return err
 			}
 		}
-		if readBytes == 0 && len(rest) == 0 {
+		if readBytes == 0 {
 			break
 		}
 		if len(rest) > 0 {

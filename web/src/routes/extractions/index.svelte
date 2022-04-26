@@ -4,7 +4,7 @@
 	import FilterIcon from '@icons/filter.svg'
 	import Dropdown from '@components/Dropdown.svelte'
 	import { onMount } from 'svelte'
-	import { api, wsendpoint } from '$lib/utils'
+	import { api, wsendpoint, PageLoader } from '$lib/utils'
 	import { session } from '$app/stores'
 	import Pagination from '@components/Pagination.svelte'
 	import _ from 'lodash'
@@ -46,8 +46,10 @@
 		onLoad()
 	}
 	async function onLoad(params) {
+		// PageLoader.show()
 		let url = 'extractions?' + new URLSearchParams(params)
 		let result = await api('GET', url)
+		// PageLoader.hide()
 		if (!result.ok) {
 			let error = await result.json()
 			alert(error.error)
@@ -186,7 +188,7 @@
         a.action(href="/extractions/new")
           button.btn Add
     +if('filtersOpen')
-      .bg-white.mt-4.p-2.rounded-md
+      .bg-white.mt-4.p-2.rounded-md.shadow-sm
         .flex.items-center.gap-x-2
           .form-item.w-full
             label(for="source") Source connection
@@ -203,7 +205,7 @@
           <button class="btn" on:click="{() => onLoad({page:0, ...filters})}"> Apply </button>
           <button class="btn danger" on:click="{() => onClearFilters()}">Clear </button>
 
-    .bg-white.mt-4.p-2.rounded-md
+    .bg-white.mt-4.p-2.rounded-md.shadow-md
       #statuslog.hidden.relative
         .bubble(role="tooltip")
           | {sessionLog}
