@@ -12,7 +12,9 @@
 	dataset.config = dataset.config || {}
 
 	$: {
-		dataset.name = `${dataset.config.database}.${dataset.config.table}`
+		if (!dataset.name) {
+			dataset.name = `${dataset.config.database}.${dataset.config.table}`
+		}
 	}
 
 	onMount(async () => {
