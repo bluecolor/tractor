@@ -2,122 +2,111 @@ package wire
 
 import (
 	"github.com/bluecolor/tractor/pkg/lib/msg"
+	"github.com/bluecolor/tractor/pkg/lib/pairs"
+	"github.com/bluecolor/tractor/pkg/lib/types"
 	"github.com/rs/zerolog/log"
 )
 
-type Wire struct {
-	data  chan msg.Data
-	feeds chan *msg.Feed
+type Wire interface {
+	Close()
+	CloseData()
+	CloseFeeds()
+	Send(message interface{}, args ...types.Pair)
+	SendData(data interface{}, args ...types.Pair)
+	ReceiveData() <-chan msg.Data
+	SendFeed(feed msg.Feed)
+	ReceiveFeed() <-chan msg.Feed
+	SendSuccess(sender types.Sender)
+	SendError(sender types.Sender, err error)
+	SendProgress(types.Sender, int)
+	SendInputProgress(progress int)
+	SendOutputProgress(progress int)
+	SendInputSuccess()
+	SendInputError(err error)
+	SendOutputSuccess()
+	SendOutputError(err error)
 }
 
-func New() *Wire {
-	return &Wire{
+type wire struct {
+	data  chan msg.Data
+	feeds chan msg.Feed
+}
+
+func New() Wire {
+	return &wire{
 		data:  make(chan msg.Data, 1000),
-		feeds: make(chan *msg.Feed, 100),
+		feeds: make(chan msg.Feed, 100),
 	}
 }
-
-func (w *Wire) Close() {
+func (w *wire) Close() {
 	w.CloseData()
 	w.CloseFeeds()
 }
-func (w *Wire) CloseFeeds() {
+func (w *wire) CloseFeeds() {
 	close(w.feeds)
 }
-func (w *Wire) CloseData() {
+func (w *wire) CloseData() {
 	log.Debug().Msg("closing data channel....")
 	close(w.data)
 	log.Debug().Msg("data channel closed")
 }
-func (w *Wire) SendData(data interface{}, args ...interface{}) {
-	var sendProgress bool = true
-	if len(args) > 0 {
-		sendProgress = args[0].(bool)
+func (w *wire) Send(m interface{}, args ...types.Pair) {
+	switch m.(type) {
+	case msg.Data, msg.Record:
+		w.SendData(m, args...)
+	case msg.Feed:
+		w.SendFeed(m.(msg.Feed))
 	}
+}
+func (w *wire) SendData(data interface{}, args ...types.Pair) {
 	message := msg.NewData(data)
 	w.data <- message
-	if sendProgress {
-		w.SendInputProgress(message.Count())
+	if pairs.GetOr(pairs.SendProgress, true, args...) {
+		w.SendProgress(types.InputConnector, message.Count())
 	}
 }
-func (w *Wire) ReceiveData() <-chan msg.Data {
+func (w *wire) ReceiveData() <-chan msg.Data {
 	return w.data
 }
-func (w *Wire) SendFeed(feed *msg.Feed) {
+func (w *wire) SendFeed(feed msg.Feed) {
 	w.feeds <- feed
 }
-func (w *Wire) ReceiveFeedback() <-chan *msg.Feed {
+func (w *wire) ReceiveFeed() <-chan msg.Feed {
 	return w.feeds
 }
-func (w *Wire) SendSuccess(sender msg.Sender, args ...interface{}) {
-	w.feeds <- msg.NewSuccess(sender, args)
+func (w *wire) SendSuccess(sender types.Sender) {
+	w.feeds <- msg.NewStatusFeed(sender, types.Success)
 }
-func (w *Wire) SendProgress(sender msg.Sender, count int) {
-	w.feeds <- msg.NewProgress(sender, count)
+func (w *wire) SendError(sender types.Sender, err error) {
+	w.feeds <- msg.NewStatusFeed(sender, types.Success, err)
 }
-func (w *Wire) SendError(sender msg.Sender, err error) {
-	w.feeds <- msg.NewError(sender, err)
+func (w *wire) SendProgress(sender types.Sender, count int) {
+	w.feeds <- msg.NewProgressFeed(sender, count)
 }
-func (w *Wire) SendInfo(sender msg.Sender, content interface{}) {
-	w.feeds <- msg.NewInfo(sender, content)
+func (w *wire) SendInputProgress(progress int) {
+	w.SendProgress(types.InputConnector, progress)
 }
-func (w *Wire) SendWarning(sender msg.Sender, content interface{}) {
-	w.feeds <- msg.NewWarning(sender, content)
+func (w *wire) SendOutputProgress(progress int) {
+	w.SendProgress(types.OutputConnector, progress)
 }
-func (w *Wire) SendDebug(sender msg.Sender, content interface{}) {
-	w.feeds <- msg.NewDebug(sender, content)
+func (w *wire) SendInputSuccess() {
+	w.SendSuccess(types.InputConnector)
 }
-func (w *Wire) SendInputProgress(progress int) {
-	w.SendProgress(msg.InputConnector, progress)
+func (w *wire) SendInputError(err error) {
+	w.SendError(types.InputConnector, err)
 }
-func (w *Wire) SendInputSuccess(args ...interface{}) {
-	w.SendSuccess(msg.InputConnector, args...)
+func (w *wire) SendOutputSuccess() {
+	w.SendSuccess(types.OutputConnector)
 }
-func (w *Wire) SendInputError(err error) {
-	w.SendError(msg.InputConnector, err)
+func (w *wire) SendOutputError(err error) {
+	w.SendError(types.OutputConnector, err)
 }
-func (w *Wire) SendInputInfo(content interface{}) {
-	w.SendInfo(msg.InputConnector, content)
+func (w *wire) SendDone(s types.Sender) {
+	w.feeds <- msg.NewStatusFeed(s, types.Done)
 }
-func (w *Wire) SendInputWarning(content interface{}) {
-	w.SendWarning(msg.InputConnector, content)
+func (w *wire) SendInputDone() {
+	w.SendDone(types.InputConnector)
 }
-func (w *Wire) SendInputDebug(content interface{}) {
-	w.SendDebug(msg.InputConnector, content)
-}
-func (w *Wire) SendOutputProgress(progress int) {
-	w.SendProgress(msg.OutputConnector, progress)
-}
-func (w *Wire) SendOutputSuccess(args ...interface{}) {
-	w.SendSuccess(msg.OutputConnector, args...)
-}
-func (w *Wire) SendOutputError(err error) {
-	w.SendError(msg.OutputConnector, err)
-}
-func (w *Wire) SendOutputInfo(content interface{}) {
-	w.SendInfo(msg.OutputConnector, content)
-}
-func (w *Wire) SendOutputWarning(content interface{}) {
-	w.SendWarning(msg.OutputConnector, content)
-}
-func (w *Wire) SendOutputDebug(content interface{}) {
-	w.SendDebug(msg.OutputConnector, content)
-}
-func (w *Wire) SendCancelled(sender msg.Sender, args ...interface{}) {
-	w.feeds <- msg.NewCancelled(sender, args)
-}
-func (w *Wire) SendInputCancelled(args ...interface{}) {
-	w.SendCancelled(msg.InputConnector, args...)
-}
-func (w *Wire) SendOutputCancelled(args ...interface{}) {
-	w.SendCancelled(msg.OutputConnector, args...)
-}
-func (w *Wire) SendDone(sender msg.Sender, args ...interface{}) {
-	w.feeds <- msg.NewDone(sender, args)
-}
-func (w *Wire) SendInputDone(args ...interface{}) {
-	w.SendDone(msg.InputConnector, args...)
-}
-func (w *Wire) SendOutputDone(args ...interface{}) {
-	w.SendDone(msg.OutputConnector, args...)
+func (w *wire) SendOutputDone() {
+	w.SendDone(types.OutputConnector)
 }

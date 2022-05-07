@@ -8,7 +8,7 @@ import (
 	"github.com/bluecolor/tractor/pkg/lib/wire"
 )
 
-func (c *DummyConnector) StartReadWorker(channel <-chan interface{}, w *wire.Wire) (err error) {
+func (c *DummyConnector) StartReadWorker(channel <-chan interface{}, w wire.Wire) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)

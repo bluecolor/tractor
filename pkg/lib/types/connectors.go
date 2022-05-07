@@ -3,16 +3,16 @@ package types
 type ConnectorType int
 
 const (
-	InputConnector ConnectorType = iota
-	OutputConnector
+	Input ConnectorType = iota
+	Output
 )
 
 func (c ConnectorType) String() string {
 	switch c {
-	case InputConnector:
-		return "InputConnector"
-	case OutputConnector:
-		return "OutputConnector"
+	case Input:
+		return "Input"
+	case Output:
+		return "Output"
 	}
 	return ""
 }
